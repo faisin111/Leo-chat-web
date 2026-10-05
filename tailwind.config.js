@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -7,11 +8,23 @@ export default {
   theme: {
     extend: {
       colors: {
+        white: 'var(--bg-main)',
+        gray: {
+          50: 'var(--bg-muted)',
+          100: 'var(--bg-subtle)',
+          200: 'var(--border-main)',
+          300: 'var(--border-main)',
+          400: 'var(--text-subtle)',
+          500: 'var(--text-muted)',
+          600: 'var(--text-muted)',
+          700: 'var(--text-main)',
+          900: 'var(--text-main)',
+        },
         brand: {
           50: '#eef2ff',
           100: '#e0e7ff',
-          500: '#6366f1', // Primary Indigo
-          600: '#4f46e5', // Primary Hover
+          500: '#6366f1',
+          600: '#4f46e5',
           900: '#312e81',
         },
         surface: {
@@ -39,11 +52,6 @@ export default {
       },
       screens: {
         'xs': '475px',
-        // sm: 640px (default)
-        // md: 768px (default) - Tablet
-        // lg: 1024px (default) - Desktop
-        // xl: 1280px (default) - Large Desktop
-        // 2xl: 1536px (default)
       }
     },
   },

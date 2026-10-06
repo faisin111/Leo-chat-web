@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { lazy } from 'react';
 import AppRoot from '../layouts/AppRoot';
 import AuthLayout from '../layouts/AuthLayout';
 import AppShell from '../layouts/AppShell';
@@ -10,11 +11,90 @@ import { RequireGuest } from './guards/RequireGuest';
 import { RequireRole } from './guards/RequireRole';
 import { PasswordChangeGate } from './guards/PasswordChangeGate';
 
-// Lazy loading all pages
-const lazyLoad = (path: string, namedExport: string) => async () => {
-  const module = await import(/* @vite-ignore */ `../../pages/${path}.tsx`);
-  return { Component: module[namedExport] };
-};
+// Static lazy imports — Vite can tree-shake and bundle these correctly
+const LandingPage = lazy(() =>
+  import('../../pages/landing/LandingPage').then((m) => ({ default: m.LandingPage })),
+);
+const LoginPage = lazy(() =>
+  import('../../pages/auth/LoginPage').then((m) => ({ default: m.LoginPage })),
+);
+const RegisterPage = lazy(() =>
+  import('../../pages/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })),
+);
+const ForgotPasswordPage = lazy(() =>
+  import('../../pages/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })),
+);
+const ResetPasswordPage = lazy(() =>
+  import('../../pages/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })),
+);
+const VerifyEmailPage = lazy(() =>
+  import('../../pages/auth/VerifyEmailPage').then((m) => ({ default: m.VerifyEmailPage })),
+);
+const ChangePasswordRequiredPage = lazy(() =>
+  import('../../pages/auth/ChangePasswordRequiredPage').then((m) => ({
+    default: m.ChangePasswordRequiredPage,
+  })),
+);
+const ChatHomePage = lazy(() =>
+  import('../../pages/chat/ChatHomePage').then((m) => ({ default: m.ChatHomePage })),
+);
+const ConversationPage = lazy(() =>
+  import('../../pages/chat/ConversationPage').then((m) => ({ default: m.ConversationPage })),
+);
+const NewChatPage = lazy(() =>
+  import('../../pages/chat/NewChatPage').then((m) => ({ default: m.NewChatPage })),
+);
+const NewGroupPage = lazy(() =>
+  import('../../pages/chat/NewGroupPage').then((m) => ({ default: m.NewGroupPage })),
+);
+const PeoplePage = lazy(() =>
+  import('../../pages/chat/PeoplePage').then((m) => ({ default: m.PeoplePage })),
+);
+const ProfilePage = lazy(() =>
+  import('../../pages/settings/ProfilePage').then((m) => ({ default: m.ProfilePage })),
+);
+const SecurityPage = lazy(() =>
+  import('../../pages/settings/SecurityPage').then((m) => ({ default: m.SecurityPage })),
+);
+const SessionsPage = lazy(() =>
+  import('../../pages/settings/SessionsPage').then((m) => ({ default: m.SessionsPage })),
+);
+const BlockedUsersPage = lazy(() =>
+  import('../../pages/settings/BlockedUsersPage').then((m) => ({ default: m.BlockedUsersPage })),
+);
+const AppearancePage = lazy(() =>
+  import('../../pages/settings/AppearancePage').then((m) => ({ default: m.AppearancePage })),
+);
+const DashboardPage = lazy(() =>
+  import('../../pages/admin/DashboardPage').then((m) => ({ default: m.DashboardPage })),
+);
+const UsersPage = lazy(() =>
+  import('../../pages/admin/UsersPage').then((m) => ({ default: m.UsersPage })),
+);
+const UserDetailPage = lazy(() =>
+  import('../../pages/admin/UserDetailPage').then((m) => ({ default: m.UserDetailPage })),
+);
+const ReportsPage = lazy(() =>
+  import('../../pages/admin/ReportsPage').then((m) => ({ default: m.ReportsPage })),
+);
+const ReportDetailPage = lazy(() =>
+  import('../../pages/admin/ReportDetailPage').then((m) => ({ default: m.ReportDetailPage })),
+);
+const ConversationsPage = lazy(() =>
+  import('../../pages/admin/ConversationsPage').then((m) => ({ default: m.ConversationsPage })),
+);
+const AuditLogsPage = lazy(() =>
+  import('../../pages/admin/AuditLogsPage').then((m) => ({ default: m.AuditLogsPage })),
+);
+const OwnershipPage = lazy(() =>
+  import('../../pages/admin/OwnershipPage').then((m) => ({ default: m.OwnershipPage })),
+);
+const ForbiddenPage = lazy(() =>
+  import('../../pages/system/ForbiddenPage').then((m) => ({ default: m.ForbiddenPage })),
+);
+const NotFoundPage = lazy(() =>
+  import('../../pages/system/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
+);
 
 export const router = createBrowserRouter([
   {
@@ -22,7 +102,7 @@ export const router = createBrowserRouter([
     children: [
       {
         path: '/',
-        lazy: lazyLoad('landing/LandingPage', 'LandingPage'),
+        element: <LandingPage />,
       },
       {
         element: <RequireGuest />,
@@ -30,12 +110,9 @@ export const router = createBrowserRouter([
           {
             element: <AuthLayout />,
             children: [
-              { path: '/login', lazy: lazyLoad('auth/LoginPage', 'LoginPage') },
-              { path: '/register', lazy: lazyLoad('auth/RegisterPage', 'RegisterPage') },
-              {
-                path: '/forgot-password',
-                lazy: lazyLoad('auth/ForgotPasswordPage', 'ForgotPasswordPage'),
-              },
+              { path: '/login', element: <LoginPage /> },
+              { path: '/register', element: <RegisterPage /> },
+              { path: '/forgot-password', element: <ForgotPasswordPage /> },
             ],
           },
         ],
@@ -43,11 +120,8 @@ export const router = createBrowserRouter([
       {
         element: <AuthLayout />,
         children: [
-          {
-            path: '/reset-password',
-            lazy: lazyLoad('auth/ResetPasswordPage', 'ResetPasswordPage'),
-          },
-          { path: '/verify-email', lazy: lazyLoad('auth/VerifyEmailPage', 'VerifyEmailPage') },
+          { path: '/reset-password', element: <ResetPasswordPage /> },
+          { path: '/verify-email', element: <VerifyEmailPage /> },
         ],
       },
       {
@@ -56,10 +130,7 @@ export const router = createBrowserRouter([
           {
             element: <AuthLayout />,
             children: [
-              {
-                path: '/change-password-required',
-                lazy: lazyLoad('auth/ChangePasswordRequiredPage', 'ChangePasswordRequiredPage'),
-              },
+              { path: '/change-password-required', element: <ChangePasswordRequiredPage /> },
             ],
           },
           {
@@ -72,32 +143,23 @@ export const router = createBrowserRouter([
                   {
                     element: <ChatLayout />,
                     children: [
-                      { index: true, lazy: lazyLoad('chat/ChatHomePage', 'ChatHomePage') },
-                      {
-                        path: 'c/:conversationId',
-                        lazy: lazyLoad('chat/ConversationPage', 'ConversationPage'),
-                      },
+                      { index: true, element: <ChatHomePage /> },
+                      { path: 'c/:conversationId', element: <ConversationPage /> },
                     ],
                   },
-                  { path: 'new', lazy: lazyLoad('chat/NewChatPage', 'NewChatPage') },
-                  { path: 'new-group', lazy: lazyLoad('chat/NewGroupPage', 'NewGroupPage') },
-                  { path: 'people', lazy: lazyLoad('chat/PeoplePage', 'PeoplePage') },
+                  { path: 'new', element: <NewChatPage /> },
+                  { path: 'new-group', element: <NewGroupPage /> },
+                  { path: 'people', element: <PeoplePage /> },
                   {
                     path: 'settings',
                     element: <SettingsLayout />,
                     children: [
                       { index: true, element: <Navigate to="profile" replace /> },
-                      { path: 'profile', lazy: lazyLoad('settings/ProfilePage', 'ProfilePage') },
-                      { path: 'security', lazy: lazyLoad('settings/SecurityPage', 'SecurityPage') },
-                      { path: 'sessions', lazy: lazyLoad('settings/SessionsPage', 'SessionsPage') },
-                      {
-                        path: 'blocked',
-                        lazy: lazyLoad('settings/BlockedUsersPage', 'BlockedUsersPage'),
-                      },
-                      {
-                        path: 'appearance',
-                        lazy: lazyLoad('settings/AppearancePage', 'AppearancePage'),
-                      },
+                      { path: 'profile', element: <ProfilePage /> },
+                      { path: 'security', element: <SecurityPage /> },
+                      { path: 'sessions', element: <SessionsPage /> },
+                      { path: 'blocked', element: <BlockedUsersPage /> },
+                      { path: 'appearance', element: <AppearancePage /> },
                     ],
                   },
                 ],
@@ -109,26 +171,14 @@ export const router = createBrowserRouter([
                   {
                     element: <AdminLayout />,
                     children: [
-                      { index: true, lazy: lazyLoad('admin/DashboardPage', 'DashboardPage') },
-                      { path: 'users', lazy: lazyLoad('admin/UsersPage', 'UsersPage') },
-                      {
-                        path: 'users/:id',
-                        lazy: lazyLoad('admin/UserDetailPage', 'UserDetailPage'),
-                      },
-                      { path: 'reports', lazy: lazyLoad('admin/ReportsPage', 'ReportsPage') },
-                      {
-                        path: 'reports/:id',
-                        lazy: lazyLoad('admin/ReportDetailPage', 'ReportDetailPage'),
-                      },
-                      {
-                        path: 'conversations',
-                        lazy: lazyLoad('admin/ConversationsPage', 'ConversationsPage'),
-                      },
-                      {
-                        path: 'audit-logs',
-                        lazy: lazyLoad('admin/AuditLogsPage', 'AuditLogsPage'),
-                      },
-                      { path: 'ownership', lazy: lazyLoad('admin/OwnershipPage', 'OwnershipPage') },
+                      { index: true, element: <DashboardPage /> },
+                      { path: 'users', element: <UsersPage /> },
+                      { path: 'users/:id', element: <UserDetailPage /> },
+                      { path: 'reports', element: <ReportsPage /> },
+                      { path: 'reports/:id', element: <ReportDetailPage /> },
+                      { path: 'conversations', element: <ConversationsPage /> },
+                      { path: 'audit-logs', element: <AuditLogsPage /> },
+                      { path: 'ownership', element: <OwnershipPage /> },
                     ],
                   },
                 ],
@@ -137,14 +187,8 @@ export const router = createBrowserRouter([
           },
         ],
       },
-      {
-        path: '/403',
-        lazy: lazyLoad('system/ForbiddenPage', 'ForbiddenPage'),
-      },
-      {
-        path: '*',
-        lazy: lazyLoad('system/NotFoundPage', 'NotFoundPage'),
-      },
+      { path: '/403', element: <ForbiddenPage /> },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ]);

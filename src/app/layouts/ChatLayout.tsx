@@ -1,8 +1,16 @@
 import { AnimatedOutlet } from './AnimatedOutlet';
-import { Search, PenSquare, Hash } from 'lucide-react';
+import { Search, PenSquare, Hash, Loader2 } from 'lucide-react';
 import { Input } from '@/shared/ui/input';
+import { useConversations } from '@/features/chat/api/use-conversations';
+import { formatDistanceToNow } from 'date-fns';
+import { Link, useLocation } from 'react-router-dom';
 
 export default function ChatLayout() {
+  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useConversations();
+  const location = useLocation();
+
+  const conversations = data?.pages.flatMap((page) => page.items) || [];
+
   return (
     <div className="flex h-full w-full bg-slate-50">
       {/* Messages Sidebar */}
@@ -11,7 +19,7 @@ export default function ChatLayout() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-xl font-bold">Messages</h2>
-              <p className="text-xs text-green-600 font-medium">● 8 people online</p>
+              <p className="text-xs text-green-600 font-medium">● Online</p>
             </div>
             <button className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors">
               <PenSquare className="w-4 h-4" />
@@ -21,37 +29,28 @@ export default function ChatLayout() {
           <div className="relative mb-6">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input className="pl-9 bg-slate-100/50 border-none rounded-full h-10" placeholder="Search conversations" />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-1 text-slate-400 text-[10px] font-bold">
-              <span className="px-1.5 py-0.5 rounded bg-slate-200">⌘</span>
-              <span className="px-1.5 py-0.5 rounded bg-slate-200">K</span>
-            </div>
           </div>
 
           <div className="flex items-center space-x-2 mb-6 text-xs font-semibold">
-            <button className="px-4 py-1.5 rounded-full bg-slate-900 text-white">All 12</button>
-            <button className="px-4 py-1.5 rounded-full text-slate-500 hover:bg-slate-100">Unread 7</button>
+            <button className="px-4 py-1.5 rounded-full bg-slate-900 text-white">All</button>
+            <button className="px-4 py-1.5 rounded-full text-slate-500 hover:bg-slate-100">Unread</button>
             <button className="px-4 py-1.5 rounded-full text-slate-500 hover:bg-slate-100">Groups</button>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
-            <div className="mb-6">
+          <div className="flex-1 overflow-y-auto pr-2 pb-4 space-y-6">
+            {/* Pinned - keeping mock for now as API might not support pinning yet */}
+            <div>
               <p className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">Pinned</p>
               <div className="space-y-1">
                 <ChatItem 
+                  id="mock-1"
                   initials="PR" 
                   name="Product room" 
                   message="Maya: Updated the launch checklist" 
-                  time="10:45" 
+                  time="10:45 AM" 
                   badge="3"
-                  active 
+                  active={location.pathname.includes('mock-1')} 
                   color="bg-purple-100 text-purple-700" 
-                />
-                <ChatItem 
-                  initials="MC" 
-                  name="Maya Chen" 
-                  message="Typing..." 
-                  time="10:44" 
-                  color="bg-green-100 text-green-700" 
                 />
               </div>
             </div>
@@ -59,52 +58,62 @@ export default function ChatLayout() {
             <div>
               <p className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">Recent</p>
               <div className="space-y-1">
-                <ChatItem 
-                  initials="JL" 
-                  name="Jamie Lee" 
-                  message="Shared: research-notes.pdf" 
-                  time="9:28" 
-                  badge="1"
-                  color="bg-yellow-100 text-yellow-700" 
-                />
-                <ChatItem 
-                  initials="DE" 
-                  name="Design critique" 
-                  message="Nina: Love the quieter hierarchy" 
-                  time="Yesterday" 
-                  badge="3"
-                  color="bg-indigo-100 text-indigo-700" 
-                />
-                <ChatItem 
-                  initials="NK" 
-                  name="Nina Kapoor" 
-                  message="You: Let's sync tomorrow" 
-                  time="Yesterday" 
-                  color="bg-pink-100 text-pink-700" 
-                />
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
+                  </div>
+                ) : conversations.length === 0 ? (
+                  <p className="text-sm text-slate-500 text-center py-4">No conversations found.</p>
+                ) : (
+                  conversations.map((conv) => (
+                    <ChatItem
+                      key={conv.id}
+                      id={conv.id}
+                      initials={(conv.title || 'U').substring(0, 2).toUpperCase()}
+                      name={conv.title || 'Unknown User'}
+                      message={conv.type === 'GROUP' ? 'Group conversation' : 'Direct message'}
+                      time={conv.lastMessageAt ? formatDistanceToNow(new Date(conv.lastMessageAt), { addSuffix: true }) : 'New'}
+                      active={location.pathname === `/app/c/${conv.id}`}
+                      color="bg-slate-100 text-slate-700"
+                    />
+                  ))
+                )}
+                
+                {hasNextPage && (
+                  <button 
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                    className="w-full py-3 text-xs font-semibold text-primary hover:bg-primary/5 rounded-xl transition-colors mt-2"
+                  >
+                    {isFetchingNextPage ? 'Loading...' : 'Load more'}
+                  </button>
+                )}
               </div>
             </div>
           </div>
           
-          <div className="mt-4 pt-4 border-t border-slate-100">
+          <div className="mt-2 pt-4 border-t border-slate-100">
             <button className="flex items-center text-xs text-slate-500 hover:text-slate-900 font-medium w-full">
               <Hash className="w-4 h-4 mr-2" />
-              Archived conversations (4)
+              Archived conversations
             </button>
           </div>
         </div>
       </aside>
       
-      <main className="flex-1 bg-white relative flex flex-col">
+      <main className="flex-1 bg-white relative flex flex-col min-w-0">
         <AnimatedOutlet />
       </main>
     </div>
   );
 }
 
-function ChatItem({ initials, name, message, time, badge, active = false, color = 'bg-slate-100 text-slate-700' }: any) {
+function ChatItem({ id, initials, name, message, time, badge, active = false, color = 'bg-slate-100 text-slate-700' }: any) {
   return (
-    <button className={`w-full flex items-start text-left p-3 rounded-2xl transition-colors ${active ? 'bg-primary/5' : 'hover:bg-slate-50'}`}>
+    <Link 
+      to={`/app/c/${id}`}
+      className={`w-full flex items-start text-left p-3 rounded-2xl transition-colors ${active ? 'bg-primary/5' : 'hover:bg-slate-50'}`}
+    >
       <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 mr-3 ${color}`}>
         {initials}
       </div>
@@ -120,6 +129,6 @@ function ChatItem({ initials, name, message, time, badge, active = false, color 
           {badge}
         </div>
       )}
-    </button>
+    </Link>
   );
 }

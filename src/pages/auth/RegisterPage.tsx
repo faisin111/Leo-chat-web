@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
-import { Zap, Users, Shield, RefreshCcw } from 'lucide-react';
+import { MessageSquare, Zap, Users, Shield, RefreshCcw } from 'lucide-react';
 
 export const RegisterPage = () => {
   return (
@@ -12,7 +12,7 @@ export const RegisterPage = () => {
         <div className="flex items-center justify-between w-full mb-12 lg:mb-24">
           <div className="flex items-center space-x-2 font-bold text-xl text-primary">
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-              L
+              <MessageSquare className="w-4 h-4" fill="currentColor" />
             </div>
             <span>LeoChat</span>
           </div>

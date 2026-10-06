@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
+import { MessageSquare } from 'lucide-react';
 
 export const LoginPage = () => {
   return (
@@ -15,7 +16,7 @@ export const LoginPage = () => {
 
         <div className="relative z-10 flex items-center space-x-2 font-bold text-xl text-primary">
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-            L
+            <MessageSquare className="w-4 h-4" fill="currentColor" />
           </div>
           <span>LeoChat</span>
         </div>
@@ -51,7 +52,7 @@ export const LoginPage = () => {
         <div className="w-full max-w-[400px]">
           <div className="lg:hidden flex items-center space-x-2 font-bold text-xl text-primary mb-12">
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-              L
+              <MessageSquare className="w-4 h-4" fill="currentColor" />
             </div>
             <span>LeoChat</span>
           </div>

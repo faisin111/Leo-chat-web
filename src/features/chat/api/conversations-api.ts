@@ -31,4 +31,9 @@ export const conversationsApi = {
     const response = await http.get(`/conversations?${params.toString()}`);
     return response.data;
   },
+  
+  startDirectMessage: async (targetUserId: string): Promise<Conversation> => {
+    const response = await http.post('/conversations/direct', { targetUserId });
+    return response.data;
+  },
 };

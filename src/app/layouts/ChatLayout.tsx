@@ -21,9 +21,9 @@ export default function ChatLayout() {
               <h2 className="text-xl font-bold">Messages</h2>
               <p className="text-xs text-green-600 font-medium">● Online</p>
             </div>
-            <button className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors">
+            <Link to="/app/new" className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors">
               <PenSquare className="w-4 h-4" />
-            </button>
+            </Link>
           </div>
 
           <div className="relative mb-6">

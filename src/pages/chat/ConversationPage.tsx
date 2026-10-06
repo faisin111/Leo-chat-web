@@ -12,7 +12,12 @@ export const ConversationPage = () => {
 
   const handleSend = () => {
     if (!content.trim() || !conversationId) return;
-    sendMessage.mutate({ content: content.trim() }, {
+    
+    sendMessage.mutate({ 
+      content: content.trim(),
+      type: 'TEXT',
+      clientMessageId: crypto.randomUUID()
+    }, {
       onSuccess: () => {
         setContent('');
       }

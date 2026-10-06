@@ -3,7 +3,18 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { MessageSquare, Zap, Users, Shield, RefreshCcw, Loader2 } from 'lucide-react';
+import {
+  MessageSquare,
+  Zap,
+  Users,
+  Shield,
+  RefreshCcw,
+  Loader2,
+  AtSign,
+  User,
+  Mail,
+  Lock,
+} from 'lucide-react';
 
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -13,13 +24,20 @@ import { authApi, registerSchema, type RegisterFormValues } from '@/features/aut
 
 const getPasswordStrength = (pass: string) => {
   let score = 0;
-  if (!pass) return 0;
-  if (pass.length > 0) score += 1;
   if (pass.length >= 8) score += 1;
-  if (/[A-Z]/.test(pass) && /[0-9]/.test(pass)) score += 1;
+  if (/[A-Z]/.test(pass)) score += 1;
+  if (/[0-9]/.test(pass)) score += 1;
   if (/[^A-Za-z0-9]/.test(pass)) score += 1;
-  return Math.min(score, 4);
+  return score;
 };
+
+const strengthConfig = [
+  { label: '', color: 'bg-border' },
+  { label: 'Weak — add uppercase, numbers & symbols', color: 'bg-red-500' },
+  { label: 'Fair — keep going', color: 'bg-orange-500' },
+  { label: 'Good — almost there', color: 'bg-yellow-500' },
+  { label: 'Strong — great password!', color: 'bg-green-500' },
+];
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
@@ -32,67 +50,53 @@ export const RegisterPage = () => {
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      firstName: '',
-      lastName: '',
+      username: '',
+      displayName: '',
       email: '',
       password: '',
       terms: false,
     },
   });
 
-  const password = watch('password');
+  const password = watch('password') ?? '';
   const terms = watch('terms');
-  const strength = getPasswordStrength(password || '');
+  const strength = getPasswordStrength(password);
+  const strengthInfo = strengthConfig[password.length === 0 ? 0 : strength];
 
   const mutation = useMutation({
     mutationFn: authApi.register,
     onSuccess: () => {
-      toast.success('Account created successfully! Please sign in.', {
-        style: { background: '#22c55e', color: 'white', border: 'none' },
-      });
+      toast.success('Account created! Please sign in.', { duration: 4000 });
       navigate('/login');
     },
     onError: (error) => {
       const apiError = toApiException(error);
-      toast.error(apiError.message || 'Registration failed', {
-        style: { background: '#ef4444', color: 'white', border: 'none' },
-      });
+      // Show field-level errors if returned by the API
+      const detail =
+        apiError.fieldErrors.length > 0
+          ? apiError.fieldErrors.map((e) => `${e.field}: ${e.message}`).join(' · ')
+          : apiError.message;
+      toast.error(detail || 'Registration failed. Please try again.');
     },
   });
 
-  const onSubmit = (data: RegisterFormValues) => {
-    mutation.mutate(data);
-  };
+  const onSubmit = (data: RegisterFormValues) => mutation.mutate(data);
 
-  const getStrengthColor = () => {
-    if (strength === 0) return 'bg-border';
-    if (strength === 1) return 'bg-red-500';
-    if (strength === 2) return 'bg-orange-500';
-    if (strength === 3) return 'bg-yellow-500';
-    return 'bg-green-500';
-  };
-
-  const getStrengthLabel = () => {
-    if (strength === 0) return 'Enter a password';
-    if (strength === 1) return 'Weak - Too short';
-    if (strength === 2) return 'Fair - Add numbers & uppercase';
-    if (strength === 3) return 'Good - Add symbols for strong';
-    return 'Strong - Excellent password';
-  };
+  const isDisabled = !terms || mutation.isPending;
 
   return (
     <div className="flex w-full flex-1 flex-col lg:flex-row h-full min-h-screen">
-      {/* Left side - Form */}
-      <div className="flex-1 flex flex-col p-8 lg:p-12 relative overflow-y-auto">
-        <div className="flex items-center justify-between w-full mb-12 lg:mb-24">
+      {/* ── Left: Form ── */}
+      <div className="flex-1 flex flex-col p-8 lg:p-12 overflow-y-auto">
+        <div className="flex items-center justify-between w-full mb-10 lg:mb-16">
           <div className="flex items-center space-x-2 font-bold text-xl text-primary">
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
               <MessageSquare className="w-4 h-4" fill="currentColor" />
             </div>
             <span>LeoChat</span>
           </div>
-          <div className="text-sm hidden sm:block">
-            <span className="text-muted-foreground mr-2">Already have an account?</span>
+          <div className="text-sm hidden sm:flex items-center gap-3">
+            <span className="text-muted-foreground">Already have an account?</span>
             <Button variant="outline" asChild>
               <Link to="/login">Sign in</Link>
             </Button>
@@ -100,107 +104,154 @@ export const RegisterPage = () => {
         </div>
 
         <div className="w-full max-w-[440px] mx-auto flex-1">
-          <h1 className="text-3xl font-bold mb-2">Create your account</h1>
-          <p className="text-muted-foreground mb-8">A calmer workspace is a few details away.</p>
+          <h1 className="text-3xl font-bold mb-1">Create your account</h1>
+          <p className="text-muted-foreground mb-8">Join LeoChat — it only takes a minute.</p>
 
-          <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
-            <div className="flex gap-4">
-              <div className="space-y-2 flex-1">
-                <Label htmlFor="firstName">First name</Label>
+          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+            {/* Username */}
+            <div className="space-y-1">
+              <Label htmlFor="username">Username</Label>
+              <div className="relative">
+                <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  id="firstName"
-                  placeholder="Alex"
-                  {...register('firstName')}
-                  className="h-12"
+                  id="username"
+                  placeholder="john_doe"
+                  className="h-12 pl-9"
+                  autoComplete="username"
+                  {...register('username')}
                 />
-                {errors.firstName && (
-                  <p className="text-xs text-red-500 mt-1">{errors.firstName.message}</p>
-                )}
               </div>
-              <div className="space-y-2 flex-1">
-                <Label htmlFor="lastName">Last name</Label>
-                <Input
-                  id="lastName"
-                  placeholder="Rivera"
-                  {...register('lastName')}
-                  className="h-12"
-                />
-                {errors.lastName && (
-                  <p className="text-xs text-red-500 mt-1">{errors.lastName.message}</p>
-                )}
-              </div>
+              {errors.username && <p className="text-xs text-red-500">{errors.username.message}</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email address</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="alex@northstar.design"
-                {...register('email')}
-                className="h-12"
-              />
-              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="At least 8 characters"
-                {...register('password')}
-                className="h-12"
-              />
-              {errors.password && (
-                <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
+            {/* Display Name */}
+            <div className="space-y-1">
+              <Label htmlFor="displayName">Display name</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  id="displayName"
+                  placeholder="John Doe"
+                  className="h-12 pl-9"
+                  autoComplete="name"
+                  {...register('displayName')}
+                />
+              </div>
+              {errors.displayName && (
+                <p className="text-xs text-red-500">{errors.displayName.message}</p>
               )}
+            </div>
 
-              {/* Password strength indicator with animation */}
-              <div className="flex gap-1 mt-2">
+            {/* Email */}
+            <div className="space-y-1">
+              <Label htmlFor="email">Email address</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="john@example.com"
+                  className="h-12 pl-9"
+                  autoComplete="email"
+                  {...register('email')}
+                />
+              </div>
+              {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+            </div>
+
+            {/* Password + strength meter */}
+            <div className="space-y-1">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Min 8 chars, uppercase, number, symbol"
+                  className="h-12 pl-9"
+                  autoComplete="new-password"
+                  {...register('password')}
+                />
+              </div>
+              {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
+
+              {/* Animated strength bar */}
+              <div className="flex gap-1 pt-1">
                 {[1, 2, 3, 4].map((level) => (
-                  <div key={level} className="h-1 flex-1 bg-border rounded-full overflow-hidden">
+                  <div key={level} className="h-1.5 flex-1 bg-border rounded-full overflow-hidden">
                     <div
-                      className={`h-full transition-all duration-700 ease-out ${getStrengthColor()}`}
-                      style={{ width: strength >= level ? '100%' : '0%' }}
-                    ></div>
+                      className={`h-full rounded-full transition-all duration-500 ease-out ${
+                        password.length > 0 && strength >= level
+                          ? (strengthConfig[strength]?.color ?? 'bg-border')
+                          : 'bg-transparent'
+                      }`}
+                      style={{ width: password.length > 0 && strength >= level ? '100%' : '0%' }}
+                    />
                   </div>
                 ))}
               </div>
-              <p
-                className={`text-xs font-medium mt-1 transition-colors duration-500 ${strength === 4 ? 'text-green-600' : 'text-muted-foreground'}`}
-              >
-                {getStrengthLabel()}
-              </p>
+              {password.length > 0 && strengthInfo && (
+                <p
+                  className={`text-xs font-medium transition-colors duration-300 ${
+                    strength === 4
+                      ? 'text-green-600'
+                      : strength === 3
+                        ? 'text-yellow-600'
+                        : 'text-muted-foreground'
+                  }`}
+                >
+                  {strengthInfo.label}
+                </p>
+              )}
             </div>
 
-            <div className="flex items-start mt-6 pt-2">
-              <input
-                type="checkbox"
-                id="terms"
-                className="mt-1 rounded border-input text-primary focus:ring-primary h-4 w-4"
-                {...register('terms')}
-              />
-              <Label
-                htmlFor="terms"
-                className="ml-2 font-normal cursor-pointer text-sm text-muted-foreground leading-relaxed"
-              >
-                I agree to LeoChat&apos;s Terms of Service and Privacy Policy, and confirm I&apos;m
-                at least 16 years old.
-              </Label>
+            {/* Terms */}
+            <div className="pt-2 space-y-1">
+              <div className="flex items-start gap-3">
+                <input
+                  id="terms"
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 rounded border-input text-primary focus:ring-primary shrink-0"
+                  {...register('terms')}
+                />
+                <Label
+                  htmlFor="terms"
+                  className="font-normal cursor-pointer text-sm text-muted-foreground leading-relaxed"
+                >
+                  I agree to LeoChat&apos;s{' '}
+                  <Link to="/" className="text-primary underline underline-offset-2">
+                    Terms of Service
+                  </Link>{' '}
+                  and{' '}
+                  <Link to="/" className="text-primary underline underline-offset-2">
+                    Privacy Policy
+                  </Link>
+                  , and confirm I&apos;m at least 16 years old.
+                </Label>
+              </div>
+              {errors.terms && <p className="text-xs text-red-500 pl-7">{errors.terms.message}</p>}
             </div>
-            {errors.terms && <p className="text-xs text-red-500 mt-1">{errors.terms.message}</p>}
 
+            {/* Submit */}
             <Button
-              className="w-full h-12 mt-6 transition-all duration-700 ease-in-out"
+              className={`w-full h-12 mt-2 font-semibold text-base transition-all duration-500 ${
+                isDisabled ? 'opacity-50 cursor-not-allowed' : 'opacity-100'
+              }`}
               type="submit"
-              disabled={!terms || mutation.isPending}
+              disabled={isDisabled}
             >
-              {mutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create account'}
+              {mutation.isPending ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Creating account…
+                </span>
+              ) : (
+                'Create account'
+              )}
             </Button>
           </form>
 
-          <div className="mt-12 text-center text-xs text-muted-foreground space-x-4">
+          <div className="mt-10 text-center text-xs text-muted-foreground space-x-4">
             <Link to="/" className="hover:text-foreground">
               Privacy
             </Link>
@@ -208,77 +259,64 @@ export const RegisterPage = () => {
               Terms
             </Link>
             <Link to="/" className="hover:text-foreground">
-              Help center
+              Help
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Right side - Features Panel */}
+      {/* ── Right: Feature panel ── */}
       <div className="hidden lg:flex flex-col justify-center w-[45%] bg-slate-900 text-white p-12 relative overflow-hidden">
-        {/* Background blobs */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/4"></div>
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/4" />
 
         <div className="relative z-10 max-w-md mx-auto">
-          <div className="inline-block px-2 py-1 bg-white/10 rounded text-[10px] font-bold uppercase tracking-widest mb-6 text-primary-foreground">
+          <div className="inline-block px-2 py-1 bg-white/10 rounded text-[10px] font-bold uppercase tracking-widest mb-6">
             Built for momentum
           </div>
-          <h2 className="text-4xl font-bold mb-12 leading-tight">
+          <h2 className="text-4xl font-bold mb-10 leading-tight">
             One workspace. Every conversation in context.
           </h2>
 
-          <div className="space-y-6">
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex gap-4 backdrop-blur-sm">
-              <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                <Zap className="w-5 h-5" />
+          <div className="space-y-4">
+            {[
+              {
+                icon: <Zap className="w-5 h-5" />,
+                title: 'Real-time by default',
+                desc: 'Messages, presence and typing updates arrive instantly.',
+              },
+              {
+                icon: <Users className="w-5 h-5" />,
+                title: 'Groups that stay clear',
+                desc: 'Keep roles, people and decisions easy to understand.',
+              },
+              {
+                icon: <Shield className="w-5 h-5" />,
+                title: 'Privacy you can see',
+                desc: 'Private content remains private—even from platform admins.',
+              },
+              {
+                icon: <RefreshCcw className="w-5 h-5" />,
+                title: 'Always in sync',
+                desc: 'Pick up any conversation from any signed-in device.',
+              },
+            ].map(({ icon, title, desc }) => (
+              <div
+                key={title}
+                className="bg-white/5 border border-white/10 rounded-xl p-4 flex gap-4 backdrop-blur-sm"
+              >
+                <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                  {icon}
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-0.5">{title}</h3>
+                  <p className="text-sm text-white/60">{desc}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold mb-1">Real-time by default</h3>
-                <p className="text-sm text-white/60">
-                  Messages, presence and typing updates arrive instantly.
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex gap-4 backdrop-blur-sm">
-              <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                <Users className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold mb-1">Groups that stay clear</h3>
-                <p className="text-sm text-white/60">
-                  Keep roles, people and decisions easy to understand.
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex gap-4 backdrop-blur-sm">
-              <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                <Shield className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold mb-1">Privacy you can see</h3>
-                <p className="text-sm text-white/60">
-                  Private content remains private—even from platform admins.
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex gap-4 backdrop-blur-sm">
-              <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                <RefreshCcw className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold mb-1">Always in sync</h3>
-                <p className="text-sm text-white/60">
-                  Pick up any conversation from any signed-in device.
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
 
-          <div className="mt-12 flex items-center gap-3">
+          <div className="mt-10 flex items-center gap-3">
             <div className="flex -space-x-2">
               <div className="w-8 h-8 rounded-full bg-purple-500 border-2 border-slate-900 flex items-center justify-center text-[10px] font-bold">
                 MC

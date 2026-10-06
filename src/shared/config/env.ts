@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 const schema = z.object({
-  VITE_API_BASE_URL: z.string().url(),
-  VITE_WS_URL: z.string().regex(/^wss?:\/\//),
+  VITE_API_BASE_URL: z.string(),
+  VITE_WS_URL: z.string(),
   VITE_APP_ENV: z.enum(['local', 'staging', 'prod']),
   VITE_SENTRY_DSN: z.string().optional(),
   VITE_MAX_UPLOAD_MB: z.coerce.number().default(10),

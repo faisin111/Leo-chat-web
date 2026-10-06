@@ -10,4 +10,17 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://leo-chat-backend.onrender.com',
+        changeOrigin: true,
+      },
+      '/ws': {
+        target: 'wss://leo-chat-backend.onrender.com',
+        ws: true,
+        changeOrigin: true,
+      },
+    },
+  },
 });

@@ -60,8 +60,8 @@
 | Forms                | **React Hook Form + Zod**                                                                                      | Performance, schema validation shared with types                                           |
 | HTTP                 | **Axios**                                                                                                      | Interceptors for token refresh                                                             |
 | Real-time            | **@stomp/stompjs** (native WebSocket)                                                                          | Matches Spring STOMP backend                                                               |
-| Styling              | **Tailwind CSS** + design tokens (CSS variables)                                                               | Consistency, fast iteration, dark mode                                                     |
-| Components           | **shadcn/ui (Radix primitives)** copied into `shared/ui`                                                       | Accessible, owned code, no heavy runtime lib                                               |
+| Styling              | **Full Tailwind CSS** + design tokens. **NO Bootstrap.**                                                       | Complete consistency, pure utility-first, modern architecture.                             |
+| Components           | **shadcn/ui (Radix primitives)** styled exclusively with Tailwind.                                             | Accessible, owned code, no heavy runtime lib.                                              |
 | Icons                | `lucide-react`                                                                                                 | Light, tree-shakeable                                                                      |
 | Long lists           | `@tanstack/react-virtual`                                                                                      | Smooth message lists                                                                       |
 | Dates                | `date-fns`                                                                                                     | Tree-shakeable; server sends UTC ISO, UI formats in local time                             |
@@ -184,7 +184,7 @@ chat-frontend/
 │   │   │   ├── AppProviders.tsx    composes all providers in the right order
 │   │   │   ├── QueryProvider.tsx   QueryClient + defaults + devtools (dev only)
 │   │   │   ├── ThemeProvider.tsx   light/dark/system
-│   │   │   ├── SessionBootstrap.tsx restores session on page load
+│   │   │   ├── SessionInitializer.tsx restores session on page load
 │   │   │   └── RealtimeProvider.tsx connects/disconnects with auth, wires handlers
 │   │   ├── router/
 │   │   │   ├── routes.tsx          route table (lazy pages)
@@ -640,7 +640,7 @@ export const useSession = create<SessionState>()((set) => ({
 
 ### 8.3 Flows
 
-**Bootstrap (page load):** `SessionBootstrap` calls `authSession.refresh()` → on success fetch `/users/me` → `authenticated`; on failure → `anonymous`. While `unknown`, guards render a spinner (prevents a flash of the login page).
+**Bootstrap (page load):** `SessionInitializer` calls `authSession.refresh()` → on success fetch `/users/me` → `authenticated`; on failure → `anonymous`. While `unknown`, guards render a spinner (prevents a flash of the login page).
 
 **Login:** `POST /auth/login` → store tokens → `GET /users/me` → navigate to `from` or `/app` (or to `/change-password-required` when `mustChangePassword`).
 
@@ -1122,12 +1122,12 @@ export function applyApiErrors<T extends FieldValues>(err: unknown, setError: Us
 
 Every data-driven view handles **four states** explicitly: loading, empty, error, success.
 
-| State   | Pattern                                                                                                             |
-| ------- | ------------------------------------------------------------------------------------------------------------------- |
-| Loading | Skeletons shaped like the final content (conversation rows, message bubbles). Spinner only for full-page bootstrap. |
-| Empty   | `EmptyState` with icon, one sentence, and a primary action ("Start a conversation").                                |
-| Error   | Inline `ErrorState` with a Retry button; shows `traceId` in a copyable detail.                                      |
-| Offline | `ConnectionBanner`; sends are queued, not lost.                                                                     |
+| State   | Pattern                                                                                                                |
+| ------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Loading | Skeletons shaped like the final content (conversation rows, message bubbles). Spinner only for full-page initial load. |
+| Empty   | `EmptyState` with icon, one sentence, and a primary action ("Start a conversation").                                   |
+| Error   | Inline `ErrorState` with a Retry button; shows `traceId` in a copyable detail.                                         |
+| Offline | `ConnectionBanner`; sends are queued, not lost.                                                                        |
 
 - **Error boundaries:** one at the app root, one per route (React Router `errorElement`), one around the message list. Report to Sentry with `traceId` and route; never include message content.
 - **Toasts** for transient results (saved, copied, action failed). **Dialogs** for confirmations. **Inline** messages for form errors.
@@ -1574,7 +1574,7 @@ You are a **senior React/TypeScript engineer**. Follow this file and `PROJECT_DO
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | Duplicate messages after reconnect                 | Idempotent `upsertMessage` by `id`; outbox retries reuse `clientMessageId`; dedupe live vs history |
 | Messages out of order                              | Always sort by `seq`; detect gaps and sync with `afterSeq`                                         |
-| Flash of login page on refresh                     | Session status `unknown` + `SessionBootstrap` + spinner in guards                                  |
+| Flash of login page on refresh                     | Session status `unknown` + `SessionInitializer` + spinner in guards                                |
 | Many `401`s cause refresh storms                   | Single-flight refresh promise in the HTTP client                                                   |
 | Socket uses an expired token after sleep/reconnect | `beforeConnect` fetches a fresh token via `getFreshToken`                                          |
 | Scroll jumps when loading older messages           | Preserve scroll offset when prepending; virtualized list with measured sizes                       |

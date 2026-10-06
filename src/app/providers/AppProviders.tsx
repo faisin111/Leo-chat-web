@@ -25,7 +25,22 @@ export function AppProviders({ children }: PropsWithChildren) {
   return (
     <QueryClientProvider client={queryClient}>
       <SessionBootstrap>{children}</SessionBootstrap>
-      <Toaster position="top-right" richColors />
+      <Toaster
+        position="top-right"
+        className="toaster group"
+        toastOptions={{
+          classNames: {
+            toast: 'group toast group-[.toaster]:shadow-lg group-[.toaster]:font-sans',
+            error:
+              'group-[.toaster]:bg-red-500 group-[.toaster]:text-white group-[.toaster]:border-red-600',
+            success:
+              'group-[.toaster]:bg-green-500 group-[.toaster]:text-white group-[.toaster]:border-green-600',
+            warning:
+              'group-[.toaster]:bg-amber-500 group-[.toaster]:text-white group-[.toaster]:border-amber-600',
+            info: 'group-[.toaster]:bg-blue-500 group-[.toaster]:text-white group-[.toaster]:border-blue-600',
+          },
+        }}
+      />
     </QueryClientProvider>
   );
 }

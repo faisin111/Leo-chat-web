@@ -1,8 +1,7 @@
 import { useSession } from '../store/session.store';
+import { http } from '@/shared/api/http-client';
 
-// A lightweight flag stored in sessionStorage to know whether the user
-// previously authenticated in this browser tab. On a fresh visit the flag
-// is absent, so we skip the /auth/refresh round-trip entirely.
+// Lightweight flag stored in sessionStorage to indicate if user previously authenticated.
 const SESSION_FLAG_KEY = 'lc_session';
 
 export const authSession = {
@@ -12,20 +11,21 @@ export const authSession = {
   /** Returns true if there may be a valid HttpOnly refresh-token cookie */
   mightBeActive: () => sessionStorage.getItem(SESSION_FLAG_KEY) === '1',
 
+  /** Refresh token using HttpOnly cookie; updates session store */
   refresh: async (): Promise<string> => {
-    const { http } = await import('@/shared/api/http-client');
-    // The HttpOnly cookie is sent automatically (withCredentials: true)
     const res = await http.post<{ accessToken: string }>('/auth/refresh');
     useSession.getState().setAccessToken(res.data.accessToken);
     return res.data.accessToken;
   },
 
+  /** Get current access token, throws if none */
   getFreshAccessToken: async (): Promise<string> => {
     const token = useSession.getState().accessToken;
     if (!token) throw new Error('No session');
     return token;
   },
 
+  /** Expire session: clear flag and store */
   expire: () => {
     sessionStorage.removeItem(SESSION_FLAG_KEY);
     useSession.getState().clear();

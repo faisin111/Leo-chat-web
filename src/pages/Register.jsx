@@ -129,8 +129,8 @@ export default function Register() {
                     <Icon className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-sm text-gray-200 mb-1">{feature.title}</h4>
-                    <p className="text-xs text-gray-400 leading-relaxed">{feature.desc}</p>
+                    <h4 className="font-medium text-sm text-white/90 mb-1">{feature.title}</h4>
+                    <p className="text-xs text-white/60 leading-relaxed">{feature.desc}</p>
                   </div>
                 </div>
               );
@@ -144,7 +144,7 @@ export default function Register() {
             <div className="w-8 h-8 rounded-full border-2 border-surface-dark bg-emerald-500 flex items-center justify-center text-xs font-medium">JL</div>
             <div className="w-8 h-8 rounded-full border-2 border-surface-dark bg-amber-500 flex items-center justify-center text-xs font-medium">NK</div>
           </div>
-          <span className="text-sm text-gray-400">Join 12,000+ focused teams</span>
+          <span className="text-sm text-white/60">Join 12,000+ focused teams</span>
         </div>
       </div>
     </div>

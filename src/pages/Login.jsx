@@ -21,17 +21,17 @@ export default function Login() {
         </div>
         
         <div className="relative z-10 max-w-lg">
-          <div className="text-4xl text-gray-500 font-serif mb-4">"</div>
+          <div className="text-4xl text-white/40 font-serif mb-4">"</div>
           <h2 className="text-3xl font-medium leading-tight mb-6">
             {AUTH_CONTENT.quote}
           </h2>
           <div>
             <p className="font-semibold text-sm">{AUTH_CONTENT.quoteAuthor}</p>
-            <p className="text-gray-400 text-xs">{AUTH_CONTENT.quoteRole}</p>
+            <p className="text-white/60 text-xs">{AUTH_CONTENT.quoteRole}</p>
           </div>
         </div>
         
-        <div className="relative z-10 text-xs text-gray-500">
+        <div className="relative z-10 text-xs text-white/50">
           Private by design • Synced everywhere
         </div>
       </div>

@@ -7,7 +7,7 @@ export default function AdminSettings() {
   return (
     <div className="flex-1 flex h-full">
       {/* Admin Sidebar */}
-      <div className="w-64 flex-shrink-0 flex flex-col bg-[#1c2233] text-gray-400 border-r border-[#111827]">
+      <div className="w-64 flex-shrink-0 flex flex-col bg-surface-dark/90 text-gray-400 border-r border-surface-dark">
         <div className="p-6 pb-2">
           <h2 className="text-xl font-semibold text-white mb-1">Admin console</h2>
           <p className="text-xs text-gray-400">Platform owner workspace</p>
@@ -51,7 +51,7 @@ export default function AdminSettings() {
         </div>
         
         <div className="p-4">
-          <div className="bg-[#111827] rounded-xl p-4 border border-white/5">
+          <div className="bg-surface-dark rounded-xl p-4 border border-white/5">
             <ShieldAlert className="w-5 h-5 text-indigo-400 mb-2" />
             <h4 className="text-sm font-semibold text-white mb-1">Privacy boundary</h4>
             <p className="text-xs text-gray-400 leading-relaxed">
@@ -95,7 +95,7 @@ export default function AdminSettings() {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Workspace URL</label>
                 <div className="flex">
                   <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-gray-200 bg-gray-50 text-gray-500 sm:text-sm">
-                    chatapp.com/
+                    leochat.com/
                   </span>
                   <input type="text" defaultValue="northstar" className="flex-1 block w-full rounded-none rounded-r-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 bg-gray-50 focus:bg-white transition-colors" />
                 </div>

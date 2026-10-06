@@ -5,7 +5,7 @@ export default function Admin() {
   return (
     <div className="flex-1 flex h-full">
       {/* Admin Sidebar */}
-      <div className="w-64 flex-shrink-0 flex flex-col bg-[#1c2233] text-gray-400 border-r border-[#111827]">
+      <div className="w-64 flex-shrink-0 flex flex-col bg-surface-dark/90 text-gray-400 border-r border-surface-dark">
         <div className="p-6 pb-2">
           <h2 className="text-xl font-semibold text-white mb-1">Admin console</h2>
           <p className="text-xs text-gray-400">Platform owner workspace</p>
@@ -49,7 +49,7 @@ export default function Admin() {
         </div>
         
         <div className="p-4">
-          <div className="bg-[#111827] rounded-xl p-4 border border-white/5">
+          <div className="bg-surface-dark rounded-xl p-4 border border-white/5">
             <ShieldAlert className="w-5 h-5 text-indigo-400 mb-2" />
             <h4 className="text-sm font-semibold text-white mb-1">Privacy boundary</h4>
             <p className="text-xs text-gray-400 leading-relaxed">
@@ -69,7 +69,7 @@ export default function Admin() {
                 <h1 className="text-2xl font-bold text-gray-900">Platform overview</h1>
                 <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded tracking-widest uppercase">Owner Only</span>
               </div>
-              <p className="text-sm text-gray-500">Operational health and trust signals for ChatApp.</p>
+              <p className="text-sm text-gray-500">Operational health and trust signals for LeoChat.</p>
             </div>
             
             <div className="flex items-center gap-3">
@@ -308,7 +308,7 @@ export default function Admin() {
                         </div>
                         <div>
                           <p className="font-semibold text-gray-900">Elena Voss</p>
-                          <p className="text-[11px] text-gray-500">owner@chatapp.com</p>
+                          <p className="text-[11px] text-gray-500">owner@leochat.com</p>
                         </div>
                       </div>
                     </td>

@@ -8,7 +8,7 @@ export const useThemeStore = create(
       setTheme: (theme) => set({ theme }),
     }),
     {
-      name: 'chatapp-theme',
+      name: 'leochat-theme',
     }
   )
 )

@@ -21,21 +21,21 @@ export default {
           900: 'var(--text-main)',
         },
         brand: {
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          500: '#6366f1',
-          600: '#4f46e5',
-          900: '#312e81',
+          50: 'var(--brand-50)',
+          100: 'var(--brand-100)',
+          500: 'var(--brand-500)',
+          600: 'var(--brand-600)',
+          900: 'var(--brand-900)',
         },
         surface: {
-          dark: '#111827',
-          light: '#f9fafb',
-          white: '#ffffff',
+          dark: '#18181b',
+          light: '#f4f4f5',
+          white: 'var(--bg-main)',
         },
         text: {
-          main: '#111827',
-          muted: '#6b7280',
-          light: '#9ca3af',
+          main: 'var(--text-main)',
+          muted: 'var(--text-muted)',
+          light: 'var(--text-subtle)',
         }
       },
       fontFamily: {

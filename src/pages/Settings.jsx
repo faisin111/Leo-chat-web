@@ -127,7 +127,7 @@ export default function Settings() {
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               {/* Avatar Section */}
               <div className="flex items-center gap-6 p-6 bg-white rounded-2xl border border-gray-200 shadow-sm">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-brand-500 to-indigo-400 text-white flex items-center justify-center font-bold text-3xl shadow-md">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-brand-500 to-gray-400 text-white flex items-center justify-center font-bold text-3xl shadow-md">
                   AR
                 </div>
                 <div>

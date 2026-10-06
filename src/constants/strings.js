@@ -1,10 +1,10 @@
 export const APP_STRINGS = {
-  appName: 'ChatApp',
+  appName: 'LeoChat',
   tagline: 'Real-Time. Private. Yours.',
   heroTitle: 'The calm place for conversations that move work forward.',
-  heroSubtitle: 'ChatApp brings direct messages, focused groups, presence, replies and files into one secure workspace—instantly synced on every device.',
+  heroSubtitle: 'LeoChat brings direct messages, focused groups, presence, replies and files into one secure workspace—instantly synced on every device.',
   footerDesc: 'Clearer conversations, wherever work happens.',
-  copyright: '© 2026 ChatApp, Inc.',
+  copyright: '© 2026 LeoChat, Inc.',
   
   // Navigation
   navProduct: 'Product',
@@ -24,7 +24,7 @@ export const APP_STRINGS = {
 };
 
 export const AUTH_CONTENT = {
-  quote: "ChatApp keeps our decisions close to the work—and our conversations genuinely focused.",
+  quote: "LeoChat keeps our decisions close to the work—and our conversations genuinely focused.",
   quoteAuthor: "Maya Chen",
   quoteRole: "Head of Design, Northstar Studio",
   

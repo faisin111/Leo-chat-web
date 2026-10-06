@@ -11,18 +11,18 @@ export default function Landing() {
       {/* Hero Section */}
       <main className="max-w-7xl mx-auto px-8 pt-16 pb-24 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
         <div>
-          <div className="inline-block px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-semibold tracking-wide mb-6 uppercase">
+          <div className="inline-block px-3 py-1 bg-brand-50 text-brand-600 rounded-full text-xs font-semibold tracking-wide mb-6 uppercase">
             Real-Time. Private. Yours.
           </div>
           <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
             The calm place for conversations that move work forward.
           </h1>
           <p className="text-xl text-gray-600 mb-8 leading-relaxed max-w-lg">
-            ChatApp brings direct messages, focused groups, presence, replies and files into one secure workspace—instantly synced on every device.
+            LeoChat brings direct messages, focused groups, presence, replies and files into one secure workspace—instantly synced on every device.
           </p>
           
           <div className="flex flex-wrap items-center gap-4 mb-8">
-            <Link to="/register" className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2">
+            <Link to="/register" className="bg-brand-500 hover:bg-brand-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2">
               <span>&rarr;</span> Create your account
             </Link>
             <Link to="#" className="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2">
@@ -52,7 +52,7 @@ export default function Landing() {
           <div className="bg-white rounded-2xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] border border-gray-100 p-6">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">
+                <div className="w-8 h-8 rounded-lg bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-xs">
                   DS
                 </div>
                 <div>
@@ -101,7 +101,7 @@ export default function Landing() {
                   </p>
                   
                   <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                    <p className="text-xs text-indigo-500 mb-1 font-medium">Replying to Maya</p>
+                    <p className="text-xs text-brand-500 mb-1 font-medium">Replying to Maya</p>
                     <p className="text-sm text-gray-600 mb-2">I've added the updated specs and edge cases.</p>
                     <div className="flex gap-2">
                       <span className="inline-flex items-center gap-1 bg-white border border-gray-200 rounded-full px-2 py-0.5 text-xs">
@@ -118,7 +118,7 @@ export default function Landing() {
             
             <div className="mt-6 pt-4 border-t border-gray-100 flex items-center gap-3">
               <div className="text-xs text-gray-400 italic flex-1">Maya is typing...</div>
-              <div className="bg-indigo-500 text-white p-2 rounded-lg">
+              <div className="bg-brand-500 text-white p-2 rounded-lg">
                 <Zap className="w-4 h-4" />
               </div>
             </div>
@@ -127,7 +127,7 @@ export default function Landing() {
       </main>
 
       {/* Dark Features Band */}
-      <section className="bg-[#111827] text-white py-12">
+      <section className="bg-surface-dark text-white py-12">
         <div className="max-w-7xl mx-auto px-8 grid grid-cols-2 md:grid-cols-4 gap-8">
           <div className="flex items-center gap-3">
             <div className="bg-white/10 p-2 rounded-lg">
@@ -160,7 +160,7 @@ export default function Landing() {
       <section className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-8">
           <div className="mb-16">
-            <div className="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold tracking-wide mb-4 uppercase">
+            <div className="inline-block px-3 py-1 bg-brand-100 text-brand-900 rounded-full text-xs font-semibold tracking-wide mb-4 uppercase">
               Everything in flow
             </div>
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
@@ -173,10 +173,10 @@ export default function Landing() {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
-              <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500 mb-6">
+              <div className="w-12 h-12 bg-brand-50 rounded-xl flex items-center justify-center text-brand-500 mb-6">
                 <MessageSquare className="w-6 h-6" />
               </div>
-              <div className="inline-block px-2 py-1 bg-indigo-50 text-indigo-600 rounded text-xs font-semibold tracking-wide mb-3 uppercase">
+              <div className="inline-block px-2 py-1 bg-brand-50 text-brand-600 rounded text-xs font-semibold tracking-wide mb-3 uppercase">
                 Live
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">Real-time messaging</h3>
@@ -186,10 +186,10 @@ export default function Landing() {
             </div>
             
             <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
-              <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500 mb-6">
+              <div className="w-12 h-12 bg-brand-50 rounded-xl flex items-center justify-center text-brand-500 mb-6">
                 <Users className="w-6 h-6" />
               </div>
-              <div className="inline-block px-2 py-1 bg-indigo-50 text-indigo-600 rounded text-xs font-semibold tracking-wide mb-3 uppercase">
+              <div className="inline-block px-2 py-1 bg-brand-50 text-brand-600 rounded text-xs font-semibold tracking-wide mb-3 uppercase">
                 Organized
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">Groups with focus</h3>
@@ -199,10 +199,10 @@ export default function Landing() {
             </div>
             
             <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
-              <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500 mb-6">
+              <div className="w-12 h-12 bg-brand-50 rounded-xl flex items-center justify-center text-brand-500 mb-6">
                 <Cloud className="w-6 h-6" />
               </div>
-              <div className="inline-block px-2 py-1 bg-indigo-50 text-indigo-600 rounded text-xs font-semibold tracking-wide mb-3 uppercase">
+              <div className="inline-block px-2 py-1 bg-brand-50 text-brand-600 rounded text-xs font-semibold tracking-wide mb-3 uppercase">
                 Every device
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">Seamless sync</h3>
@@ -217,8 +217,8 @@ export default function Landing() {
       {/* Privacy Section */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <div className="bg-[#111827] text-white p-12 rounded-3xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
+          <div className="bg-surface-dark text-white p-12 rounded-3xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
             
             <div className="relative z-10">
               <div className="w-12 h-12 border border-white/20 rounded-xl flex items-center justify-center mb-8">
@@ -266,12 +266,12 @@ export default function Landing() {
       {/* CTA Section */}
       <section className="py-24 bg-gray-50">
         <div className="max-w-5xl mx-auto px-8">
-          <div className="bg-indigo-500 text-white rounded-3xl p-12 md:p-16 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="bg-brand-500 text-white rounded-3xl p-12 md:p-16 flex flex-col md:flex-row items-center justify-between gap-8">
             <div>
               <h2 className="text-3xl md:text-4xl font-bold mb-4">Start a better conversation today.</h2>
-              <p className="text-indigo-100 text-lg">Create your ChatApp account and bring your people together in minutes.</p>
+              <p className="text-brand-100 text-lg">Create your LeoChat account and bring your people together in minutes.</p>
             </div>
-            <Link to="/register" className="shrink-0 bg-white text-indigo-600 px-8 py-4 rounded-xl font-semibold hover:bg-indigo-50 transition-colors flex items-center gap-2">
+            <Link to="/register" className="shrink-0 bg-white text-brand-600 px-8 py-4 rounded-xl font-semibold hover:bg-brand-50 transition-colors flex items-center gap-2">
               <span>&rarr;</span> Sign up free
             </Link>
           </div>

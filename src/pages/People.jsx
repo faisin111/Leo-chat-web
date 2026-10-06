@@ -182,7 +182,7 @@ export default function People() {
             {/* Person 5 */}
             <div className="bg-white border border-gray-200 p-4 rounded-xl flex items-center justify-between hover:border-brand-300 hover:shadow-md transition-all cursor-pointer">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg shrink-0 relative">
+                <div className="w-12 h-12 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-lg shrink-0 relative">
                   AM
                 </div>
                 <div>

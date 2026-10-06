@@ -40,13 +40,12 @@ export const apiClient = async (endpoint, options = {}) => {
   };
 
   const config = {
+    credentials: 'include', // Default, but can be overridden
     ...options,
     headers: {
       ...defaultHeaders,
       ...options.headers,
-    },
-    // Always include credentials to ensure cookies (leo_chat_jwt) are sent/received
-    credentials: 'include', 
+    }
   };
 
   try {

@@ -8,7 +8,13 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'https://leo-chat-backend.onrender.com',
-        changeOrigin: true
+        changeOrigin: true,
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            // Strip the Origin header so the backend doesn't trigger its incomplete CORS checks
+            proxyReq.removeHeader('origin');
+          });
+        }
       }
     }
   }

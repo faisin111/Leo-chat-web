@@ -25,6 +25,7 @@ export const authService = {
     return apiClient('/auth/forgot-password', {
       method: 'POST',
       body: JSON.stringify({ email }),
+      credentials: 'omit' // Prevent sending expired JWTs that cause 403s
     });
   },
 
@@ -32,6 +33,7 @@ export const authService = {
     return apiClient('/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify({ token, newPassword }),
+      credentials: 'omit'
     });
   }
 };

@@ -26,10 +26,20 @@ export default function ForgotPassword() {
     setIsLoading(true);
     try {
       const response = await authService.forgotPassword(formData.email);
-      // Assume the API returns { token: "..." }
+      
+      let extractedToken = null;
       if (response && response.token) {
-        setResetToken(response.token);
+        extractedToken = response.token;
+      } else if (response && response.message && response.message.includes('TOKEN:')) {
+        // Extract token from DEV MODE TOKEN string
+        extractedToken = response.message.split('TOKEN:')[1].trim();
       }
+      
+      if (!extractedToken || extractedToken === 'null') {
+        throw new Error('Email not found or failed to generate token.');
+      }
+      
+      setResetToken(extractedToken);
       setStep(2);
       toast.success('Check successful! Please create a new password.');
     } catch (error) {

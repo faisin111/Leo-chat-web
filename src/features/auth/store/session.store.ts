@@ -4,8 +4,14 @@ import { create } from 'zustand';
 export type CurrentUser = {
   id: string;
   username: string;
+  email: string;
   displayName?: string;
-  role: 'USER' | 'ADMIN';
+  role: string;
+  profilePictureUrl?: string;
+  phoneNumber?: string;
+  bio?: string;
+  age?: number;
+  region?: string;
   mustChangePassword?: boolean;
 };
 

@@ -20,7 +20,7 @@ export const ConversationPage = () => {
   // We reverse them so they flow top-to-bottom chronologically in standard flex layout.
   // Alternatively, we could use a flex-col-reverse container. Let's use standard reverse for now.
   const allMessages = data?.pages.flatMap(p => p.items) || [];
-  const displayMessages = [...allMessages].reverse();
+  
 
   const handleSend = () => {
     if (!content.trim() || !conversationId) return;
@@ -65,7 +65,7 @@ export const ConversationPage = () => {
       </header>
 
       {/* Messages List */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col pb-4">
+      <div className="flex-1 overflow-y-auto p-6 flex flex-col-reverse gap-6 pb-4">
         {isLoading ? (
           <div className="flex-1 flex items-center justify-center">
             <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
@@ -77,21 +77,7 @@ export const ConversationPage = () => {
           </div>
         ) : (
           <>
-            {hasNextPage && (
-              <div className="text-center pb-4">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => fetchNextPage()} 
-                  disabled={isFetchingNextPage}
-                  className="text-xs text-primary"
-                >
-                  {isFetchingNextPage ? 'Loading older...' : 'Load older messages'}
-                </Button>
-              </div>
-            )}
-            
-            {displayMessages.map((msg) => {
+            {allMessages.map((msg) => {
               const isOwn = msg.senderId === currentUser?.id;
               // Very simple initials generation for now
               const initials = isOwn ? (currentUser?.displayName?.[0] || 'U').toUpperCase() : 'U';
@@ -116,6 +102,21 @@ export const ConversationPage = () => {
                 </div>
               );
             })}
+            
+            {/* Load more is now at the END of the DOM, which appears at the visually TOP due to flex-col-reverse */}
+            {hasNextPage && (
+              <div className="text-center pt-4">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => fetchNextPage()} 
+                  disabled={isFetchingNextPage}
+                  className="text-xs text-primary"
+                >
+                  {isFetchingNextPage ? 'Loading older...' : 'Load older messages'}
+                </Button>
+              </div>
+            )}
           </>
         )}
       </div>

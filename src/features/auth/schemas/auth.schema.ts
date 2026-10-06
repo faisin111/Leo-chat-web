@@ -5,18 +5,17 @@ export const registerSchema = z.object({
     .string()
     .min(3, 'Username must be at least 3 characters')
     .max(20, 'Username must be at most 20 characters')
-    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers and underscores'),
-  displayName: z
-    .string()
-    .min(2, 'Display name must be at least 2 characters')
-    .max(50, 'Display name must be at most 50 characters'),
+    .regex(/^[a-zA-Z0-9._-]{3,}$/, 'Only letters, numbers and . _ - are allowed'),
   email: z.string().email('Please enter a valid email address'),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Must include at least one uppercase letter')
-    .regex(/[0-9]/, 'Must include at least one number')
-    .regex(/[^A-Za-z0-9]/, 'Must include at least one special character'),
+    .max(40, 'Password must be at most 40 characters')
+    .regex(/(?=.*[0-9])/, 'Must contain at least one number')
+    .regex(/(?=.*[a-z])/, 'Must contain at least one lowercase letter')
+    .regex(/(?=.*[A-Z])/, 'Must contain at least one uppercase letter')
+    .regex(/(?=.*[@#$%^&+=!])/, 'Must contain at least one special character (@#$%^&+=!)'),
+  displayName: z.string().max(50, 'Display name must be at most 50 characters').optional(),
   terms: z.boolean().refine((val) => val === true, {
     message: 'You must agree to the terms and privacy policy',
   }),

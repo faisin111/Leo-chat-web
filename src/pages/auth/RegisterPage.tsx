@@ -33,7 +33,7 @@ const getPasswordStrength = (pass: string) => {
 
 const strengthConfig = [
   { label: '', color: 'bg-border' },
-  { label: 'Weak — add uppercase, numbers & symbols', color: 'bg-red-500' },
+  { label: 'Weak — needs uppercase, lowercase, number & @#$%^&+=!', color: 'bg-red-500' },
   { label: 'Fair — keep going', color: 'bg-orange-500' },
   { label: 'Good — almost there', color: 'bg-yellow-500' },
   { label: 'Strong — great password!', color: 'bg-green-500' },
@@ -115,7 +115,7 @@ export const RegisterPage = () => {
                 <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="username"
-                  placeholder="john_doe"
+                  placeholder="john_doe  (letters, numbers, . _ -)"
                   className="h-12 pl-9"
                   autoComplete="username"
                   {...register('username')}
@@ -167,7 +167,7 @@ export const RegisterPage = () => {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Min 8 chars, uppercase, number, symbol"
+                  placeholder="Min 8 chars • Aa • 1 • @#$%^&+=!"
                   className="h-12 pl-9"
                   autoComplete="new-password"
                   {...register('password')}

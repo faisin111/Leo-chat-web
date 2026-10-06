@@ -11,11 +11,14 @@ export default function ChatLayout() {
   const location = useLocation();
 
   const conversations = data?.pages.flatMap((page) => page.items) || [];
+  const isConversationDetail = location.pathname.startsWith('/app/c/');
 
   return (
     <div className="flex h-full w-full bg-slate-50">
-      {/* Messages Sidebar */}
-      <aside className="w-[340px] border-r border-slate-200 bg-white flex flex-col shrink-0">
+      {/* Messages Sidebar (Hidden on mobile if viewing a conversation) */}
+      <aside
+        className={`${isConversationDetail ? 'hidden md:flex' : 'flex'} w-full md:w-[340px] border-r border-slate-200 bg-white flex-col shrink-0`}
+      >
         <div className="p-4 flex flex-col h-full">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -100,14 +103,28 @@ export default function ChatLayout() {
         </div>
       </aside>
 
-      <main className="flex-1 bg-white relative flex flex-col min-w-0">
+      {/* Main Content (Hidden on mobile if viewing the list) */}
+      <main
+        className={`${!isConversationDetail ? 'hidden md:flex' : 'flex'} flex-1 bg-white relative flex-col min-w-0`}
+      >
         <AnimatedOutlet />
       </main>
     </div>
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface ChatItemProps {
+  id: string;
+  initials: string;
+  name: string;
+  message: string;
+  time: string;
+  badge?: string;
+  active?: boolean;
+  color?: string;
+  avatarUrl?: string | null;
+}
+
 function ChatItem({
   id,
   initials,
@@ -118,7 +135,7 @@ function ChatItem({
   active = false,
   color = 'bg-slate-100 text-slate-700',
   avatarUrl,
-}: any) {
+}: ChatItemProps) {
   return (
     <Link
       to={`/app/c/${id}`}

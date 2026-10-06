@@ -41,6 +41,12 @@ export type SendMessageRequest = {
   replyToId?: string;
 };
 
+export type MessagesResponse = {
+  items: Message[];
+  hasMore: boolean;
+  nextCursor: string | null;
+};
+
 export const conversationsApi = {
   getConversations: async (cursor?: string | null, limit: number = 50): Promise<ConversationsResponse> => {
     const params = new URLSearchParams();
@@ -58,6 +64,15 @@ export const conversationsApi = {
 
   sendMessage: async (conversationId: string, data: SendMessageRequest): Promise<Message> => {
     const response = await http.post(`/conversations/${conversationId}/messages`, data);
+    return response.data;
+  },
+
+  getMessages: async (conversationId: string, beforeSeq?: string | null, limit: number = 50): Promise<MessagesResponse> => {
+    const params = new URLSearchParams();
+    if (beforeSeq) params.append('beforeSeq', beforeSeq);
+    if (limit) params.append('limit', limit.toString());
+    
+    const response = await http.get(`/conversations/${conversationId}/messages?${params.toString()}`);
     return response.data;
   },
 };

@@ -10,10 +10,7 @@ export function useSendMessage(conversationId: string) {
     mutationFn: (data: Omit<SendMessageRequest, 'conversationId'>) =>
       conversationsApi.sendMessage(conversationId, { ...data, conversationId }),
     onSuccess: () => {
-      // Typically, we would invalidate the messages query for this conversation here.
-      // E.g., queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-      
-      // Also might want to invalidate the conversations list to update the 'lastMessage'
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
     onError: (error: any) => {

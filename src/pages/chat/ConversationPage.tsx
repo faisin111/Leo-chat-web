@@ -1,14 +1,26 @@
 import { Button } from '@/shared/ui/button';
 import { Phone, Video, Info, Smile, Paperclip, Send, Loader2 } from 'lucide-react';
 import { useParams } from 'react-router-dom';
-import { useState } from 'react'; import type { KeyboardEvent } from 'react';
+import { useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import { useSendMessage } from '@/features/chat/api/use-send-message';
+import { useMessages } from '@/features/chat/api/use-messages';
+import { useSession } from '@/features/auth';
+import { format } from 'date-fns';
 
 export const ConversationPage = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
   const [content, setContent] = useState('');
   
   const sendMessage = useSendMessage(conversationId || '');
+  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useMessages(conversationId || '');
+  const currentUser = useSession((s) => s.user);
+
+  // The messages often come sorted newest-first (descending seq) when paginating backward.
+  // We reverse them so they flow top-to-bottom chronologically in standard flex layout.
+  // Alternatively, we could use a flex-col-reverse container. Let's use standard reverse for now.
+  const allMessages = data?.pages.flatMap(p => p.items) || [];
+  const displayMessages = [...allMessages].reverse();
 
   const handleSend = () => {
     if (!content.trim() || !conversationId) return;
@@ -52,12 +64,60 @@ export const ConversationPage = () => {
         </div>
       </header>
 
-      {/* Messages List (API integration coming soon) */}
+      {/* Messages List */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col pb-4">
-        <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
-          <p className="text-sm">No messages yet.</p>
-          <p className="text-xs">Send a message to start the conversation!</p>
-        </div>
+        {isLoading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
+          </div>
+        ) : allMessages.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+            <p className="text-sm">No messages yet.</p>
+            <p className="text-xs">Send a message to start the conversation!</p>
+          </div>
+        ) : (
+          <>
+            {hasNextPage && (
+              <div className="text-center pb-4">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => fetchNextPage()} 
+                  disabled={isFetchingNextPage}
+                  className="text-xs text-primary"
+                >
+                  {isFetchingNextPage ? 'Loading older...' : 'Load older messages'}
+                </Button>
+              </div>
+            )}
+            
+            {displayMessages.map((msg) => {
+              const isOwn = msg.senderId === currentUser?.id;
+              // Very simple initials generation for now
+              const initials = isOwn ? (currentUser?.displayName?.[0] || 'U').toUpperCase() : 'U';
+              const name = isOwn ? (currentUser?.displayName || 'You') : msg.senderId.substring(0, 8);
+              const color = isOwn ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-700';
+              const time = format(new Date(msg.createdAt), 'h:mm a');
+
+              return (
+                <div key={msg.id} className={`flex items-start space-x-3 ${isOwn ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-1 ${color}`}>
+                    {initials}
+                  </div>
+                  <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[70%]`}>
+                    <div className="flex items-baseline space-x-2 mb-1">
+                      <span className="text-xs font-semibold">{name}</span>
+                      <span className="text-[10px] text-slate-400">{time}</span>
+                    </div>
+                    <div className={`px-4 py-2.5 rounded-2xl text-sm ${isOwn ? 'bg-primary text-white rounded-tr-sm' : 'bg-slate-100 text-slate-800 rounded-tl-sm'}`}>
+                      {msg.content}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
       </div>
 
       {/* Input Area */}

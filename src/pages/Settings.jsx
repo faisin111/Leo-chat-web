@@ -2,10 +2,19 @@ import { useState } from 'react'
 import { User, MonitorSmartphone, Bell, Shield, Ban, Palette, MessageSquare, Upload, Laptop, Smartphone, Monitor, AtSign, MapPin, Mail, Moon, Sun, MonitorDot, Volume2, Fingerprint, Lock, Key, LogOut, CheckCircle2 } from 'lucide-react'
 import { APP_STRINGS } from '../constants/strings'
 import { useThemeStore } from '../store/themeStore'
+import { useAuthStore } from '../store/authStore'
+import { useNavigate } from 'react-router-dom'
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('profile');
   const { theme, setTheme } = useThemeStore();
+  const { logout } = useAuthStore();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
   
   // Helper for the sleek toggle switch
   const Toggle = ({ active }) => (
@@ -94,6 +103,9 @@ export default function Settings() {
               <h3 className="font-semibold text-gray-900 text-sm truncate">Alex Rivera</h3>
               <p className="text-xs text-emerald-600 font-medium">Online</p>
             </div>
+            <button onClick={handleLogout} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Log out">
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
@@ -178,6 +190,22 @@ export default function Settings() {
                       <textarea rows="3" defaultValue="Product designer helping teams make clearer decisions." className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-shadow resize-none"></textarea>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Danger Zone / Logout */}
+              <div className="bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden">
+                <div className="p-4 bg-red-50/50 border-b border-red-100">
+                  <h3 className="text-xs font-bold text-red-500 uppercase tracking-wider">Account Actions</h3>
+                </div>
+                <div className="p-6 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900">Log out of your account</h4>
+                    <p className="text-xs text-gray-500 mt-1">You will be securely logged out of this device.</p>
+                  </div>
+                  <button onClick={handleLogout} className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 text-sm font-medium rounded-xl transition-colors flex items-center gap-2">
+                    <LogOut className="w-4 h-4" /> Log Out
+                  </button>
                 </div>
               </div>
             </div>

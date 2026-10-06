@@ -1,10 +1,55 @@
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { MessageSquare, Mail, Lock, Eye, Zap, Users, Shield, RefreshCw } from 'lucide-react'
 import { APP_STRINGS, AUTH_CONTENT } from '../constants/strings'
+import { useAuthStore } from '../store/authStore'
 
 export default function Register() {
   const navigate = useNavigate();
+  const { register, isLoading, error } = useAuthStore();
+  const [formData, setFormData] = useState({
+    username: '',
+    displayName: '',
+    email: '',
+    password: ''
+  });
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    const success = await register(formData);
+    if (success) {
+      // Auto redirect to login after successful register
+      navigate('/login');
+    }
+  };
+
   const icons = [Zap, Users, Shield, RefreshCw];
+
+  const [showPassword, setShowPassword] = useState(false);
+  
+  // Calculate password strength
+  const calculateStrength = (pass) => {
+    let score = 0;
+    if (!pass) return score;
+    if (pass.length >= 8) score += 1;
+    if (/[A-Z]/.test(pass)) score += 1;
+    if (/[0-9]/.test(pass)) score += 1;
+    if (/[^A-Za-z0-9]/.test(pass)) score += 1;
+    return score;
+  };
+
+  const strength = calculateStrength(formData.password);
+
+  const getStrengthBarClass = (index) => {
+    if (index >= strength) return "bg-gray-200 dark:bg-gray-700";
+    if (strength <= 1) return "bg-red-500";
+    if (strength === 2) return "bg-amber-500";
+    return "bg-emerald-500";
+  };
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
@@ -30,7 +75,7 @@ export default function Register() {
           <h1 className="text-2xl sm:text-3xl font-semibold text-text-main mb-2">{APP_STRINGS.createAccount}</h1>
           <p className="text-text-muted mb-8 text-sm sm:text-base">{APP_STRINGS.createAccountSubtitle}</p>
           
-          <button onClick={() => navigate('/app')} className="w-full flex items-center justify-center gap-3 py-2.5 border border-gray-200 rounded-lg hover:bg-surface-light transition-colors mb-6 font-medium text-text-main text-sm">
+          <button type="button" className="w-full flex items-center justify-center gap-3 py-2.5 border border-gray-200 rounded-lg hover:bg-surface-light transition-colors mb-6 font-medium text-text-main text-sm">
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -46,15 +91,16 @@ export default function Register() {
             <div className="flex-1 h-px bg-gray-200"></div>
           </div>
           
-          <form className="space-y-4">
+          <form className="space-y-4" onSubmit={handleRegister}>
+            {/* Handled by global toaster now, but keeping inline error just in case, or we can remove it */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-text-main mb-1">First name</label>
-                <input type="text" placeholder="Alex" className="block w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
+                <label className="block text-sm font-medium text-text-main mb-1">Username</label>
+                <input required name="username" value={formData.username} onChange={handleChange} type="text" placeholder="alex_dev" className="block w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-main mb-1">Last name</label>
-                <input type="text" placeholder="Rivera" className="block w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
+                <label className="block text-sm font-medium text-text-main mb-1">Display name</label>
+                <input required name="displayName" value={formData.displayName} onChange={handleChange} type="text" placeholder="Alex Rivera" className="block w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
               </div>
             </div>
             
@@ -64,7 +110,7 @@ export default function Register() {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Mail className="h-4 w-4 text-text-light" />
                 </div>
-                <input type="email" placeholder="alex@northstar.design" className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
+                <input required name="email" value={formData.email} onChange={handleChange} type="email" placeholder="alex@northstar.design" className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
               </div>
             </div>
             
@@ -74,31 +120,40 @@ export default function Register() {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="h-4 w-4 text-text-light" />
                 </div>
-                <input type="password" placeholder="At least 8 characters" className="block w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer">
-                  <Eye className="h-4 w-4 text-text-light hover:text-text-muted transition-colors" />
+                <input required name="password" value={formData.password} onChange={handleChange} type={showPassword ? "text" : "password"} placeholder="At least 8 characters" minLength={8} className="block w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" onClick={() => setShowPassword(!showPassword)}>
+                  <Eye className={`h-4 w-4 transition-colors ${showPassword ? 'text-brand-500' : 'text-text-light hover:text-text-muted'}`} />
                 </div>
               </div>
               <div className="flex gap-1 mt-2">
-                <div className="h-1 flex-1 bg-emerald-500 rounded-full"></div>
-                <div className="h-1 flex-1 bg-emerald-500 rounded-full"></div>
-                <div className="h-1 flex-1 bg-emerald-500 rounded-full"></div>
-                <div className="h-1 flex-1 bg-gray-200 rounded-full"></div>
+                <div className={`h-1 flex-1 rounded-full transition-colors duration-300 ${getStrengthBarClass(0)}`}></div>
+                <div className={`h-1 flex-1 rounded-full transition-colors duration-300 ${getStrengthBarClass(1)}`}></div>
+                <div className={`h-1 flex-1 rounded-full transition-colors duration-300 ${getStrengthBarClass(2)}`}></div>
+                <div className={`h-1 flex-1 rounded-full transition-colors duration-300 ${getStrengthBarClass(3)}`}></div>
               </div>
-              <p className="text-xs text-emerald-600 mt-1">Strong password - Mix of letters, numbers and symbols</p>
+              <p className="text-xs text-text-muted mt-1">
+                {strength === 0 && "Enter a password"}
+                {strength === 1 && <span className="text-red-500">Weak - add numbers or symbols</span>}
+                {strength === 2 && <span className="text-amber-500">Fair - try mixing cases</span>}
+                {strength >= 3 && <span className="text-emerald-500">Strong password!</span>}
+              </p>
             </div>
             
             <div className="pt-2">
               <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" className="mt-1 w-4 h-4 text-brand-600 border-gray-300 rounded focus:ring-brand-500 accent-brand-600 shrink-0" defaultChecked />
+                <input required type="checkbox" className="mt-1 w-4 h-4 text-brand-600 border-gray-300 rounded focus:ring-brand-500 accent-brand-600 shrink-0" defaultChecked />
                 <span className="text-sm text-text-muted leading-snug">
                   I agree to {APP_STRINGS.appName}'s Terms of Service and Privacy Policy, and confirm I'm at least 16 years old.
                 </span>
               </label>
             </div>
             
-            <button type="button" onClick={() => navigate('/app')} className="w-full bg-brand-500 hover:bg-brand-600 text-white py-2.5 rounded-lg font-medium transition-colors mt-2 text-sm flex items-center justify-center gap-2 shadow-sm">
-              <span>&rarr;</span> {APP_STRINGS.createAccount}
+            <button type="submit" disabled={isLoading} className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-70 disabled:cursor-not-allowed text-white py-2.5 rounded-lg font-medium transition-colors mt-2 text-sm flex items-center justify-center gap-2 shadow-sm">
+              {isLoading ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <><span>&rarr;</span> {APP_STRINGS.createAccount}</>
+              )}
             </button>
           </form>
         </div>

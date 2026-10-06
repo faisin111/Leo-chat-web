@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { useThemeStore } from './store/themeStore'
+import { Toaster } from 'react-hot-toast'
 
 import Landing from './pages/Landing'
 import Login from './pages/Login'
@@ -32,33 +33,64 @@ function App() {
   }, [theme]);
 
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname.split('/')[1] || '/'}>
-        <Route 
-          path="/" 
-          element={<PageTransition><Landing /></PageTransition>} 
-        />
-        <Route 
-          path="/login" 
-          element={<PageTransition><Login /></PageTransition>} 
-        />
-        <Route 
-          path="/register" 
-          element={<PageTransition><Register /></PageTransition>} 
-        />
-        
-        {/* Authenticated App Routes */}
-        <Route path="/app" element={<PageTransition><AppLayout /></PageTransition>}>
-          <Route index element={<Messages />} />
-          <Route path="messages" element={<Messages />} />
-          <Route path="people" element={<People />} />
-          <Route path="create-group" element={<CreateGroup />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="admin" element={<Admin />} />
-          <Route path="admin/settings" element={<AdminSettings />} />
-        </Route>
-      </Routes>
-    </AnimatePresence>
+    <>
+      <Toaster position="top-center" toastOptions={{
+        style: {
+          background: 'var(--bg-main)',
+          color: 'var(--text-main)',
+          border: '1px solid var(--border-main)',
+        },
+        success: {
+          style: {
+            background: '#10b981',
+            color: '#fff',
+            border: 'none',
+          },
+          iconTheme: {
+            primary: '#fff',
+            secondary: '#10b981',
+          },
+        },
+        error: {
+          style: {
+            background: '#ef4444',
+            color: '#fff',
+            border: 'none',
+          },
+          iconTheme: {
+            primary: '#fff',
+            secondary: '#ef4444',
+          },
+        },
+      }} />
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname.split('/')[1] || '/'}>
+          <Route 
+            path="/" 
+            element={<PageTransition><Landing /></PageTransition>} 
+          />
+          <Route 
+            path="/login" 
+            element={<PageTransition><Login /></PageTransition>} 
+          />
+          <Route 
+            path="/register" 
+            element={<PageTransition><Register /></PageTransition>} 
+          />
+          
+          {/* Authenticated App Routes */}
+          <Route path="/app" element={<PageTransition><AppLayout /></PageTransition>}>
+            <Route index element={<Messages />} />
+            <Route path="messages" element={<Messages />} />
+            <Route path="people" element={<People />} />
+            <Route path="create-group" element={<CreateGroup />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="admin" element={<Admin />} />
+            <Route path="admin/settings" element={<AdminSettings />} />
+          </Route>
+        </Routes>
+      </AnimatePresence>
+    </>
   )
 }
 

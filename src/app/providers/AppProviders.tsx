@@ -34,7 +34,7 @@ export function AppProviders({ children }: PropsWithChildren) {
             error:
               'group-[.toaster]:bg-red-500 group-[.toaster]:text-white group-[.toaster]:border-red-600',
             success:
-              'group-[.toaster]:bg-green-500 group-[.toaster]:text-white group-[.toaster]:border-green-600',
+              'group-[.toaster]:bg-green-700 group-[.toaster]:text-white group-[.toaster]:border-none',
             warning:
               'group-[.toaster]:bg-amber-500 group-[.toaster]:text-white group-[.toaster]:border-amber-600',
             info: 'group-[.toaster]:bg-blue-500 group-[.toaster]:text-white group-[.toaster]:border-blue-600',

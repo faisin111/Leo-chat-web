@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,6 +15,8 @@ import {
   User,
   Mail,
   Lock,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 import { Button } from '@/shared/ui/button';
@@ -40,6 +43,7 @@ const strengthConfig = [
 ];
 
 export const RegisterPage = () => {
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const {
@@ -166,12 +170,20 @@ export const RegisterPage = () => {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="Min 8 chars • Aa • 1 • @#$%^&+=!"
-                  className="h-12 pl-9"
+                  className="h-12 pl-9 pr-10"
                   autoComplete="new-password"
                   {...register('password')}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                </button>
               </div>
               {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
 

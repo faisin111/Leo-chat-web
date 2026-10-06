@@ -15,11 +15,21 @@ export default defineConfig({
       '/api': {
         target: 'https://leo-chat-backend.onrender.com',
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => {
+            proxyReq.removeHeader('Origin');
+          });
+        },
       },
       '/ws': {
         target: 'wss://leo-chat-backend.onrender.com',
         ws: true,
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => {
+            proxyReq.removeHeader('Origin');
+          });
+        },
       },
     },
   },

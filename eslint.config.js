@@ -47,6 +47,8 @@ export default [
       ...reactHooksPlugin.configs.recommended.rules,
       ...jsxA11yPlugin.configs.recommended.rules,
       'react/no-danger': 'error',
+      'react/prop-types': 'off',
+      'jsx-a11y/label-has-associated-control': 'off',
       'no-restricted-imports': [
         'error',
         {

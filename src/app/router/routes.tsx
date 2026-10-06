@@ -17,7 +17,7 @@ const lazyLoad = (path: string, namedExport: string) => async () => {
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <Navigate to="/app" replace />,
+    lazy: lazyLoad('landing/LandingPage', 'LandingPage'),
   },
   {
     element: <RequireGuest />,

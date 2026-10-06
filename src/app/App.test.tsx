@@ -3,8 +3,8 @@ import { describe, it, expect } from 'vitest';
 import App from './App';
 
 describe('App', () => {
-  it('renders without crashing', () => {
+  it('renders without crashing', async () => {
     render(<App />);
-    expect(screen.getByText('Welcome to Leo Chat')).toBeInTheDocument();
+    expect(await screen.findByText(/The calm place for conversations/i)).toBeInTheDocument();
   });
 });

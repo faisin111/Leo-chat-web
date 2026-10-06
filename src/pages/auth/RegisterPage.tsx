@@ -6,7 +6,7 @@ import { MessageSquare, Zap, Users, Shield, RefreshCcw } from 'lucide-react';
 
 export const RegisterPage = () => {
   return (
-    <div className="flex w-full flex-col lg:flex-row min-h-screen">
+    <div className="flex w-full flex-1 flex-col lg:flex-row h-full min-h-screen">
       {/* Left side - Form */}
       <div className="flex-1 flex flex-col p-8 lg:p-12 relative overflow-y-auto">
         <div className="flex items-center justify-between w-full mb-12 lg:mb-24">

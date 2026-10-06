@@ -1,10 +1,85 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { MessageSquare, Zap, Users, Shield, RefreshCcw, Loader2 } from 'lucide-react';
+
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
-import { MessageSquare, Zap, Users, Shield, RefreshCcw } from 'lucide-react';
+import { toApiException } from '@/shared/api/api-error';
+import { authApi, registerSchema, type RegisterFormValues } from '@/features/auth';
+
+const getPasswordStrength = (pass: string) => {
+  let score = 0;
+  if (!pass) return 0;
+  if (pass.length > 0) score += 1;
+  if (pass.length >= 8) score += 1;
+  if (/[A-Z]/.test(pass) && /[0-9]/.test(pass)) score += 1;
+  if (/[^A-Za-z0-9]/.test(pass)) score += 1;
+  return Math.min(score, 4);
+};
 
 export const RegisterPage = () => {
+  const navigate = useNavigate();
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      password: '',
+      terms: false,
+    },
+  });
+
+  const password = watch('password');
+  const terms = watch('terms');
+  const strength = getPasswordStrength(password || '');
+
+  const mutation = useMutation({
+    mutationFn: authApi.register,
+    onSuccess: () => {
+      toast.success('Account created successfully! Please sign in.', {
+        style: { background: '#22c55e', color: 'white', border: 'none' },
+      });
+      navigate('/login');
+    },
+    onError: (error) => {
+      const apiError = toApiException(error);
+      toast.error(apiError.message || 'Registration failed', {
+        style: { background: '#ef4444', color: 'white', border: 'none' },
+      });
+    },
+  });
+
+  const onSubmit = (data: RegisterFormValues) => {
+    mutation.mutate(data);
+  };
+
+  const getStrengthColor = () => {
+    if (strength === 0) return 'bg-border';
+    if (strength === 1) return 'bg-red-500';
+    if (strength === 2) return 'bg-orange-500';
+    if (strength === 3) return 'bg-yellow-500';
+    return 'bg-green-500';
+  };
+
+  const getStrengthLabel = () => {
+    if (strength === 0) return 'Enter a password';
+    if (strength === 1) return 'Weak - Too short';
+    if (strength === 2) return 'Fair - Add numbers & uppercase';
+    if (strength === 3) return 'Good - Add symbols for strong';
+    return 'Strong - Excellent password';
+  };
+
   return (
     <div className="flex w-full flex-1 flex-col lg:flex-row h-full min-h-screen">
       {/* Left side - Form */}
@@ -28,45 +103,31 @@ export const RegisterPage = () => {
           <h1 className="text-3xl font-bold mb-2">Create your account</h1>
           <p className="text-muted-foreground mb-8">A calmer workspace is a few details away.</p>
 
-          <Button variant="outline" className="w-full mb-6 font-medium h-12">
-            <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-              />
-            </svg>
-            Sign up with Google
-          </Button>
-
-          <div className="relative flex items-center mb-6">
-            <div className="flex-grow border-t border-border"></div>
-            <span className="flex-shrink-0 mx-4 text-muted-foreground text-xs uppercase">
-              or use your email
-            </span>
-            <div className="flex-grow border-t border-border"></div>
-          </div>
-
-          <form className="space-y-5">
+          <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
             <div className="flex gap-4">
               <div className="space-y-2 flex-1">
                 <Label htmlFor="firstName">First name</Label>
-                <Input id="firstName" placeholder="Alex" required className="h-12" />
+                <Input
+                  id="firstName"
+                  placeholder="Alex"
+                  {...register('firstName')}
+                  className="h-12"
+                />
+                {errors.firstName && (
+                  <p className="text-xs text-red-500 mt-1">{errors.firstName.message}</p>
+                )}
               </div>
               <div className="space-y-2 flex-1">
                 <Label htmlFor="lastName">Last name</Label>
-                <Input id="lastName" placeholder="Rivera" required className="h-12" />
+                <Input
+                  id="lastName"
+                  placeholder="Rivera"
+                  {...register('lastName')}
+                  className="h-12"
+                />
+                {errors.lastName && (
+                  <p className="text-xs text-red-500 mt-1">{errors.lastName.message}</p>
+                )}
               </div>
             </div>
 
@@ -76,9 +137,10 @@ export const RegisterPage = () => {
                 id="email"
                 type="email"
                 placeholder="alex@northstar.design"
-                required
+                {...register('email')}
                 className="h-12"
               />
+              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
             </div>
 
             <div className="space-y-2">
@@ -87,19 +149,28 @@ export const RegisterPage = () => {
                 id="password"
                 type="password"
                 placeholder="At least 8 characters"
-                required
+                {...register('password')}
                 className="h-12"
               />
+              {errors.password && (
+                <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
+              )}
 
-              {/* Password strength indicator mock */}
+              {/* Password strength indicator with animation */}
               <div className="flex gap-1 mt-2">
-                <div className="h-1 flex-1 bg-green-500 rounded-full"></div>
-                <div className="h-1 flex-1 bg-green-500 rounded-full"></div>
-                <div className="h-1 flex-1 bg-green-500 rounded-full"></div>
-                <div className="h-1 flex-1 bg-border rounded-full"></div>
+                {[1, 2, 3, 4].map((level) => (
+                  <div key={level} className="h-1 flex-1 bg-border rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-700 ease-out ${getStrengthColor()}`}
+                      style={{ width: strength >= level ? '100%' : '0%' }}
+                    ></div>
+                  </div>
+                ))}
               </div>
-              <p className="text-xs text-green-600 font-medium mt-1">
-                Strong password - Mix of letters, numbers and symbols
+              <p
+                className={`text-xs font-medium mt-1 transition-colors duration-500 ${strength === 4 ? 'text-green-600' : 'text-muted-foreground'}`}
+              >
+                {getStrengthLabel()}
               </p>
             </div>
 
@@ -108,7 +179,7 @@ export const RegisterPage = () => {
                 type="checkbox"
                 id="terms"
                 className="mt-1 rounded border-input text-primary focus:ring-primary h-4 w-4"
-                required
+                {...register('terms')}
               />
               <Label
                 htmlFor="terms"
@@ -118,22 +189,27 @@ export const RegisterPage = () => {
                 at least 16 years old.
               </Label>
             </div>
+            {errors.terms && <p className="text-xs text-red-500 mt-1">{errors.terms.message}</p>}
 
-            <Button className="w-full h-12 mt-6" type="submit">
-              Create account
+            <Button
+              className="w-full h-12 mt-6 transition-all duration-700 ease-in-out"
+              type="submit"
+              disabled={!terms || mutation.isPending}
+            >
+              {mutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create account'}
             </Button>
           </form>
 
           <div className="mt-12 text-center text-xs text-muted-foreground space-x-4">
-            <a href="/" className="hover:text-foreground">
+            <Link to="/" className="hover:text-foreground">
               Privacy
-            </a>
-            <a href="/" className="hover:text-foreground">
+            </Link>
+            <Link to="/" className="hover:text-foreground">
               Terms
-            </a>
-            <a href="/" className="hover:text-foreground">
+            </Link>
+            <Link to="/" className="hover:text-foreground">
               Help center
-            </a>
+            </Link>
           </div>
         </div>
       </div>

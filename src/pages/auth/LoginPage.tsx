@@ -9,7 +9,7 @@ import { MessageSquare, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
-import { toApiException } from '@/shared/api/api-error';
+import { formatApiError } from '@/shared/api/api-error';
 import {
   authApi,
   loginSchema,
@@ -43,7 +43,12 @@ export const LoginPage = () => {
 
       // If the backend returns the user object, set it too
       if (data.user) {
-        useSession.getState().setUser(data.user);
+        useSession
+          .getState()
+          .setSession(
+            data.accessToken,
+            data.user as import('@/features/auth/store/session.store').CurrentUser,
+          );
       }
 
       toast.success('Successfully logged in!', { duration: 3000 });
@@ -53,12 +58,7 @@ export const LoginPage = () => {
       navigate(from, { replace: true });
     },
     onError: (error) => {
-      const apiError = toApiException(error);
-      const detail =
-        apiError.fieldErrors.length > 0
-          ? apiError.fieldErrors.map((e) => `${e.field}: ${e.message}`).join(' · ')
-          : apiError.message;
-      toast.error(detail || 'Invalid username or password.');
+      toast.error(formatApiError(error, 'Invalid username or password.'));
     },
   });
 

@@ -22,7 +22,7 @@ import {
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
-import { toApiException } from '@/shared/api/api-error';
+import { formatApiError } from '@/shared/api/api-error';
 import { authApi, registerSchema, type RegisterFormValues } from '@/features/auth';
 
 const getPasswordStrength = (pass: string) => {
@@ -71,16 +71,10 @@ export const RegisterPage = () => {
     mutationFn: authApi.register,
     onSuccess: () => {
       toast.success('Account created! Please sign in.', { duration: 4000 });
-      navigate('/login');
+      navigate('/login', { replace: true });
     },
     onError: (error) => {
-      const apiError = toApiException(error);
-      // Show field-level errors if returned by the API
-      const detail =
-        apiError.fieldErrors.length > 0
-          ? apiError.fieldErrors.map((e) => `${e.field}: ${e.message}`).join(' · ')
-          : apiError.message;
-      toast.error(detail || 'Registration failed. Please try again.');
+      toast.error(formatApiError(error, 'Registration failed. Please try again.'));
     },
   });
 

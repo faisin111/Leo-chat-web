@@ -8,7 +8,6 @@ import { toApiException } from './api-error';
 export const http = axios.create({
   baseURL: `${env.API_BASE_URL}/api/v1`,
   timeout: 15_000,
-  withCredentials: true,
 });
 
 http.interceptors.request.use((config) => {

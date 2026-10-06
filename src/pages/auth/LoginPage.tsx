@@ -2,39 +2,39 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
+import { MessageSquare } from 'lucide-react';
 
 export const LoginPage = () => {
   return (
-    <div className="flex w-full flex-col lg:flex-row">
+    <div className="flex w-full flex-1 flex-col lg:flex-row h-full min-h-screen">
       {/* Left side - Visuals */}
-      <div className="hidden lg:flex flex-col justify-between w-1/2 bg-card border-r border-border p-12 relative overflow-hidden">
+      <div className="hidden lg:flex flex-col justify-between w-1/2 bg-slate-900 border-r border-border p-12 relative overflow-hidden text-white">
         {/* Background gradient/image placeholder */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-background z-0"></div>
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/20 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2"></div>
 
-        <div className="relative z-10 flex items-center space-x-2 font-bold text-xl text-primary">
+        <div className="relative z-10 flex items-center space-x-2 font-bold text-xl text-primary-foreground">
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-            L
+            <MessageSquare className="w-4 h-4" fill="currentColor" />
           </div>
           <span>LeoChat</span>
         </div>
 
         <div className="relative z-10 max-w-md mt-24">
-          <div className="w-12 h-12 bg-primary/20 text-primary flex items-center justify-center rounded-xl mb-6 text-2xl font-serif">
+          <div className="w-12 h-12 bg-white/10 text-primary-foreground flex items-center justify-center rounded-xl mb-6 text-2xl font-serif">
             &quot;
           </div>
-          <h2 className="text-3xl font-bold mb-6 leading-tight">
+          <h2 className="text-3xl font-bold mb-6 leading-tight text-white">
             &quot;LeoChat keeps our decisions close to the work—and our conversations genuinely
             focused.&quot;
           </h2>
           <div>
-            <p className="font-bold">Maya Chen</p>
-            <p className="text-muted-foreground text-sm">Head of Design, Northstar Studio</p>
+            <p className="font-bold text-white">Maya Chen</p>
+            <p className="text-white/60 text-sm">Head of Design, Northstar Studio</p>
           </div>
         </div>
 
-        <div className="relative z-10 text-xs text-muted-foreground mt-24">
+        <div className="relative z-10 text-xs text-white/60 mt-24">
           Private by design • Synced everywhere
         </div>
       </div>
@@ -51,7 +51,7 @@ export const LoginPage = () => {
         <div className="w-full max-w-[400px]">
           <div className="lg:hidden flex items-center space-x-2 font-bold text-xl text-primary mb-12">
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-              L
+              <MessageSquare className="w-4 h-4" fill="currentColor" />
             </div>
             <span>LeoChat</span>
           </div>

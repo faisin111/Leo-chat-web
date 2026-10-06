@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
-import { CheckCircle2, Shield, Zap, Users, RefreshCcw } from 'lucide-react';
+import { MessageSquare, CheckCircle2, Shield, Zap, Users, RefreshCcw } from 'lucide-react';
 
 export const LandingPage = () => {
   return (
@@ -9,7 +9,7 @@ export const LandingPage = () => {
       <header className="flex items-center justify-between px-6 lg:px-12 py-4 max-w-7xl w-full mx-auto">
         <div className="flex items-center space-x-2 font-bold text-xl text-primary">
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-            L
+            <MessageSquare className="w-4 h-4" fill="currentColor" />
           </div>
           <span>LeoChat</span>
         </div>
@@ -252,7 +252,7 @@ export const LandingPage = () => {
           <div>
             <div className="flex items-center space-x-2 font-bold text-lg text-primary mb-4">
               <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs">
-                L
+                <MessageSquare className="w-3 h-3" fill="currentColor" />
               </div>
               <span>LeoChat</span>
             </div>

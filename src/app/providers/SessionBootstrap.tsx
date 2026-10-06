@@ -6,30 +6,35 @@ export function SessionBootstrap({ children }: { children: ReactNode }) {
   const status = useSession((s) => s.status);
 
   useEffect(() => {
+    if (status !== 'unknown') return;
+
+    // Fast path: no previous session flag → immediately mark anonymous.
+    // This avoids a slow network round-trip on every fresh page visit.
+    if (!authSession.mightBeActive()) {
+      useSession.getState().clear();
+      return;
+    }
+
+    // Slow path: a flag says we might have a live refresh-token cookie,
+    // so try to silently restore the session.
     let mounted = true;
-
-    async function bootstrap() {
+    async function tryRestore() {
       try {
-        // Attempt to refresh the session token
         await authSession.refresh();
-
-        // TODO: In a complete implementation, we should also fetch the user profile here
-        // e.g. const user = await http.get('/users/me').then(r => r.data);
-        // and then call setSession(token, user).
-
-        // For now, since we only have the shell, we'll mark as anonymous if refresh fails
-        // or we don't have a real backend connected yet.
+        // On success setAccessToken is called inside authSession.refresh()
+        // The status remains 'unknown' until we also call setSession with a user.
+        // For now, mark anonymous if we can't get the full user profile yet.
+        // TODO: follow up with GET /users/me and call setSession(token, user)
+        if (mounted) useSession.getState().clear();
       } catch {
         if (mounted) {
-          useSession.getState().clear(); // Sets status to 'anonymous'
+          authSession.expire(); // clear flag so next load is instant
+          useSession.getState().clear();
         }
       }
     }
 
-    if (status === 'unknown') {
-      bootstrap();
-    }
-
+    tryRestore();
     return () => {
       mounted = false;
     };

@@ -5,9 +5,11 @@ export function RequireGuest() {
   const status = useSession((s) => s.status);
   const location = useLocation();
 
-  if (status === 'unknown') return <div className="p-8 text-center">Loading session...</div>;
+  // 'unknown' is now resolved instantly in SessionBootstrap – render nothing
+  // for the single frame it takes to avoid any flicker.
+  if (status === 'unknown') return null;
   if (status === 'authenticated') {
-    const from = location.state?.from?.pathname || '/app';
+    const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/app';
     return <Navigate to={from} replace />;
   }
 

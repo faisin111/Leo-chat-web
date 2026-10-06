@@ -1,4 +1,5 @@
-import { Outlet, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { AnimatedOutlet } from './AnimatedOutlet';
 
 export default function AdminLayout() {
   return (
@@ -18,7 +19,7 @@ export default function AdminLayout() {
         </nav>
       </aside>
       <main className="flex-1 p-6 overflow-y-auto">
-        <Outlet />
+        <AnimatedOutlet />
       </main>
     </div>
   );

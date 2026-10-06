@@ -1,4 +1,5 @@
-import { Outlet, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { AnimatedOutlet } from './AnimatedOutlet';
 
 export default function SettingsLayout() {
   return (
@@ -14,7 +15,7 @@ export default function SettingsLayout() {
         </nav>
       </div>
       <div className="flex-1 p-6 overflow-y-auto">
-        <Outlet />
+        <AnimatedOutlet />
       </div>
     </div>
   );

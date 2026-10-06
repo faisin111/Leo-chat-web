@@ -1,9 +1,9 @@
-import { Outlet } from 'react-router-dom';
+import { AnimatedOutlet } from './AnimatedOutlet';
 
 export default function AuthLayout() {
   return (
     <div className="flex min-h-screen bg-background text-foreground">
-      <Outlet />
+      <AnimatedOutlet />
     </div>
   );
 }

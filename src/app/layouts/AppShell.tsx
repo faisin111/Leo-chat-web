@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { AnimatedOutlet } from './AnimatedOutlet';
 
 export default function AppShell() {
   return (
@@ -11,7 +11,7 @@ export default function AppShell() {
         </nav>
       </aside>
       <main className="flex-1 flex flex-col relative overflow-hidden">
-        <Outlet />
+        <AnimatedOutlet />
       </main>
     </div>
   );

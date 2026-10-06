@@ -30,6 +30,7 @@ export default function Register() {
   const icons = [Zap, Users, Shield, RefreshCw];
 
   const [showPassword, setShowPassword] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   
   // Calculate password strength
   const calculateStrength = (pass) => {
@@ -96,11 +97,11 @@ export default function Register() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-text-main mb-1">Username</label>
-                <input required name="username" value={formData.username} onChange={handleChange} type="text" placeholder="alex_dev" className="block w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
+                <input required name="username" value={formData.username} onChange={handleChange} pattern="^[a-zA-Z0-9_]{3,20}$" title="3-20 characters, letters, numbers, and underscores only" type="text" placeholder="alex_dev" autoComplete="username" autoCapitalize="none" autoCorrect="off" className="block w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-text-main mb-1">Display name</label>
-                <input required name="displayName" value={formData.displayName} onChange={handleChange} type="text" placeholder="Alex Rivera" className="block w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
+                <input required name="displayName" value={formData.displayName} onChange={handleChange} minLength={2} maxLength={50} type="text" placeholder="Alex Rivera" autoComplete="name" className="block w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
               </div>
             </div>
             
@@ -110,7 +111,7 @@ export default function Register() {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Mail className="h-4 w-4 text-text-light" />
                 </div>
-                <input required name="email" value={formData.email} onChange={handleChange} type="email" placeholder="alex@northstar.design" className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
+                <input required name="email" value={formData.email} onChange={handleChange} type="email" placeholder="alex@northstar.design" autoComplete="email" autoCapitalize="none" autoCorrect="off" className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
               </div>
             </div>
             
@@ -120,7 +121,7 @@ export default function Register() {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="h-4 w-4 text-text-light" />
                 </div>
-                <input required name="password" value={formData.password} onChange={handleChange} type={showPassword ? "text" : "password"} placeholder="At least 8 characters" minLength={8} className="block w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
+                <input required name="password" value={formData.password} onChange={handleChange} type={showPassword ? "text" : "password"} placeholder="At least 8 characters" minLength={8} autoComplete="new-password" className="block w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" onClick={() => setShowPassword(!showPassword)}>
                   <Eye className={`h-4 w-4 transition-colors ${showPassword ? 'text-brand-500' : 'text-text-light hover:text-text-muted'}`} />
                 </div>
@@ -141,14 +142,14 @@ export default function Register() {
             
             <div className="pt-2">
               <label className="flex items-start gap-3 cursor-pointer">
-                <input required type="checkbox" className="mt-1 w-4 h-4 text-brand-600 border-gray-300 rounded focus:ring-brand-500 accent-brand-600 shrink-0" defaultChecked />
+                <input required type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-1 w-4 h-4 text-brand-600 border-gray-300 rounded focus:ring-brand-500 accent-brand-600 shrink-0" />
                 <span className="text-sm text-text-muted leading-snug">
                   I agree to {APP_STRINGS.appName}'s Terms of Service and Privacy Policy, and confirm I'm at least 16 years old.
                 </span>
               </label>
             </div>
             
-            <button type="submit" disabled={isLoading} className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-70 disabled:cursor-not-allowed text-white py-2.5 rounded-lg font-medium transition-colors mt-2 text-sm flex items-center justify-center gap-2 shadow-sm">
+            <button type="submit" disabled={isLoading || !agreed} className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-40 disabled:hover:bg-brand-500 disabled:cursor-not-allowed text-white py-2.5 rounded-lg font-medium transition-all duration-500 ease-in-out mt-2 text-sm flex items-center justify-center gap-2 shadow-sm">
               {isLoading ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
               ) : (

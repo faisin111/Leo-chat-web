@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import toast from 'react-hot-toast'
-
-const API_URL = '/api/v1/auth';
+import { authService } from '../services/authService'
 
 export const useAuthStore = create((set) => ({
   user: null,
@@ -11,30 +10,12 @@ export const useAuthStore = create((set) => ({
   register: async (userData) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await fetch(`${API_URL}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        
-        // If the backend returns a list of specific field validation errors, use the first one
-        let msg = errorData.message || 'Failed to register. Please check your inputs.';
-        if (errorData.errors && errorData.errors.length > 0) {
-          const firstError = errorData.errors[0];
-          msg = `${firstError.field}: ${firstError.message}`;
-        }
-        
-        toast.error(msg);
-        throw new Error(msg);
-      }
-
-      toast.success('Account created successfully!');
+      await authService.register(userData);
+      toast.success('Account created successfully! Please log in.');
       set({ isLoading: false });
       return true;
     } catch (error) {
+      toast.error(error.message);
       set({ error: error.message, isLoading: false });
       return false;
     }
@@ -43,25 +24,12 @@ export const useAuthStore = create((set) => ({
   login: async (credentials) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await fetch(`${API_URL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(credentials),
-        credentials: 'include',
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        const msg = errorData.message || 'Invalid credentials';
-        toast.error(msg);
-        throw new Error(msg);
-      }
-
-      const data = await res.json();
-      toast.success('Logged in successfully!');
+      const data = await authService.login(credentials);
+      toast.success(`Welcome back, ${data?.displayName || credentials.username}!`);
       set({ user: data, isLoading: false });
       return true;
     } catch (error) {
+      toast.error(error.message);
       set({ error: error.message, isLoading: false });
       return false;
     }
@@ -69,14 +37,11 @@ export const useAuthStore = create((set) => ({
 
   logout: async () => {
     try {
-      await fetch(`${API_URL}/logout`, {
-        method: 'POST',
-        credentials: 'include',
-      });
+      await authService.logout();
     } catch (e) {
-      // Ignored
+      // Ignore network errors on logout
     }
-    toast.success('Logged out');
+    toast.success('You have been securely logged out.');
     set({ user: null });
   },
   

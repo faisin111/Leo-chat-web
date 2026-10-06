@@ -103,7 +103,7 @@ export default function Login() {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User className="h-4 w-4 text-text-light" />
                 </div>
-                <input required name="username" value={formData.username} onChange={handleChange} type="text" placeholder="alex_dev" className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
+                <input required name="username" value={formData.username} onChange={handleChange} type="text" placeholder="alex_dev" autoComplete="username" autoCapitalize="none" autoCorrect="off" className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
               </div>
             </div>
             
@@ -113,7 +113,7 @@ export default function Login() {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="h-4 w-4 text-text-light" />
                 </div>
-                <input required name="password" value={formData.password} onChange={handleChange} type={showPassword ? "text" : "password"} placeholder="Enter your password" minLength={8} className="block w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
+                <input required name="password" value={formData.password} onChange={handleChange} type={showPassword ? "text" : "password"} placeholder="Enter your password" minLength={8} autoComplete="current-password" className="block w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow" />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" onClick={() => setShowPassword(!showPassword)}>
                   <Eye className={`h-4 w-4 transition-colors ${showPassword ? 'text-brand-500' : 'text-text-light hover:text-text-muted'}`} />
                 </div>
@@ -125,7 +125,7 @@ export default function Login() {
                 <input type="checkbox" className="w-4 h-4 text-brand-600 border-gray-300 rounded focus:ring-brand-500 accent-brand-600" defaultChecked />
                 <span className="text-sm text-text-muted">Remember me</span>
               </label>
-              <Link to="#" className="text-sm text-brand-600 hover:text-brand-700 font-medium transition-colors">Forgot password?</Link>
+              <Link to="/forgot-password" className="text-sm text-brand-600 hover:text-brand-700 font-medium transition-colors">Forgot password?</Link>
             </div>
             
             <button type="submit" disabled={isLoading} className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-70 disabled:cursor-not-allowed text-white py-2.5 rounded-lg font-medium transition-colors mt-2 text-sm shadow-sm flex justify-center items-center gap-2">

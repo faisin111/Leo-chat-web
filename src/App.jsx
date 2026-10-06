@@ -7,6 +7,7 @@ import { Toaster } from 'react-hot-toast'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
 import PageTransition from './components/PageTransition'
 import AppLayout from './layouts/AppLayout'
 import Messages from './pages/Messages'
@@ -76,6 +77,10 @@ function App() {
           <Route 
             path="/register" 
             element={<PageTransition><Register /></PageTransition>} 
+          />
+          <Route 
+            path="/forgot-password" 
+            element={<PageTransition><ForgotPassword /></PageTransition>} 
           />
           
           {/* Authenticated App Routes */}

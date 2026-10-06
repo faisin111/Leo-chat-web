@@ -37,59 +37,37 @@ export default function ChatLayout() {
             <button className="px-4 py-1.5 rounded-full text-slate-500 hover:bg-slate-100">Groups</button>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-2 pb-4 space-y-6">
-            {/* Pinned - keeping mock for now as API might not support pinning yet */}
-            <div>
-              <p className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">Pinned</p>
-              <div className="space-y-1">
-                <ChatItem 
-                  id="mock-1"
-                  initials="PR" 
-                  name="Product room" 
-                  message="Maya: Updated the launch checklist" 
-                  time="10:45 AM" 
-                  badge="3"
-                  active={location.pathname.includes('mock-1')} 
-                  color="bg-purple-100 text-purple-700" 
+          <div className="flex-1 overflow-y-auto pr-2 pb-4 space-y-2">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
+              </div>
+            ) : conversations.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center py-4">No conversations found.</p>
+            ) : (
+              conversations.map((conv) => (
+                <ChatItem
+                  key={conv.id}
+                  id={conv.id}
+                  initials={(conv.title || 'U').substring(0, 2).toUpperCase()}
+                  name={conv.title || 'Unknown User'}
+                  message={conv.type === 'GROUP' ? 'Group conversation' : 'Direct message'}
+                  time={conv.lastMessageAt ? formatDistanceToNow(new Date(conv.lastMessageAt), { addSuffix: true }) : 'New'}
+                  active={location.pathname === `/app/c/${conv.id}`}
+                  color="bg-slate-100 text-slate-700"
                 />
-              </div>
-            </div>
-
-            <div>
-              <p className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">Recent</p>
-              <div className="space-y-1">
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
-                  </div>
-                ) : conversations.length === 0 ? (
-                  <p className="text-sm text-slate-500 text-center py-4">No conversations found.</p>
-                ) : (
-                  conversations.map((conv) => (
-                    <ChatItem
-                      key={conv.id}
-                      id={conv.id}
-                      initials={(conv.title || 'U').substring(0, 2).toUpperCase()}
-                      name={conv.title || 'Unknown User'}
-                      message={conv.type === 'GROUP' ? 'Group conversation' : 'Direct message'}
-                      time={conv.lastMessageAt ? formatDistanceToNow(new Date(conv.lastMessageAt), { addSuffix: true }) : 'New'}
-                      active={location.pathname === `/app/c/${conv.id}`}
-                      color="bg-slate-100 text-slate-700"
-                    />
-                  ))
-                )}
-                
-                {hasNextPage && (
-                  <button 
-                    onClick={() => fetchNextPage()}
-                    disabled={isFetchingNextPage}
-                    className="w-full py-3 text-xs font-semibold text-primary hover:bg-primary/5 rounded-xl transition-colors mt-2"
-                  >
-                    {isFetchingNextPage ? 'Loading...' : 'Load more'}
-                  </button>
-                )}
-              </div>
-            </div>
+              ))
+            )}
+            
+            {hasNextPage && (
+              <button 
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+                className="w-full py-3 text-xs font-semibold text-primary hover:bg-primary/5 rounded-xl transition-colors mt-2"
+              >
+                {isFetchingNextPage ? 'Loading...' : 'Load more'}
+              </button>
+            )}
           </div>
           
           <div className="mt-2 pt-4 border-t border-slate-100">

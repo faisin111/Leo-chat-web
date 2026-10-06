@@ -1,16 +1,20 @@
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
-import { Search, UserPlus, ArrowLeft, Loader2 } from 'lucide-react';
+import { Search, UserPlus, ArrowLeft, Loader2, MessageSquarePlus, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 // eslint-disable-next-line no-restricted-imports
 import { useStartDirectMessage } from '@/features/chat/api/use-start-direct-message';
 // eslint-disable-next-line no-restricted-imports
 import { useSearchUsers } from '@/features/users/api/use-search-users';
+// eslint-disable-next-line no-restricted-imports
+import type { UserSearchItem } from '@/features/users/api/users-api';
+import { AnimatePresence, motion } from 'framer-motion';
 
 export const NewChatPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
+  const [selectedUser, setSelectedUser] = useState<UserSearchItem | null>(null);
   const startDm = useStartDirectMessage();
 
   // Simple debounce logic if useDebounce hook doesn't exist
@@ -21,9 +25,11 @@ export const NewChatPage = () => {
 
   const { data: users, isLoading } = useSearchUsers(debouncedQuery);
 
-  const handleStartChat = (id: string) => {
-    if (!id.trim()) return;
-    startDm.mutate(id);
+  const handleStartChat = () => {
+    if (!selectedUser) return;
+    startDm.mutate(selectedUser.id, {
+      onSuccess: () => setSelectedUser(null),
+    });
   };
 
   return (
@@ -77,11 +83,93 @@ export const NewChatPage = () => {
             avatarUrl={user.profilePictureUrl}
             initials={(user.displayName || user.username).substring(0, 2).toUpperCase()}
             color="bg-slate-100 text-slate-700"
-            onClick={() => handleStartChat(user.id)}
-            isPending={startDm.isPending && startDm.variables === user.id}
+            onClick={() => setSelectedUser(user)}
           />
         ))}
       </div>
+
+      <AnimatePresence>
+        {selectedUser && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedUser(null)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-40"
+            />
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-50 p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm pointer-events-auto overflow-hidden relative"
+              >
+                <button
+                  onClick={() => setSelectedUser(null)}
+                  className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="flex flex-col items-center text-center mt-4">
+                  <div className="relative mb-4">
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center font-bold text-2xl bg-primary/10 text-primary overflow-hidden shadow-sm">
+                      {selectedUser.profilePictureUrl ? (
+                        <img
+                          src={selectedUser.profilePictureUrl}
+                          alt={selectedUser.username}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        (selectedUser.displayName || selectedUser.username)
+                          .substring(0, 2)
+                          .toUpperCase()
+                      )}
+                    </div>
+                    {selectedUser.status === 'ONLINE' && (
+                      <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 border-4 border-white rounded-full" />
+                    )}
+                  </div>
+
+                  <h3 className="text-xl font-bold text-slate-900 mb-1">
+                    {selectedUser.displayName || selectedUser.username}
+                  </h3>
+                  <p className="text-slate-500 font-medium mb-6">@{selectedUser.username}</p>
+
+                  <div className="w-full bg-slate-50 rounded-2xl p-4 mb-6 text-sm text-slate-600 text-left border border-slate-100">
+                    <p className="mb-2">
+                      <span className="font-semibold text-slate-700">Bio:</span>{' '}
+                      {selectedUser.bio || 'No bio provided.'}
+                    </p>
+                    {selectedUser.region && (
+                      <p>
+                        <span className="font-semibold text-slate-700">Location:</span>{' '}
+                        {selectedUser.region}
+                      </p>
+                    )}
+                  </div>
+
+                  <Button
+                    onClick={handleStartChat}
+                    disabled={startDm.isPending}
+                    className="w-full h-12 rounded-xl text-base font-semibold gap-2"
+                  >
+                    {startDm.isPending ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        <MessageSquarePlus className="w-5 h-5" />
+                        Start Conversation
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

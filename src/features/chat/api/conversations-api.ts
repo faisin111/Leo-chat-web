@@ -11,6 +11,9 @@ export type Conversation = {
   lastMessageAt: string | null;
   createdAt: string;
   status: string;
+  targetUsername?: string;
+  targetDisplayName?: string;
+  targetAvatarUrl?: string;
 };
 
 export type ConversationsResponse = {
@@ -48,15 +51,18 @@ export type MessagesResponse = {
 };
 
 export const conversationsApi = {
-  getConversations: async (cursor?: string | null, limit: number = 50): Promise<ConversationsResponse> => {
+  getConversations: async (
+    cursor?: string | null,
+    limit: number = 50,
+  ): Promise<ConversationsResponse> => {
     const params = new URLSearchParams();
     if (cursor) params.append('cursor', cursor);
     if (limit) params.append('limit', limit.toString());
-    
+
     const response = await http.get(`/conversations?${params.toString()}`);
     return response.data;
   },
-  
+
   startDirectMessage: async (targetUserId: string): Promise<Conversation> => {
     const response = await http.post('/conversations/direct', { targetUserId });
     return response.data;
@@ -67,12 +73,18 @@ export const conversationsApi = {
     return response.data;
   },
 
-  getMessages: async (conversationId: string, beforeSeq?: string | null, limit: number = 50): Promise<MessagesResponse> => {
+  getMessages: async (
+    conversationId: string,
+    beforeSeq?: string | null,
+    limit: number = 50,
+  ): Promise<MessagesResponse> => {
     const params = new URLSearchParams();
     if (beforeSeq) params.append('beforeSeq', beforeSeq);
     if (limit) params.append('limit', limit.toString());
-    
-    const response = await http.get(`/conversations/${conversationId}/messages?${params.toString()}`);
+
+    const response = await http.get(
+      `/conversations/${conversationId}/messages?${params.toString()}`,
+    );
     return response.data;
   },
 };

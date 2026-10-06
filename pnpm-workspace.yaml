@@ -1,0 +1,4 @@
+allowBuilds:
+  esbuild: true
+  pnpm: true
+  unrs-resolver: set this to true or false

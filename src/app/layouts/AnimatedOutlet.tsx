@@ -9,11 +9,14 @@ export function AnimatedOutlet() {
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={location.pathname}
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        transition={{ duration: 0.2, ease: 'easeOut' }}
-        className="w-full flex-1 flex flex-col"
+        exit={{ opacity: 0, y: -5 }}
+        transition={{ 
+          duration: 0.2, 
+          ease: 'easeInOut' 
+        }}
+        className="w-full h-full flex-1 flex flex-col relative"
       >
         {outlet}
       </motion.div>

@@ -36,20 +36,23 @@ export const LoginPage = () => {
   });
 
   const mutation = useMutation({
-    mutationFn: authApi.login,
+    mutationFn: async (credentials: LoginFormValues) => {
+      const data = await authApi.login(credentials);
+      let user = data.user;
+      // If backend only returns token, fetch user profile to complete session
+      if (!user) {
+        user = await authApi.getMe();
+      }
+      return { accessToken: data.accessToken, user };
+    },
     onSuccess: (data) => {
       authSession.markActive();
-      useSession.getState().setAccessToken(data.accessToken);
-
-      // If the backend returns the user object, set it too
-      if (data.user) {
-        useSession
-          .getState()
-          .setSession(
-            data.accessToken,
-            data.user as import('@/features/auth/store/session.store').CurrentUser,
-          );
-      }
+      useSession
+        .getState()
+        .setSession(
+          data.accessToken,
+          data.user as import('@/features/auth/store/session.store').CurrentUser,
+        );
 
       toast.success('Successfully logged in!', { duration: 3000 });
 

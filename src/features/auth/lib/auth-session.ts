@@ -29,6 +29,5 @@ export const authSession = {
   expire: () => {
     sessionStorage.removeItem(SESSION_FLAG_KEY);
     useSession.getState().clear();
-    window.location.href = '/login';
   },
 };

@@ -4,6 +4,7 @@ import { create } from 'zustand';
 export type CurrentUser = {
   id: string;
   username: string;
+  displayName?: string;
   role: 'USER' | 'ADMIN';
   mustChangePassword?: boolean;
 };

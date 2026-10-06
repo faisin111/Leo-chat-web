@@ -1,22 +1,77 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { AnimatedOutlet } from './AnimatedOutlet';
+import { User, MonitorSmartphone, Bell, Shield, Ban, Palette, MessageSquare } from 'lucide-react';
+import { useSession } from '@/features/auth';
 
 export default function SettingsLayout() {
+  const location = useLocation();
+  const user = useSession((s) => s.user);
+
+  const getInitials = (name: string) => name.substring(0, 2).toUpperCase();
+
   return (
-    <div className="flex h-full w-full">
-      <div className="w-48 border-r border-border p-4">
-        <h3 className="font-semibold mb-4">Settings</h3>
-        <nav className="flex flex-col space-y-2 text-sm">
-          <Link to="/app/settings/profile">Profile</Link>
-          <Link to="/app/settings/security">Security</Link>
-          <Link to="/app/settings/sessions">Sessions</Link>
-          <Link to="/app/settings/blocked">Blocked Users</Link>
-          <Link to="/app/settings/appearance">Appearance</Link>
-        </nav>
-      </div>
-      <div className="flex-1 p-6 overflow-y-auto">
+    <div className="flex h-full w-full bg-slate-50/50">
+      {/* Settings Sidebar */}
+      <aside className="w-[300px] border-r border-slate-200 bg-white flex flex-col shrink-0">
+        <div className="p-6">
+          <h2 className="text-xl font-semibold mb-6">Settings</h2>
+          
+          <div className="flex items-center space-x-3 p-3 rounded-xl border border-slate-100 shadow-sm mb-6">
+            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
+              {user?.displayName ? getInitials(user.displayName) : 'U'}
+            </div>
+            <div className="overflow-hidden">
+              <p className="font-semibold text-sm truncate">{user?.displayName || 'User'}</p>
+              <p className="text-xs text-slate-500 truncate">{user?.username || '@username'}</p>
+            </div>
+          </div>
+
+          <nav className="flex flex-col space-y-1">
+            <SettingsNavItem to="/app/settings/profile" icon={<User className="w-4 h-4" />} label="Profile & account" active={location.pathname.startsWith('/app/settings/profile')} />
+            <SettingsNavItem to="/app/settings/sessions" icon={<MonitorSmartphone className="w-4 h-4" />} label="Sessions & devices" active={location.pathname.startsWith('/app/settings/sessions')} badge="3" />
+            <SettingsNavItem to="/app/settings/notifications" icon={<Bell className="w-4 h-4" />} label="Notifications" active={location.pathname.startsWith('/app/settings/notifications')} />
+            <SettingsNavItem to="/app/settings/security" icon={<Shield className="w-4 h-4" />} label="Security & privacy" active={location.pathname.startsWith('/app/settings/security')} />
+            <SettingsNavItem to="/app/settings/blocked" icon={<Ban className="w-4 h-4" />} label="Blocked users" active={location.pathname.startsWith('/app/settings/blocked')} />
+            <SettingsNavItem to="/app/settings/appearance" icon={<Palette className="w-4 h-4" />} label="Appearance" active={location.pathname.startsWith('/app/settings/appearance')} />
+            <SettingsNavItem to="/app/settings/messaging" icon={<MessageSquare className="w-4 h-4" />} label="Messaging" active={location.pathname.startsWith('/app/settings/messaging')} />
+          </nav>
+        </div>
+
+        <div className="mt-auto p-6">
+          <div className="p-4 rounded-xl bg-green-50 border border-green-100 text-green-800">
+            <p className="text-xs font-bold mb-1 flex items-center">
+              <span className="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+              Account ACTIVE
+            </p>
+            <p className="text-[10px] opacity-80">Member since {new Date().getFullYear()}</p>
+          </div>
+        </div>
+      </aside>
+      
+      <main className="flex-1 overflow-y-auto">
         <AnimatedOutlet />
-      </div>
+      </main>
     </div>
+  );
+}
+
+function SettingsNavItem({ to, icon, label, active, badge }: { to: string; icon: React.ReactNode; label: string; active: boolean; badge?: string }) {
+  return (
+    <Link
+      to={to}
+      className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors font-medium ${
+        active ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+      }`}
+    >
+      <div className="flex items-center space-x-3">
+        {icon}
+        <span>{label}</span>
+      </div>
+      {badge && (
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${active ? 'bg-primary text-primary-foreground' : 'bg-slate-200 text-slate-700'}`}>
+          {badge}
+        </span>
+      )}
+    </Link>
   );
 }

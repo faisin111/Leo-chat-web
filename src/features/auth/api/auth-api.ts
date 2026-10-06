@@ -31,4 +31,12 @@ export const authApi = {
     const response = await http.post('/auth/reset-password', data);
     return response.data;
   },
+  getMe: async () => {
+    const response = await http.get('/users/me');
+    return response.data;
+  },
+  logout: async () => {
+    const response = await http.post('/auth/logout');
+    return response.data;
+  },
 };

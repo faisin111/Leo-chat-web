@@ -4,6 +4,7 @@ import AuthLayout from '../layouts/AuthLayout';
 import AppShell from '../layouts/AppShell';
 import AdminLayout from '../layouts/AdminLayout';
 import SettingsLayout from '../layouts/SettingsLayout';
+import ChatLayout from '../layouts/ChatLayout';
 import { RequireAuth } from './guards/RequireAuth';
 import { RequireGuest } from './guards/RequireGuest';
 import { RequireRole } from './guards/RequireRole';
@@ -68,13 +69,19 @@ export const router = createBrowserRouter([
                 path: '/app',
                 element: <AppShell />,
                 children: [
-                  { index: true, lazy: lazyLoad('chat/ChatHomePage', 'ChatHomePage') },
                   {
-                    path: 'c/:conversationId',
-                    lazy: lazyLoad('chat/ConversationPage', 'ConversationPage'),
+                    element: <ChatLayout />,
+                    children: [
+                      { index: true, lazy: lazyLoad('chat/ChatHomePage', 'ChatHomePage') },
+                      {
+                        path: 'c/:conversationId',
+                        lazy: lazyLoad('chat/ConversationPage', 'ConversationPage'),
+                      },
+                    ],
                   },
                   { path: 'new', lazy: lazyLoad('chat/NewChatPage', 'NewChatPage') },
                   { path: 'new-group', lazy: lazyLoad('chat/NewGroupPage', 'NewGroupPage') },
+                  { path: 'people', lazy: lazyLoad('chat/PeoplePage', 'PeoplePage') },
                   {
                     path: 'settings',
                     element: <SettingsLayout />,

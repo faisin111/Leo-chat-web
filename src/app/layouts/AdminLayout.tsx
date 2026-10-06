@@ -1,26 +1,85 @@
-import { Link } from 'react-router-dom';
+import type { ReactNode } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { AnimatedOutlet } from './AnimatedOutlet';
+import { NavigationRail } from './components/NavigationRail';
+import { LayoutDashboard, Users, Flag, MessageSquare, ShieldAlert, Settings, Shield } from 'lucide-react';
 
 export default function AdminLayout() {
+  const location = useLocation();
+
   return (
-    <div className="flex h-screen bg-background text-foreground">
-      <aside className="w-64 border-r border-border bg-muted/50 p-4">
-        <h2 className="font-bold mb-4">Admin Console</h2>
-        <nav className="flex flex-col space-y-2">
-          <Link to="/app/admin" className="hover:underline">
-            Dashboard
-          </Link>
-          <Link to="/app/admin/users" className="hover:underline">
-            Users
-          </Link>
-          <Link to="/app/admin/reports" className="hover:underline">
-            Reports
-          </Link>
-        </nav>
+    <div className="flex h-screen bg-background text-foreground overflow-hidden">
+      <NavigationRail />
+      
+      {/* Admin Sidebar */}
+      <aside className="w-[280px] bg-slate-900 flex flex-col border-r border-border shrink-0 text-white">
+        <div className="p-6">
+          <div className="flex items-center space-x-3 mb-8">
+            <div className="w-8 h-8 rounded-lg bg-primary/20 text-primary flex items-center justify-center">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-lg leading-tight">Admin console</h2>
+              <p className="text-xs text-slate-400">Platform owner workspace</p>
+            </div>
+          </div>
+
+          <nav className="flex flex-col space-y-1">
+            <AdminNavItem to="/app/admin" icon={<LayoutDashboard className="w-4 h-4" />} label="Overview" active={location.pathname === '/app/admin'} />
+            <AdminNavItem to="/app/admin/users" icon={<Users className="w-4 h-4" />} label="Users" active={location.pathname.startsWith('/app/admin/users')} badge="248" />
+            <AdminNavItem to="/app/admin/reports" icon={<Flag className="w-4 h-4" />} label="Moderation" active={location.pathname.startsWith('/app/admin/reports')} badge="6" badgeColor="bg-red-500" />
+            <AdminNavItem to="/app/admin/conversations" icon={<MessageSquare className="w-4 h-4" />} label="Conversations" active={location.pathname.startsWith('/app/admin/conversations')} />
+            <AdminNavItem to="/app/admin/audit-logs" icon={<ShieldAlert className="w-4 h-4" />} label="Audit logs" active={location.pathname.startsWith('/app/admin/audit-logs')} />
+            <AdminNavItem to="/app/admin/ownership" icon={<Settings className="w-4 h-4" />} label="Platform settings" active={location.pathname.startsWith('/app/admin/ownership')} />
+          </nav>
+        </div>
+
+        <div className="mt-auto p-6">
+          <div className="p-4 rounded-xl border border-slate-700 bg-slate-800/50">
+            <div className="flex items-center space-x-2 text-slate-300 mb-2 font-medium">
+              <Shield className="w-4 h-4" />
+              <span className="text-sm">Privacy boundary</span>
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Private messages are not readable by administrators. Only content attached to a user report may be reviewed.
+            </p>
+          </div>
+        </div>
       </aside>
-      <main className="flex-1 p-6 overflow-y-auto">
+
+      <main className="flex-1 bg-white relative overflow-hidden flex flex-col">
         <AnimatedOutlet />
       </main>
     </div>
+  );
+}
+
+interface AdminNavItemProps {
+  to: string;
+  icon: ReactNode;
+  label: string;
+  active: boolean;
+  badge?: string;
+  badgeColor?: string;
+}
+
+function AdminNavItem({ to, icon, label, active, badge, badgeColor = 'bg-slate-700' }: AdminNavItemProps) {
+  return (
+    <Link
+      to={to}
+      className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors ${
+        active ? 'bg-slate-800 text-white font-medium' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+      }`}
+    >
+      <div className="flex items-center space-x-3">
+        {icon}
+        <span>{label}</span>
+      </div>
+      {badge && (
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full text-white ${badgeColor}`}>
+          {badge}
+        </span>
+      )}
+    </Link>
   );
 }

@@ -39,6 +39,16 @@ export const ConversationPage = () => {
     const handleIncomingMessage = (rawMsg: any) => {
       // Handle potential payload wrapping from different backend STOMP configurations
       const msg = rawMsg.payload || rawMsg;
+
+      // INTERCEPT TYPING EVENTS: If backend broadcasts typing on the same topic
+      if (msg.type === 'TYPING' || msg.isTyping || msg.action === 'TYPING') {
+        const uid = msg.userId || msg.senderId;
+        if (uid && uid !== currentUser?.id) {
+          setTypingUsers((prev) => ({ ...prev, [uid]: Date.now() }));
+        }
+        return; // Stop processing, this is not a text message
+      }
+
       const targetId = msg.conversationId || msg.groupId || msg.chatId;
 
       if (!targetId || targetId === conversationId) {
@@ -71,6 +81,19 @@ export const ConversationPage = () => {
       handleIncomingMessage,
     );
 
+    // 3. Fallback explicit typing topic (some backends use a separate sub-topic for typing)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cleanupGroupTyping = wsService.subscribe(
+      `/topic/group/${conversationId}/typing`,
+      (rawMsg: any) => {
+        const msg = rawMsg.payload || rawMsg;
+        const uid = msg.userId || msg.senderId;
+        if (uid && uid !== currentUser?.id) {
+          setTypingUsers((prev) => ({ ...prev, [uid]: Date.now() }));
+        }
+      },
+    );
+
     // Listen for typing events
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cleanupTyping = wsService.addTypingListener((msg: any) => {
@@ -98,6 +121,7 @@ export const ConversationPage = () => {
     return () => {
       cleanupMessage();
       cleanupGroup();
+      cleanupGroupTyping();
       cleanupTyping();
       clearInterval(interval);
     };

@@ -1,45 +1,201 @@
 import { Button } from '@/shared/ui/button';
-import { Phone, Video, Info, Smile, Paperclip, Send, Loader2, ArrowLeft } from 'lucide-react';
-import { useParams, Link } from 'react-router-dom';
-import { useState } from 'react';
+import { Phone, Video, Info, Smile, Paperclip, Send, Loader2, UserPlus } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
 import type { KeyboardEvent } from 'react';
 // eslint-disable-next-line no-restricted-imports
 import { useSendMessage } from '@/features/chat/api/use-send-message';
 // eslint-disable-next-line no-restricted-imports
 import { useMessages } from '@/features/chat/api/use-messages';
+// eslint-disable-next-line no-restricted-imports
+import { useConversations } from '@/features/chat/api/use-conversations';
 import { useSession } from '@/features/auth';
 import { format } from 'date-fns';
+import { AddMembersModal } from './components/AddMembersModal';
+import { wsService } from '@/shared/api/websocket';
+import { useQueryClient } from '@tanstack/react-query';
+// eslint-disable-next-line no-restricted-imports
+import type { Message } from '@/features/chat/api/conversations-api';
 
 export const ConversationPage = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
   const [content, setContent] = useState('');
+  const [isAddMembersOpen, setIsAddMembersOpen] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<Record<string, number>>({});
+  const [liveMessages, setLiveMessages] = useState<Message[]>([]);
 
   const sendMessage = useSendMessage(conversationId || '');
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useMessages(
     conversationId || '',
   );
   const currentUser = useSession((s) => s.user);
+  const queryClient = useQueryClient();
+  const { data: conversationsData } = useConversations();
 
-  // The messages often come sorted newest-first (descending seq) when paginating backward.
-  // We reverse them so they flow top-to-bottom chronologically in standard flex layout.
-  // Alternatively, we could use a flex-col-reverse container. Let's use standard reverse for now.
-  const allMessages = data?.pages.flatMap((p) => p.items) || [];
+  const conversation = conversationsData?.pages
+    .flatMap((p) => p.items)
+    .find((c) => c.id === conversationId);
+  const isGroup = conversation?.type === 'GROUP';
+
+  // Clear live messages when changing conversations
+  useEffect(() => {
+    setLiveMessages([]);
+  }, [conversationId]);
+
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleIncomingMessage = (rawMsg: any) => {
+      // Handle potential payload wrapping from different backend STOMP configurations
+      const msg = rawMsg.payload || rawMsg;
+
+      // INTERCEPT TYPING EVENTS: If backend broadcasts typing on the same topic
+      if (msg.type === 'TYPING' || msg.isTyping || msg.action === 'TYPING') {
+        const uid = msg.userId || msg.senderId;
+        if (uid && uid !== currentUser?.id) {
+          setTypingUsers((prev) => ({ ...prev, [uid]: Date.now() }));
+        }
+        return; // Stop processing, this is not a text message
+      }
+
+      const targetId = msg.conversationId || msg.groupId || msg.chatId;
+
+      if (!targetId || targetId === conversationId) {
+        // Instantly show the message on screen via local state
+        setLiveMessages((prev) => {
+          if (
+            prev.find(
+              (m) =>
+                m.id === msg.id || (m.clientMessageId && m.clientMessageId === msg.clientMessageId),
+            )
+          ) {
+            return prev;
+          }
+          return [msg, ...prev];
+        });
+      }
+
+      // Always update the sidebar list
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      // Keep React Query cache loosely in sync
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      // Update global unread badge
+      queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
+    };
+
+    // 1. Explicitly subscribe to this specific conversation's topic
+    const cleanupMessages = wsService.subscribe(
+      `/topic/conversations.${conversationId}`,
+      handleIncomingMessage,
+    );
+
+    // 2. Explicit typing indicator topic
+    const cleanupTypingSub = wsService.subscribe(
+      `/topic/conversations.${conversationId}.typing`,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (rawMsg: any) => {
+        const msg = rawMsg.payload || rawMsg;
+        const uid = msg.userId || msg.senderId || 'typing';
+
+        if (msg.isTyping) {
+          setTypingUsers((prev) => ({ ...prev, [uid]: Date.now() }));
+        } else {
+          setTypingUsers((prev) => {
+            const next = { ...prev };
+            delete next[uid];
+            return next;
+          });
+        }
+      },
+    );
+
+    return () => {
+      cleanupMessages();
+      cleanupTypingSub();
+    };
+  }, [conversationId, queryClient, currentUser?.id]);
+
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Combine live and historical messages, deduplicating carefully
+  const historicalMessages = data?.pages.flatMap((p) => p.items) || [];
+  const allMessagesMap = new Map<string, Message>();
+
+  // 1. Add historical messages first (these are real DB messages and should take precedence)
+  historicalMessages.forEach((m) => {
+    // ALWAYS prioritize clientMessageId for deduplication if it exists!
+    const key = m.clientMessageId || m.id || Math.random().toString();
+    allMessagesMap.set(key, m);
+  });
+
+  // 2. Add live messages only if they aren't already represented by a historical DB message
+  liveMessages.forEach((m) => {
+    const key = m.clientMessageId || m.id || Math.random().toString();
+    // Also do a fallback check for exact content + sender just in case backend drops clientMessageId
+    const isDuplicateFallback = Array.from(allMessagesMap.values()).some(
+      (existing) =>
+        existing.senderId === m.senderId &&
+        existing.content === m.content &&
+        Math.abs(new Date(existing.createdAt).getTime() - new Date(m.createdAt).getTime()) < 5000,
+    );
+
+    if (!allMessagesMap.has(key) && !isDuplicateFallback) {
+      allMessagesMap.set(key, m);
+    }
+  });
+
+  // Sort descending by date so the newest is at the start of the array (bottom of the flex-col-reverse container)
+  const allMessages = Array.from(allMessagesMap.values()).sort((a, b) => {
+    const timeA = a.createdAt ? new Date(a.createdAt).getTime() : Date.now();
+    const timeB = b.createdAt ? new Date(b.createdAt).getTime() : Date.now();
+    return timeB - timeA;
+  });
 
   const handleSend = () => {
     if (!content.trim() || !conversationId) return;
 
-    sendMessage.mutate(
-      {
-        content: content.trim(),
-        type: 'TEXT',
-        clientMessageId: crypto.randomUUID(),
-      },
-      {
-        onSuccess: () => {
-          setContent('');
-        },
-      },
-    );
+    const optimisticId = crypto.randomUUID();
+    const payload = {
+      content: content.trim(),
+      type: 'TEXT',
+      clientMessageId: optimisticId,
+    };
+
+    // Optimistically push to UI instantly!
+    const optimisticMsg: Message = {
+      id: optimisticId,
+      conversationId,
+      senderId: currentUser?.id || '',
+      seq: Date.now(),
+      clientMessageId: optimisticId,
+      type: 'TEXT',
+      content: content.trim(),
+      replyToId: null,
+      createdAt: new Date().toISOString(),
+      editedAt: null,
+      deletedAt: null,
+    };
+
+    setLiveMessages((prev) => [optimisticMsg, ...prev]);
+    setContent('');
+
+    // Send to server
+    sendMessage.mutate(payload);
+  };
+
+  const handleTyping = (val: string) => {
+    setContent(val);
+
+    if (val.trim() && conversationId) {
+      wsService.publish('/app/chat.typing', { conversationId, isTyping: true });
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      typingTimeoutRef.current = setTimeout(() => {
+        wsService.publish('/app/chat.typing', { conversationId, isTyping: false });
+      }, 2000);
+    }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -51,19 +207,14 @@ export const ConversationPage = () => {
 
   return (
     <div className="flex-1 flex flex-col h-full bg-white relative">
+      <AddMembersModal
+        isOpen={isAddMembersOpen}
+        onClose={() => setIsAddMembersOpen(false)}
+        conversationId={conversationId || ''}
+      />
       {/* Header */}
-      <header className="h-16 border-b border-slate-100 flex items-center justify-between px-4 md:px-6 shrink-0">
+      <header className="h-16 border-b border-slate-100 flex items-center justify-between px-6 shrink-0">
         <div className="flex items-center space-x-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            asChild
-            className="md:hidden text-slate-500 mr-1 -ml-2"
-          >
-            <Link to="/app">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-          </Button>
           <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-xs">
             #
           </div>
@@ -73,6 +224,20 @@ export const ConversationPage = () => {
           </div>
         </div>
         <div className="flex items-center space-x-2">
+          {isGroup && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsAddMembersOpen(true)}
+                className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9"
+                title="Add members"
+              >
+                <UserPlus className="w-4 h-4" />
+              </Button>
+              <div className="w-px h-4 bg-slate-200 mx-1"></div>
+            </>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -87,7 +252,7 @@ export const ConversationPage = () => {
           >
             <Video className="w-4 h-4" />
           </Button>
-          <div className="w-px h-4 bg-slate-200 mx-2"></div>
+          <div className="w-px h-4 bg-slate-200 mx-1"></div>
           <Button
             variant="ghost"
             size="icon"
@@ -166,13 +331,38 @@ export const ConversationPage = () => {
 
       {/* Input Area */}
       <div className="p-4 bg-white border-t border-slate-100">
+        {/* Typing Indicator */}
+        {Object.keys(typingUsers).length > 0 && (
+          <div className="flex items-center space-x-2 text-xs text-slate-400 mb-2 px-2">
+            <div className="flex space-x-1">
+              <span
+                className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"
+                style={{ animationDelay: '0ms' }}
+              ></span>
+              <span
+                className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce"
+                style={{ animationDelay: '150ms' }}
+              ></span>
+              <span
+                className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"
+                style={{ animationDelay: '300ms' }}
+              ></span>
+            </div>
+            <span>
+              {Object.keys(typingUsers).length === 1
+                ? 'Someone is typing...'
+                : 'Several people are typing...'}
+            </span>
+          </div>
+        )}
+
         <div className="flex items-end bg-slate-50 rounded-2xl border border-slate-200 p-1 pl-4 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
           <textarea
             className="flex-1 bg-transparent border-none focus:ring-0 resize-none py-3 max-h-32 text-sm focus:outline-none"
             placeholder="Write a message..."
             rows={1}
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => handleTyping(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={sendMessage.isPending}
           />

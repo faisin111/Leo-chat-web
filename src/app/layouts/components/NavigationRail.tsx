@@ -4,10 +4,13 @@ import { MessageSquare, Users, Settings, Shield, HelpCircle, LogOut } from 'luci
 import { useSession, authSession, authApi } from '@/features/auth';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
+// eslint-disable-next-line no-restricted-imports
+import { useUnreadCount } from '@/features/chat/api/use-unread-count';
 
 export function NavigationRail() {
   const location = useLocation();
   const user = useSession((s) => s.user);
+  const { data: unreadData } = useUnreadCount();
 
   const getInitials = (name: string) => name.substring(0, 2).toUpperCase();
 
@@ -25,21 +28,22 @@ export function NavigationRail() {
   });
 
   return (
-    <aside className="w-full h-16 md:w-16 md:h-full bg-slate-950 flex flex-row md:flex-col items-center justify-between md:justify-start px-4 py-0 md:px-0 md:py-4 border-t md:border-t-0 md:border-r border-slate-900 z-20 shrink-0">
-      {/* App Logo - Hidden on mobile */}
+    <aside className="w-16 bg-slate-950 flex flex-col items-center py-4 border-r border-slate-900 z-20 shrink-0">
+      {/* App Logo */}
       <Link
         to="/app"
-        className="hidden md:flex w-10 h-10 bg-primary text-primary-foreground rounded-xl items-center justify-center mb-8 shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+        className="w-10 h-10 bg-primary text-primary-foreground rounded-xl flex items-center justify-center mb-8 shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
       >
         <MessageSquare className="w-5 h-5" fill="currentColor" />
       </Link>
 
-      {/* Nav Items (Top on desktop, spread on mobile) */}
-      <nav className="flex-1 md:flex-none flex flex-row md:flex-col items-center justify-around md:justify-start md:gap-4 w-full h-full md:h-auto">
+      {/* Top Nav Items */}
+      <nav className="flex-1 flex flex-col items-center gap-4 w-full">
         <NavItem
           to="/app"
           icon={<MessageSquare className="w-5 h-5" />}
           active={location.pathname === '/app' || location.pathname.startsWith('/app/c/')}
+          badge={unreadData?.unreadCount}
         />
         <NavItem
           to="/app/people"
@@ -64,8 +68,8 @@ export function NavigationRail() {
         )}
       </nav>
 
-      {/* Bottom Nav Items (Hidden/Moved on mobile) */}
-      <div className="hidden md:flex flex-col items-center gap-4 w-full mt-auto">
+      {/* Bottom Nav Items */}
+      <div className="flex flex-col items-center gap-4 w-full">
         <button
           onClick={() => logoutMutation.mutate()}
           className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
@@ -89,25 +93,33 @@ export function NavigationRail() {
   );
 }
 
-function NavItem({ to, icon, active }: { to: string; icon: React.ReactNode; active: boolean }) {
+function NavItem({
+  to,
+  icon,
+  active,
+  badge,
+}: {
+  to: string;
+  icon: React.ReactNode;
+  active: boolean;
+  badge?: number;
+}) {
   return (
     <Link
       to={to}
-      className={`relative w-12 h-12 md:w-10 md:h-10 flex items-center justify-center rounded-xl transition-all duration-200 ${
-        active
-          ? 'bg-primary/10 text-primary'
-          : 'text-slate-400 hover:text-white hover:bg-slate-800 md:hover:bg-slate-800'
+      className={`relative w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 ${
+        active ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-slate-800'
       }`}
     >
       {active && (
-        <>
-          {/* Desktop active indicator */}
-          <div className="hidden md:block absolute left-[-16px] top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full" />
-          {/* Mobile active indicator */}
-          <div className="md:hidden absolute bottom-[-8px] left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />
-        </>
+        <div className="absolute left-[-16px] top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full" />
       )}
       {icon}
+      {!!badge && badge > 0 && (
+        <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 min-w-[18px] h-[18px] rounded-full flex items-center justify-center border-2 border-slate-950">
+          {badge > 99 ? '99+' : badge}
+        </div>
+      )}
     </Link>
   );
 }

@@ -68,6 +68,14 @@ export const conversationsApi = {
     return response.data;
   },
 
+  createGroupMessage: async (data: {
+    title: string;
+    memberIds: string[];
+  }): Promise<Conversation> => {
+    const response = await http.post('/conversations/group', data);
+    return response.data;
+  },
+
   sendMessage: async (conversationId: string, data: SendMessageRequest): Promise<Message> => {
     const response = await http.post(`/conversations/${conversationId}/messages`, data);
     return response.data;

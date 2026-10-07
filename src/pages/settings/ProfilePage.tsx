@@ -2,11 +2,58 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { useSession } from '@/features/auth';
-import { MonitorSmartphone, Bell } from 'lucide-react';
+import { MonitorSmartphone, Bell, Edit2, X, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+// eslint-disable-next-line no-restricted-imports
+import { useUpdateProfile } from '@/features/users/api/use-update-profile';
+
+const profileSchema = z.object({
+  displayName: z.string().min(2, 'Display name is required'),
+  bio: z.string().optional(),
+  region: z.string().optional(),
+  age: z.coerce.number().min(0).optional(),
+  phoneNumber: z.string().optional(),
+});
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export const ProfilePage = () => {
   const user = useSession((s) => s.user);
   const getInitials = (name: string) => name.substring(0, 2).toUpperCase();
+  const [isEditing, setIsEditing] = useState(false);
+  const updateProfile = useUpdateProfile();
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isDirty },
+  } = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      displayName: user?.displayName || '',
+      bio: user?.bio || '',
+      region: user?.region || '',
+      age: user?.age || 0,
+      phoneNumber: user?.phoneNumber || '',
+    },
+  });
+
+  const onSubmit = (data: ProfileFormValues) => {
+    updateProfile.mutate(data, {
+      onSuccess: () => {
+        setIsEditing(false);
+      },
+    });
+  };
+
+  const handleCancel = () => {
+    reset(); // Revert back to default values
+    setIsEditing(false);
+  };
 
   return (
     <div className="p-8 max-w-6xl mx-auto pb-20">
@@ -17,7 +64,26 @@ export const ProfilePage = () => {
             Manage your identity, privacy and sign-in preferences.
           </p>
         </div>
-        <Button>Save changes</Button>
+        <div className="flex space-x-3">
+          {isEditing ? (
+            <>
+              <Button variant="outline" onClick={handleCancel} disabled={updateProfile.isPending}>
+                <X className="w-4 h-4 mr-2" /> Cancel
+              </Button>
+              <Button
+                onClick={handleSubmit(onSubmit)}
+                disabled={!isDirty || updateProfile.isPending}
+              >
+                {updateProfile.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Save changes
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" onClick={() => setIsEditing(true)}>
+              <Edit2 className="w-4 h-4 mr-2" /> Edit Profile
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -32,17 +98,19 @@ export const ProfilePage = () => {
                   This information is visible to people who can find you.
                 </p>
               </div>
-              <Button variant="outline" size="sm" className="rounded-full">
-                Preview
-              </Button>
             </div>
 
             <div className="flex items-center space-x-4 mb-6">
-              <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xl">
+              <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xl shrink-0">
                 {user?.displayName ? getInitials(user.displayName) : 'U'}
               </div>
               <div>
-                <Button variant="outline" size="sm" className="rounded-full mb-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full mb-1"
+                  disabled={!isEditing}
+                >
                   Upload new photo
                 </Button>
                 <p className="text-[10px] text-slate-400 uppercase tracking-wider">
@@ -51,65 +119,82 @@ export const ProfilePage = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-slate-500">Display name</Label>
-                <Input defaultValue={user?.displayName} className="bg-slate-50" />
+            <form id="profile-form" onSubmit={handleSubmit(onSubmit)}>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-slate-500">Display name</Label>
+                  <Input
+                    {...register('displayName')}
+                    disabled={!isEditing}
+                    className={`bg-slate-50 ${errors.displayName ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                  />
+                  {errors.displayName && (
+                    <p className="text-[10px] text-red-500">{errors.displayName.message}</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-slate-500">Username</Label>
+                  {/* Username is usually immutable after creation, or requires a different endpoint */}
+                  <Input
+                    defaultValue={user?.username}
+                    disabled
+                    className="bg-slate-50 text-slate-400"
+                  />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-slate-500">Username</Label>
-                <Input defaultValue={user?.username} className="bg-slate-50" />
-              </div>
-            </div>
 
-            <div className="space-y-1.5 mb-4">
-              <Label className="text-xs text-slate-500">Bio</Label>
-              <Input
-                defaultValue={user?.bio}
-                placeholder="Tell us about yourself"
-                className="bg-slate-50"
-              />
-            </div>
+              <div className="space-y-1.5 mb-4">
+                <Label className="text-xs text-slate-500">Bio</Label>
+                <Input
+                  {...register('bio')}
+                  disabled={!isEditing}
+                  placeholder="Tell us about yourself"
+                  className="bg-slate-50"
+                />
+              </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-slate-500">Location (Region)</Label>
-                <Input
-                  defaultValue={user?.region}
-                  placeholder="San Francisco, CA"
-                  className="bg-slate-50"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-slate-500">Location (Region)</Label>
+                  <Input
+                    {...register('region')}
+                    disabled={!isEditing}
+                    placeholder="San Francisco, CA"
+                    className="bg-slate-50"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-slate-500">Email Address</Label>
+                  <Input
+                    defaultValue={user?.email}
+                    disabled
+                    className="bg-slate-50 text-slate-400"
+                  />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-slate-500">Email Address</Label>
-                <Input
-                  defaultValue={user?.email}
-                  placeholder="john@example.com"
-                  className="bg-slate-50"
-                  readOnly
-                />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-slate-500">Phone Number</Label>
-                <Input
-                  defaultValue={user?.phoneNumber}
-                  placeholder="+1 234 567 8900"
-                  className="bg-slate-50"
-                />
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-slate-500">Phone Number</Label>
+                  <Input
+                    {...register('phoneNumber')}
+                    disabled={!isEditing}
+                    placeholder="+1 234 567 8900"
+                    className="bg-slate-50"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-slate-500">Age</Label>
+                  <Input
+                    type="number"
+                    {...register('age')}
+                    disabled={!isEditing}
+                    placeholder="25"
+                    className="bg-slate-50"
+                  />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-slate-500">Age</Label>
-                <Input
-                  type="number"
-                  defaultValue={user?.age}
-                  placeholder="25"
-                  className="bg-slate-50"
-                />
-              </div>
-            </div>
+            </form>
           </div>
 
           {/* Sessions & Devices Card */}

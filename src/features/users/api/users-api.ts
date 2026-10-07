@@ -37,4 +37,9 @@ export const usersApi = {
     const response = await http.get('/users/me/sessions');
     return response.data;
   },
+
+  updateProfile: async (data: Record<string, unknown>) => {
+    const response = await http.patch('/users/me/profile', data);
+    return response.data;
+  },
 };

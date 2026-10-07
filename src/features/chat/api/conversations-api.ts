@@ -68,6 +68,18 @@ export const conversationsApi = {
     return response.data;
   },
 
+  createGroupMessage: async (data: {
+    title: string;
+    memberIds: string[];
+  }): Promise<Conversation> => {
+    const response = await http.post('/conversations/group', data);
+    return response.data;
+  },
+
+  addGroupMembers: async (conversationId: string, memberIds: string[]): Promise<void> => {
+    await http.post(`/conversations/${conversationId}/members`, { memberIds });
+  },
+
   sendMessage: async (conversationId: string, data: SendMessageRequest): Promise<Message> => {
     const response = await http.post(`/conversations/${conversationId}/messages`, data);
     return response.data;
@@ -85,6 +97,11 @@ export const conversationsApi = {
     const response = await http.get(
       `/conversations/${conversationId}/messages?${params.toString()}`,
     );
+    return response.data;
+  },
+
+  getUnreadCount: async (): Promise<{ unreadCount: number }> => {
+    const response = await http.get('/conversations/unread-count');
     return response.data;
   },
 };

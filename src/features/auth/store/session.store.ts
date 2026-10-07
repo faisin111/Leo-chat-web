@@ -21,6 +21,7 @@ type SessionState = {
   user: CurrentUser | null;
   setSession: (token: string, user: CurrentUser) => void;
   setAccessToken: (token: string) => void;
+  setUser: (user: CurrentUser) => void;
   clear: () => void;
 };
 
@@ -30,5 +31,6 @@ export const useSession = create<SessionState>()((set) => ({
   user: null,
   setSession: (accessToken, user) => set({ status: 'authenticated', accessToken, user }),
   setAccessToken: (accessToken) => set({ accessToken }),
+  setUser: (user) => set({ user }),
   clear: () => set({ status: 'anonymous', accessToken: null, user: null }),
 }));

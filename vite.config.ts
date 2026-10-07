@@ -10,7 +10,11 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
+  define: {
+    global: 'window',
+  },
   server: {
+    port: 3000,
     proxy: {
       '/api': {
         target: 'https://leo-chat-backend.onrender.com',

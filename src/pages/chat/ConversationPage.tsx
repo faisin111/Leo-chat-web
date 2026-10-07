@@ -20,6 +20,7 @@ export const ConversationPage = () => {
   const [content, setContent] = useState('');
   const [isAddMembersOpen, setIsAddMembersOpen] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Record<string, number>>({});
+  const [liveMessages, setLiveMessages] = useState<Message[]>([]);
   
   const sendMessage = useSendMessage(conversationId || '');
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useMessages(
@@ -28,6 +29,11 @@ export const ConversationPage = () => {
   const currentUser = useSession((s) => s.user);
   const queryClient = useQueryClient();
 
+  // Clear live messages when changing conversations
+  useEffect(() => {
+    setLiveMessages([]);
+  }, [conversationId]);
+
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleIncomingMessage = (rawMsg: any) => {
@@ -35,13 +41,20 @@ export const ConversationPage = () => {
       const msg = rawMsg.payload || rawMsg;
       const targetId = msg.conversationId || msg.groupId || msg.chatId;
 
-      if (targetId === conversationId) {
-        // Force a robust background refetch of this conversation's messages
-        queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      if (!targetId || targetId === conversationId) {
+        // Instantly show the message on screen via local state
+        setLiveMessages((prev) => {
+          if (prev.find((m) => m.id === msg.id || (m.clientMessageId && m.clientMessageId === msg.clientMessageId))) {
+            return prev;
+          }
+          return [msg, ...prev];
+        });
       }
       
       // Always update the sidebar list
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      // Keep React Query cache loosely in sync
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
     };
 
     // 1. Listen for real-time messages on the global user queue (Direct Messages)
@@ -82,24 +95,52 @@ export const ConversationPage = () => {
     };
   }, [conversationId, queryClient, currentUser?.id]);
 
-  // The messages often come sorted newest-first (descending seq) when paginating backward.
-  // We reverse them so they flow top-to-bottom chronologically in standard flex layout.
-  // Alternatively, we could use a flex-col-reverse container. Let's use standard reverse for now.
-  const allMessages = data?.pages.flatMap((p) => p.items) || [];
+  // Combine live and historical messages, deduplicating by ID or clientMessageId
+  const historicalMessages = data?.pages.flatMap((p) => p.items) || [];
+  const allMessagesMap = new Map<string, Message>();
+  
+  [...liveMessages, ...historicalMessages].forEach((m) => {
+    const key = m.id || m.clientMessageId || Math.random().toString();
+    if (!allMessagesMap.has(key)) {
+      allMessagesMap.set(key, m);
+    }
+  });
+  
+  // Sort descending by date so the newest is at the start of the array (bottom of the flex-col-reverse container)
+  const allMessages = Array.from(allMessagesMap.values()).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
   const handleSend = () => {
     if (!content.trim() || !conversationId) return;
 
+    const optimisticId = crypto.randomUUID();
     const payload = {
       content: content.trim(),
       type: 'TEXT',
-      clientMessageId: crypto.randomUUID(),
+      clientMessageId: optimisticId,
     };
 
-    // We can also optimistically push it via WS if we wanted, but REST + cache update is fine.
-    sendMessage.mutate(payload, {
-      onSuccess: () => setContent(''),
-    });
+    // Optimistically push to UI instantly!
+    const optimisticMsg: Message = {
+      id: optimisticId,
+      conversationId,
+      senderId: currentUser?.id || '',
+      seq: Date.now(),
+      clientMessageId: optimisticId,
+      type: 'TEXT',
+      content: content.trim(),
+      replyToId: null,
+      createdAt: new Date().toISOString(),
+      editedAt: null,
+      deletedAt: null,
+    };
+
+    setLiveMessages((prev) => [optimisticMsg, ...prev]);
+    setContent('');
+
+    // Send to server
+    sendMessage.mutate(payload);
   };
 
   const handleTyping = (val: string) => {

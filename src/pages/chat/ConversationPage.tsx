@@ -29,26 +29,19 @@ export const ConversationPage = () => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const handleIncomingMessage = (msg: Message) => {
-      if (msg.conversationId === conversationId) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        queryClient.setQueryData(['messages', conversationId], (oldData: any) => {
-          if (!oldData || !oldData.pages || oldData.pages.length === 0) {
-            return oldData;
-          }
-          
-          const firstPage = oldData.pages[0];
-          const exists = firstPage.items.find((m: Message) => m.id === msg.id || m.clientMessageId === msg.clientMessageId);
-          if (exists) return oldData;
-          
-          const newPages = [...oldData.pages];
-          newPages[0] = {
-            ...newPages[0],
-            items: [msg, ...newPages[0].items]
-          };
-          return { ...oldData, pages: newPages };
-        });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleIncomingMessage = (rawMsg: any) => {
+      // Handle potential payload wrapping from different backend STOMP configurations
+      const msg = rawMsg.payload || rawMsg;
+      const targetId = msg.conversationId || msg.groupId || msg.chatId;
+
+      if (targetId === conversationId) {
+        // Force a robust background refetch of this conversation's messages
+        queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       }
+      
+      // Always update the sidebar list
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
     };
 
     // 1. Listen for real-time messages on the global user queue (Direct Messages)

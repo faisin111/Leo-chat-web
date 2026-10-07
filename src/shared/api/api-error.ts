@@ -76,5 +76,5 @@ export function formatApiError(error: unknown, fallbackMessage = 'Operation fail
       ? apiError.fieldErrors.map((e) => `${e.field}: ${e.message}`).join(' · ')
       : apiError.message;
 
-  return `Error ${apiError.status}: ${detail || fallbackMessage}`;
+  return detail || fallbackMessage;
 }

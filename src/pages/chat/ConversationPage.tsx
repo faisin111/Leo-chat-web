@@ -21,7 +21,7 @@ export const ConversationPage = () => {
   const [isAddMembersOpen, setIsAddMembersOpen] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Record<string, number>>({});
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
-  
+
   const sendMessage = useSendMessage(conversationId || '');
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useMessages(
     conversationId || '',
@@ -44,13 +44,18 @@ export const ConversationPage = () => {
       if (!targetId || targetId === conversationId) {
         // Instantly show the message on screen via local state
         setLiveMessages((prev) => {
-          if (prev.find((m) => m.id === msg.id || (m.clientMessageId && m.clientMessageId === msg.clientMessageId))) {
+          if (
+            prev.find(
+              (m) =>
+                m.id === msg.id || (m.clientMessageId && m.clientMessageId === msg.clientMessageId),
+            )
+          ) {
             return prev;
           }
           return [msg, ...prev];
         });
       }
-      
+
       // Always update the sidebar list
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       // Keep React Query cache loosely in sync
@@ -61,23 +66,26 @@ export const ConversationPage = () => {
     const cleanupMessage = wsService.addMessageListener(handleIncomingMessage);
 
     // 2. Explicitly subscribe to this specific conversation's group topic (Group Messages)
-    const cleanupGroup = wsService.subscribe(`/topic/group/${conversationId}`, handleIncomingMessage);
+    const cleanupGroup = wsService.subscribe(
+      `/topic/group/${conversationId}`,
+      handleIncomingMessage,
+    );
 
     // Listen for typing events
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cleanupTyping = wsService.addTypingListener((msg: any) => {
       if (msg.conversationId === conversationId && msg.userId !== currentUser?.id) {
-        setTypingUsers(prev => ({ ...prev, [msg.userId]: Date.now() }));
+        setTypingUsers((prev) => ({ ...prev, [msg.userId]: Date.now() }));
       }
     });
 
     // Clear typing indicators after 3 seconds of inactivity
     const interval = setInterval(() => {
       const now = Date.now();
-      setTypingUsers(prev => {
+      setTypingUsers((prev) => {
         const next = { ...prev };
         let changed = false;
-        Object.keys(next).forEach(uid => {
+        Object.keys(next).forEach((uid) => {
           if (now - next[uid] > 3000) {
             delete next[uid];
             changed = true;
@@ -95,20 +103,36 @@ export const ConversationPage = () => {
     };
   }, [conversationId, queryClient, currentUser?.id]);
 
-  // Combine live and historical messages, deduplicating by ID or clientMessageId
+  // Combine live and historical messages, deduplicating carefully
   const historicalMessages = data?.pages.flatMap((p) => p.items) || [];
   const allMessagesMap = new Map<string, Message>();
-  
-  [...liveMessages, ...historicalMessages].forEach((m) => {
-    const key = m.id || m.clientMessageId || Math.random().toString();
-    if (!allMessagesMap.has(key)) {
+
+  // 1. Add historical messages first (these are real DB messages and should take precedence)
+  historicalMessages.forEach((m) => {
+    // ALWAYS prioritize clientMessageId for deduplication if it exists!
+    const key = m.clientMessageId || m.id || Math.random().toString();
+    allMessagesMap.set(key, m);
+  });
+
+  // 2. Add live messages only if they aren't already represented by a historical DB message
+  liveMessages.forEach((m) => {
+    const key = m.clientMessageId || m.id || Math.random().toString();
+    // Also do a fallback check for exact content + sender just in case backend drops clientMessageId
+    const isDuplicateFallback = Array.from(allMessagesMap.values()).some(
+      (existing) =>
+        existing.senderId === m.senderId &&
+        existing.content === m.content &&
+        Math.abs(new Date(existing.createdAt).getTime() - new Date(m.createdAt).getTime()) < 5000,
+    );
+
+    if (!allMessagesMap.has(key) && !isDuplicateFallback) {
       allMessagesMap.set(key, m);
     }
   });
-  
+
   // Sort descending by date so the newest is at the start of the array (bottom of the flex-col-reverse container)
   const allMessages = Array.from(allMessagesMap.values()).sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
   const handleSend = () => {
@@ -282,11 +306,24 @@ export const ConversationPage = () => {
         {Object.keys(typingUsers).length > 0 && (
           <div className="flex items-center space-x-2 text-xs text-slate-400 mb-2 px-2">
             <div className="flex space-x-1">
-              <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-              <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-              <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+              <span
+                className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"
+                style={{ animationDelay: '0ms' }}
+              ></span>
+              <span
+                className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce"
+                style={{ animationDelay: '150ms' }}
+              ></span>
+              <span
+                className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"
+                style={{ animationDelay: '300ms' }}
+              ></span>
             </div>
-            <span>{Object.keys(typingUsers).length === 1 ? 'Someone is typing...' : 'Several people are typing...'}</span>
+            <span>
+              {Object.keys(typingUsers).length === 1
+                ? 'Someone is typing...'
+                : 'Several people are typing...'}
+            </span>
           </div>
         )}
 

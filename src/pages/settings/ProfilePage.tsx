@@ -10,7 +10,7 @@ import { z } from 'zod';
 // eslint-disable-next-line no-restricted-imports
 import { useUpdateProfile } from '@/features/users/api/use-update-profile';
 // eslint-disable-next-line no-restricted-imports
-import { useVerifyEmail } from '@/features/auth/api/use-verify-email';
+import { useResendVerification } from '@/features/auth/api/use-resend-verification';
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'Display name is required'),
@@ -27,11 +27,8 @@ export const ProfilePage = () => {
   const user = useSession((s) => s.user);
   const getInitials = (name: string) => name.substring(0, 2).toUpperCase();
   const [isEditing, setIsEditing] = useState(false);
-  const [showVerifyInput, setShowVerifyInput] = useState(false);
-  const [verifyToken, setVerifyToken] = useState('');
-
   const updateProfile = useUpdateProfile();
-  const verifyEmail = useVerifyEmail();
+  const resendVerification = useResendVerification();
 
   const {
     register,
@@ -184,72 +181,28 @@ export const ProfilePage = () => {
                       </span>
                     )}
                   </div>
-                  {!showVerifyInput ? (
-                    <div className="flex space-x-2">
-                      <Input
-                        defaultValue={user?.email}
-                        disabled
-                        className="bg-slate-50 text-slate-400 flex-1"
-                      />
-                      {user && !user.isEmailVerified && !user.emailVerified && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowVerifyInput(true)}
-                        >
-                          Verify
-                        </Button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col space-y-2 p-2.5 bg-slate-50 rounded-lg border border-slate-200">
-                      <Label className="text-[10px] text-slate-500">Enter verification token</Label>
-                      <div className="flex space-x-2">
-                        <Input
-                          value={verifyToken}
-                          onChange={(e) => setVerifyToken(e.target.value)}
-                          placeholder="Paste token..."
-                          className="flex-1 bg-white h-8 text-sm"
-                        />
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="h-8"
-                          disabled={!verifyToken || verifyEmail.isPending}
-                          onClick={() => {
-                            verifyEmail.mutate(
-                              { token: verifyToken },
-                              {
-                                onSuccess: () => {
-                                  setShowVerifyInput(false);
-                                  setVerifyToken('');
-                                },
-                              },
-                            );
-                          }}
-                        >
-                          {verifyEmail.isPending ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            'Submit'
-                          )}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-8"
-                          onClick={() => {
-                            setShowVerifyInput(false);
-                            setVerifyToken('');
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                  <div className="flex space-x-2">
+                    <Input
+                      defaultValue={user?.email}
+                      disabled
+                      className="bg-slate-50 text-slate-400 flex-1"
+                    />
+                    {user && !user.isEmailVerified && !user.emailVerified && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={resendVerification.isPending}
+                        onClick={() => resendVerification.mutate()}
+                      >
+                        {resendVerification.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          'Verify'
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
 

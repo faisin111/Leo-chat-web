@@ -19,9 +19,9 @@ class WebSocketService {
 
     this.client = new Client({
       // We use SockJS to fallback and handle cross-origin WebSocket upgrades cleanly.
+      // Pointing to /ws takes advantage of Vite's proxy in dev, and relative paths in prod.
       webSocketFactory: () => {
-        // Use exact URL requested by user to ensure it hits local dev backend and allows credentials
-        return new SockJS('http://localhost:8080/ws');
+        return new SockJS('/ws');
       },
       connectHeaders: {},
       heartbeatIncoming: 10000,
@@ -49,7 +49,10 @@ class WebSocketService {
         this.topicListeners.forEach((callbacks, destination) => {
           callbacks.forEach((_, callback) => {
             const subscription = this.client?.subscribe(destination, (msg) => {
-              callback(JSON.parse(msg.body));
+              const parsed = JSON.parse(msg.body);
+              // eslint-disable-next-line no-console
+              console.log(`[STOMP] Received on ${destination}:`, parsed);
+              callback(parsed);
             });
             callbacks.set(callback, subscription);
           });
@@ -111,12 +114,19 @@ class WebSocketService {
 
     if (this.client && this.client.connected) {
       const subscription = this.client.subscribe(destination, (msg) => {
-        callback(JSON.parse(msg.body));
+        const parsed = JSON.parse(msg.body);
+        // eslint-disable-next-line no-console
+        console.log(`[STOMP] Received on ${destination}:`, parsed);
+        callback(parsed);
       });
       callbacks.set(callback, subscription);
+      // eslint-disable-next-line no-console
+      console.log(`[STOMP] Subscribed to ${destination}`);
     } else {
       // Add to map, it will be subscribed onConnect
       callbacks.set(callback, null);
+      // eslint-disable-next-line no-console
+      console.log(`[STOMP] Queued subscription for ${destination} (waiting for connection...)`);
     }
 
     return () => {

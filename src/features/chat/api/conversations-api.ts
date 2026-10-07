@@ -76,6 +76,10 @@ export const conversationsApi = {
     return response.data;
   },
 
+  addGroupMembers: async (conversationId: string, memberIds: string[]): Promise<void> => {
+    await http.post(`/conversations/${conversationId}/members`, { memberIds });
+  },
+
   sendMessage: async (conversationId: string, data: SendMessageRequest): Promise<Message> => {
     const response = await http.post(`/conversations/${conversationId}/messages`, data);
     return response.data;

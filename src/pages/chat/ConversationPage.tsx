@@ -1,7 +1,7 @@
 import { Button } from '@/shared/ui/button';
 import { Phone, Video, Info, Smile, Paperclip, Send, Loader2, UserPlus } from 'lucide-react';
 import { useParams } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { KeyboardEvent } from 'react';
 // eslint-disable-next-line no-restricted-imports
 import { useSendMessage } from '@/features/chat/api/use-send-message';
@@ -10,17 +10,76 @@ import { useMessages } from '@/features/chat/api/use-messages';
 import { useSession } from '@/features/auth';
 import { format } from 'date-fns';
 import { AddMembersModal } from './components/AddMembersModal';
+import { wsService } from '@/shared/api/websocket';
+import { useQueryClient } from '@tanstack/react-query';
+// eslint-disable-next-line no-restricted-imports
+import type { Message } from '@/features/chat/api/conversations-api';
 
 export const ConversationPage = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
   const [content, setContent] = useState('');
   const [isAddMembersOpen, setIsAddMembersOpen] = useState(false);
-
+  const [typingUsers, setTypingUsers] = useState<Record<string, number>>({});
+  
   const sendMessage = useSendMessage(conversationId || '');
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useMessages(
     conversationId || '',
   );
   const currentUser = useSession((s) => s.user);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    // Listen for real-time messages
+    const cleanupMessage = wsService.addMessageListener((msg: Message) => {
+      if (msg.conversationId === conversationId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        queryClient.setQueryData(['messages', conversationId], (oldData: any) => {
+          if (!oldData) return oldData;
+          
+          const firstPage = oldData.pages[0];
+          const exists = firstPage.items.find((m: Message) => m.id === msg.id || m.clientMessageId === msg.clientMessageId);
+          if (exists) return oldData;
+          
+          const newPages = [...oldData.pages];
+          newPages[0] = {
+            ...newPages[0],
+            items: [msg, ...newPages[0].items]
+          };
+          return { ...oldData, pages: newPages };
+        });
+      }
+    });
+
+    // Listen for typing events
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cleanupTyping = wsService.addTypingListener((msg: any) => {
+      if (msg.conversationId === conversationId && msg.userId !== currentUser?.id) {
+        setTypingUsers(prev => ({ ...prev, [msg.userId]: Date.now() }));
+      }
+    });
+
+    // Clear typing indicators after 3 seconds of inactivity
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setTypingUsers(prev => {
+        const next = { ...prev };
+        let changed = false;
+        Object.keys(next).forEach(uid => {
+          if (now - next[uid] > 3000) {
+            delete next[uid];
+            changed = true;
+          }
+        });
+        return changed ? next : prev;
+      });
+    }, 1000);
+
+    return () => {
+      cleanupMessage();
+      cleanupTyping();
+      clearInterval(interval);
+    };
+  }, [conversationId, queryClient, currentUser?.id]);
 
   // The messages often come sorted newest-first (descending seq) when paginating backward.
   // We reverse them so they flow top-to-bottom chronologically in standard flex layout.
@@ -30,18 +89,23 @@ export const ConversationPage = () => {
   const handleSend = () => {
     if (!content.trim() || !conversationId) return;
 
-    sendMessage.mutate(
-      {
-        content: content.trim(),
-        type: 'TEXT',
-        clientMessageId: crypto.randomUUID(),
-      },
-      {
-        onSuccess: () => {
-          setContent('');
-        },
-      },
-    );
+    const payload = {
+      content: content.trim(),
+      type: 'TEXT',
+      clientMessageId: crypto.randomUUID(),
+    };
+
+    // We can also optimistically push it via WS if we wanted, but REST + cache update is fine.
+    sendMessage.mutate(payload, {
+      onSuccess: () => setContent(''),
+    });
+  };
+
+  const handleTyping = (val: string) => {
+    setContent(val);
+    if (val.trim() && conversationId) {
+      wsService.publish('/app/chat.typing', { conversationId, userId: currentUser?.id });
+    }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -172,13 +236,25 @@ export const ConversationPage = () => {
 
       {/* Input Area */}
       <div className="p-4 bg-white border-t border-slate-100">
+        {/* Typing Indicator */}
+        {Object.keys(typingUsers).length > 0 && (
+          <div className="flex items-center space-x-2 text-xs text-slate-400 mb-2 px-2">
+            <div className="flex space-x-1">
+              <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+              <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+              <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+            </div>
+            <span>{Object.keys(typingUsers).length === 1 ? 'Someone is typing...' : 'Several people are typing...'}</span>
+          </div>
+        )}
+
         <div className="flex items-end bg-slate-50 rounded-2xl border border-slate-200 p-1 pl-4 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
           <textarea
             className="flex-1 bg-transparent border-none focus:ring-0 resize-none py-3 max-h-32 text-sm focus:outline-none"
             placeholder="Write a message..."
             rows={1}
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => handleTyping(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={sendMessage.isPending}
           />

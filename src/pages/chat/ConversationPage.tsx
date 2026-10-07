@@ -7,6 +7,8 @@ import type { KeyboardEvent } from 'react';
 import { useSendMessage } from '@/features/chat/api/use-send-message';
 // eslint-disable-next-line no-restricted-imports
 import { useMessages } from '@/features/chat/api/use-messages';
+// eslint-disable-next-line no-restricted-imports
+import { useConversations } from '@/features/chat/api/use-conversations';
 import { useSession } from '@/features/auth';
 import { format } from 'date-fns';
 import { AddMembersModal } from './components/AddMembersModal';
@@ -28,6 +30,12 @@ export const ConversationPage = () => {
   );
   const currentUser = useSession((s) => s.user);
   const queryClient = useQueryClient();
+  const { data: conversationsData } = useConversations();
+
+  const conversation = conversationsData?.pages
+    .flatMap((p) => p.items)
+    .find((c) => c.id === conversationId);
+  const isGroup = conversation?.type === 'GROUP';
 
   // Clear live messages when changing conversations
   useEffect(() => {
@@ -216,15 +224,20 @@ export const ConversationPage = () => {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsAddMembersOpen(true)}
-            className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9"
-          >
-            <UserPlus className="w-4 h-4" />
-          </Button>
-          <div className="w-px h-4 bg-slate-200 mx-1"></div>
+          {isGroup && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsAddMembersOpen(true)}
+                className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9"
+                title="Add members"
+              >
+                <UserPlus className="w-4 h-4" />
+              </Button>
+              <div className="w-px h-4 bg-slate-200 mx-1"></div>
+            </>
+          )}
           <Button
             variant="ghost"
             size="icon"

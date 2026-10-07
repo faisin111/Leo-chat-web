@@ -70,6 +70,8 @@ export const ConversationPage = () => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       // Keep React Query cache loosely in sync
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      // Update global unread badge
+      queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
     };
 
     // 1. Listen for real-time messages on the global user queue (Direct Messages)
@@ -82,9 +84,9 @@ export const ConversationPage = () => {
     );
 
     // 3. Fallback explicit typing topic (some backends use a separate sub-topic for typing)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cleanupGroupTyping = wsService.subscribe(
       `/topic/group/${conversationId}/typing`,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (rawMsg: any) => {
         const msg = rawMsg.payload || rawMsg;
         const uid = msg.userId || msg.senderId;

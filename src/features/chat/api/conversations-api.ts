@@ -99,4 +99,9 @@ export const conversationsApi = {
     );
     return response.data;
   },
+
+  getUnreadCount: async (): Promise<{ unreadCount: number }> => {
+    const response = await http.get('/conversations/unread-count');
+    return response.data;
+  },
 };

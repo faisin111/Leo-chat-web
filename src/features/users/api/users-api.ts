@@ -13,18 +13,10 @@ export type UserSearchItem = {
 };
 
 export type SessionItem = {
-  id: string;
-  ipAddress?: string;
-  userAgent?: string;
-  createdAt?: string;
-  lastActiveAt?: string;
-  isCurrentSession?: boolean;
-  deviceType?: string;
-  os?: string;
-  browser?: string;
-  location?: string;
-  // Fallback for dynamic fields
-  [key: string]: unknown;
+  sessionId: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+  deviceInfo: string;
 };
 
 export const usersApi = {
@@ -36,6 +28,10 @@ export const usersApi = {
   getSessions: async (): Promise<SessionItem[]> => {
     const response = await http.get('/users/me/sessions');
     return response.data;
+  },
+
+  revokeSession: async (sessionId: string): Promise<void> => {
+    await http.delete(`/users/me/sessions/${sessionId}`);
   },
 
   updateProfile: async (data: Record<string, unknown>) => {

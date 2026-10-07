@@ -2,10 +2,37 @@ import { Button } from '@/shared/ui/button';
 import { Laptop, Smartphone, AlertTriangle, Monitor, Loader2 } from 'lucide-react';
 // eslint-disable-next-line no-restricted-imports
 import { useSessions } from '@/features/users/api/use-sessions';
+// eslint-disable-next-line no-restricted-imports
+import { useRevokeSession } from '@/features/users/api/use-revoke-session';
 import { formatDistanceToNow } from 'date-fns';
+
+function parseUserAgent(ua: string) {
+  if (!ua) return { os: 'Unknown OS', browser: 'Unknown Browser', isMobile: false };
+  let os = 'Unknown OS';
+  if (ua.includes('Windows')) os = 'Windows';
+  else if (ua.includes('Mac OS') || ua.includes('Macintosh')) os = 'macOS';
+  else if (ua.includes('Linux')) os = 'Linux';
+  else if (ua.includes('Android')) os = 'Android';
+  else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
+
+  let browser = 'Unknown Browser';
+  if (ua.includes('Firefox')) browser = 'Firefox';
+  else if (ua.includes('Edg')) browser = 'Edge';
+  else if (ua.includes('Chrome')) browser = 'Chrome';
+  else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'Safari';
+
+  const isMobile = os === 'Android' || os === 'iOS';
+
+  return { os, browser, isMobile };
+}
 
 export const SessionsPage = () => {
   const { data: sessions, isLoading, isError } = useSessions();
+  const revokeSession = useRevokeSession();
+
+  const handleRevoke = (sessionId: string) => {
+    revokeSession.mutate(sessionId);
+  };
 
   return (
     <div className="max-w-3xl w-full mx-auto p-8 overflow-y-auto">
@@ -18,12 +45,6 @@ export const SessionsPage = () => {
             Manage the devices that are currently logged into your account.
           </p>
         </div>
-        <Button
-          variant="destructive"
-          className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-none"
-        >
-          Sign out all other devices
-        </Button>
       </div>
 
       <div className="space-y-4">
@@ -48,61 +69,48 @@ export const SessionsPage = () => {
         {!isLoading &&
           !isError &&
           sessions?.map((session) => {
-            // Attempt to parse some info if the API doesn't provide exact fields
-            const isMobile =
-              session.deviceType?.toLowerCase() === 'mobile' ||
-              session.userAgent?.toLowerCase().includes('mobile');
+            const { os, browser, isMobile } = parseUserAgent(session.deviceInfo);
             const DeviceIcon = isMobile
               ? Smartphone
-              : session.deviceType === 'desktop'
-                ? Monitor
-                : Laptop;
-            const browserStr = session.browser || session.userAgent || 'Unknown Browser';
-            const osStr = session.os || (isMobile ? 'Mobile OS' : 'Desktop OS');
-            const isCurrent = session.isCurrentSession;
+              : os === 'macOS' || os === 'Windows'
+                ? Laptop
+                : Monitor;
 
             let lastActiveStr = 'Unknown';
-            if (isCurrent) {
-              lastActiveStr = 'Active now';
-            } else if (session.lastActiveAt) {
-              lastActiveStr = `Last active ${formatDistanceToNow(new Date(session.lastActiveAt), { addSuffix: true })}`;
+            if (session.lastUsedAt) {
+              lastActiveStr = `Last active ${formatDistanceToNow(new Date(session.lastUsedAt), { addSuffix: true })}`;
+            } else if (session.createdAt) {
+              lastActiveStr = `Started ${formatDistanceToNow(new Date(session.createdAt), { addSuffix: true })}`;
             }
 
             return (
               <div
-                key={session.id}
-                className={`p-6 bg-white rounded-2xl border shadow-sm relative overflow-hidden ${isCurrent ? 'border-primary/20' : 'border-slate-200'}`}
+                key={session.sessionId}
+                className="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden"
               >
-                {isCurrent && <div className="absolute top-0 left-0 w-1 h-full bg-primary"></div>}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center ${isCurrent ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-500'}`}
-                    >
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center bg-slate-100 text-slate-500">
                       <DeviceIcon className="w-6 h-6" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-slate-900 flex items-center">
-                        {osStr} • {browserStr}
-                        {isCurrent && (
-                          <span className="ml-3 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
-                            Current
-                          </span>
-                        )}
+                        {os} · {browser}
                       </h3>
-                      <p className="text-sm text-slate-500 mt-1">
-                        {session.location || 'Unknown location'} • {lastActiveStr}
-                      </p>
-                      <p className="text-xs text-slate-400 mt-1">
-                        IP: {session.ipAddress || 'Unknown'}
+                      <p className="text-sm text-slate-500 mt-1">{lastActiveStr}</p>
+                      <p className="text-xs text-slate-400 mt-1 truncate max-w-sm">
+                        {session.deviceInfo || 'Unknown device details'}
                       </p>
                     </div>
                   </div>
-                  {!isCurrent && (
-                    <Button variant="outline" className="text-slate-600">
-                      Sign out
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    className="text-slate-600 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors"
+                    onClick={() => handleRevoke(session.sessionId)}
+                    disabled={revokeSession.isPending}
+                  >
+                    Sign out
+                  </Button>
                 </div>
               </div>
             );

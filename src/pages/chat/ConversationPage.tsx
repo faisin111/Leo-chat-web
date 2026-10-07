@@ -29,12 +29,13 @@ export const ConversationPage = () => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Listen for real-time messages
-    const cleanupMessage = wsService.addMessageListener((msg: Message) => {
+    const handleIncomingMessage = (msg: Message) => {
       if (msg.conversationId === conversationId) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         queryClient.setQueryData(['messages', conversationId], (oldData: any) => {
-          if (!oldData) return oldData;
+          if (!oldData || !oldData.pages || oldData.pages.length === 0) {
+            return oldData;
+          }
           
           const firstPage = oldData.pages[0];
           const exists = firstPage.items.find((m: Message) => m.id === msg.id || m.clientMessageId === msg.clientMessageId);
@@ -48,7 +49,13 @@ export const ConversationPage = () => {
           return { ...oldData, pages: newPages };
         });
       }
-    });
+    };
+
+    // 1. Listen for real-time messages on the global user queue (Direct Messages)
+    const cleanupMessage = wsService.addMessageListener(handleIncomingMessage);
+
+    // 2. Explicitly subscribe to this specific conversation's group topic (Group Messages)
+    const cleanupGroup = wsService.subscribe(`/topic/group/${conversationId}`, handleIncomingMessage);
 
     // Listen for typing events
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -65,8 +72,7 @@ export const ConversationPage = () => {
         const next = { ...prev };
         let changed = false;
         Object.keys(next).forEach(uid => {
-          const lastTyped = next[uid];
-          if (lastTyped && now - lastTyped > 3000) {
+          if (now - next[uid] > 3000) {
             delete next[uid];
             changed = true;
           }
@@ -77,6 +83,7 @@ export const ConversationPage = () => {
 
     return () => {
       cleanupMessage();
+      cleanupGroup();
       cleanupTyping();
       clearInterval(interval);
     };

@@ -65,7 +65,8 @@ export const ConversationPage = () => {
         const next = { ...prev };
         let changed = false;
         Object.keys(next).forEach(uid => {
-          if (now - next[uid] > 3000) {
+          const lastTyped = next[uid];
+          if (lastTyped && now - lastTyped > 3000) {
             delete next[uid];
             changed = true;
           }

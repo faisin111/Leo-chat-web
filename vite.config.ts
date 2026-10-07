@@ -10,6 +10,9 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
+  define: {
+    global: 'window',
+  },
   server: {
     proxy: {
       '/api': {

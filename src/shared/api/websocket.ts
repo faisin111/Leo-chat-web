@@ -19,9 +19,9 @@ class WebSocketService {
 
     this.client = new Client({
       // We use SockJS to fallback and handle cross-origin WebSocket upgrades cleanly.
-      // Pointing to /ws takes advantage of Vite's proxy in dev, and relative paths in prod.
       webSocketFactory: () => {
-        return new SockJS('/ws');
+        // Use exact URL requested by user to ensure it hits local dev backend and allows credentials
+        return new SockJS('http://localhost:8080/ws');
       },
       connectHeaders: {},
       heartbeatIncoming: 10000,

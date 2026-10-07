@@ -1,7 +1,7 @@
 import { Button } from '@/shared/ui/button';
 import { Phone, Video, Info, Smile, Paperclip, Send, Loader2, UserPlus } from 'lucide-react';
 import { useParams } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { KeyboardEvent } from 'react';
 // eslint-disable-next-line no-restricted-imports
 import { useSendMessage } from '@/features/chat/api/use-send-message';
@@ -74,60 +74,39 @@ export const ConversationPage = () => {
       queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
     };
 
-    // 1. Listen for real-time messages on the global user queue (Direct Messages)
-    const cleanupMessage = wsService.addMessageListener(handleIncomingMessage);
-
-    // 2. Explicitly subscribe to this specific conversation's group topic (Group Messages)
-    const cleanupGroup = wsService.subscribe(
-      `/topic/group/${conversationId}`,
+    // 1. Explicitly subscribe to this specific conversation's topic
+    const cleanupMessages = wsService.subscribe(
+      `/topic/conversations.${conversationId}`,
       handleIncomingMessage,
     );
 
-    // 3. Fallback explicit typing topic (some backends use a separate sub-topic for typing)
-    const cleanupGroupTyping = wsService.subscribe(
-      `/topic/group/${conversationId}/typing`,
+    // 2. Explicit typing indicator topic
+    const cleanupTypingSub = wsService.subscribe(
+      `/topic/conversations.${conversationId}.typing`,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (rawMsg: any) => {
         const msg = rawMsg.payload || rawMsg;
-        const uid = msg.userId || msg.senderId;
-        if (uid && uid !== currentUser?.id) {
+        const uid = msg.userId || msg.senderId || 'typing';
+
+        if (msg.isTyping) {
           setTypingUsers((prev) => ({ ...prev, [uid]: Date.now() }));
+        } else {
+          setTypingUsers((prev) => {
+            const next = { ...prev };
+            delete next[uid];
+            return next;
+          });
         }
       },
     );
 
-    // Listen for typing events
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cleanupTyping = wsService.addTypingListener((msg: any) => {
-      if (msg.conversationId === conversationId && msg.userId !== currentUser?.id) {
-        setTypingUsers((prev) => ({ ...prev, [msg.userId]: Date.now() }));
-      }
-    });
-
-    // Clear typing indicators after 3 seconds of inactivity
-    const interval = setInterval(() => {
-      const now = Date.now();
-      setTypingUsers((prev) => {
-        const next = { ...prev };
-        let changed = false;
-        Object.keys(next).forEach((uid) => {
-          if (now - next[uid] > 3000) {
-            delete next[uid];
-            changed = true;
-          }
-        });
-        return changed ? next : prev;
-      });
-    }, 1000);
-
     return () => {
-      cleanupMessage();
-      cleanupGroup();
-      cleanupGroupTyping();
-      cleanupTyping();
-      clearInterval(interval);
+      cleanupMessages();
+      cleanupTypingSub();
     };
   }, [conversationId, queryClient, currentUser?.id]);
+
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Combine live and historical messages, deduplicating carefully
   const historicalMessages = data?.pages.flatMap((p) => p.items) || [];
@@ -197,8 +176,17 @@ export const ConversationPage = () => {
 
   const handleTyping = (val: string) => {
     setContent(val);
+
     if (val.trim() && conversationId) {
-      wsService.publish('/app/chat.typing', { conversationId, userId: currentUser?.id });
+      wsService.publish('/app/chat.typing', { conversationId, isTyping: true });
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      typingTimeoutRef.current = setTimeout(() => {
+        wsService.publish('/app/chat.typing', { conversationId, isTyping: false });
+      }, 2000);
     }
   };
 

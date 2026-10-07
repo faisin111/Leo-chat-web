@@ -7,10 +7,12 @@ export {
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  changePasswordSchema,
 } from './schemas/auth.schema';
 export type {
   RegisterFormValues,
   LoginFormValues,
   ForgotPasswordFormValues,
   ResetPasswordFormValues,
+  ChangePasswordFormValues,
 } from './schemas/auth.schema';

@@ -55,3 +55,22 @@ export const resetPasswordSchema = z
   });
 
 export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .max(40, 'Password must be at most 40 characters')
+      .regex(/(?=.*[0-9])/, 'Must contain at least one number')
+      .regex(/(?=.*[a-z])/, 'Must contain at least one lowercase letter')
+      .regex(/(?=.*[A-Z])/, 'Must contain at least one uppercase letter')
+      .regex(/(?=.*[@#$%^&+=!])/, 'Must contain at least one special character (@#$%^&+=!)'),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  });
+
+export type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;

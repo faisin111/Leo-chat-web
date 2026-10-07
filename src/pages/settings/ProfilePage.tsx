@@ -9,6 +9,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 // eslint-disable-next-line no-restricted-imports
 import { useUpdateProfile } from '@/features/users/api/use-update-profile';
+// eslint-disable-next-line no-restricted-imports
+import { useVerifyEmail } from '@/features/auth/api/use-verify-email';
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'Display name is required'),
@@ -25,14 +27,18 @@ export const ProfilePage = () => {
   const user = useSession((s) => s.user);
   const getInitials = (name: string) => name.substring(0, 2).toUpperCase();
   const [isEditing, setIsEditing] = useState(false);
+  const [showVerifyInput, setShowVerifyInput] = useState(false);
+  const [verifyToken, setVerifyToken] = useState('');
+
   const updateProfile = useUpdateProfile();
+  const verifyEmail = useVerifyEmail();
 
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors, isDirty },
-  } = useForm<ProfileFormInput, any, ProfileFormOutput>({
+  } = useForm<ProfileFormInput, unknown, ProfileFormOutput>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       displayName: user?.displayName || '',
@@ -165,12 +171,85 @@ export const ProfilePage = () => {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-slate-500">Email Address</Label>
-                  <Input
-                    defaultValue={user?.email}
-                    disabled
-                    className="bg-slate-50 text-slate-400"
-                  />
+                  <div className="flex justify-between items-center">
+                    <Label className="text-xs text-slate-500">Email Address</Label>
+                    {user && !user.isEmailVerified && !user.emailVerified && (
+                      <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
+                        Not verified
+                      </span>
+                    )}
+                    {user && (user.isEmailVerified || user.emailVerified) && (
+                      <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                        Verified
+                      </span>
+                    )}
+                  </div>
+                  {!showVerifyInput ? (
+                    <div className="flex space-x-2">
+                      <Input
+                        defaultValue={user?.email}
+                        disabled
+                        className="bg-slate-50 text-slate-400 flex-1"
+                      />
+                      {user && !user.isEmailVerified && !user.emailVerified && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowVerifyInput(true)}
+                        >
+                          Verify
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col space-y-2 p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                      <Label className="text-[10px] text-slate-500">Enter verification token</Label>
+                      <div className="flex space-x-2">
+                        <Input
+                          value={verifyToken}
+                          onChange={(e) => setVerifyToken(e.target.value)}
+                          placeholder="Paste token..."
+                          className="flex-1 bg-white h-8 text-sm"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-8"
+                          disabled={!verifyToken || verifyEmail.isPending}
+                          onClick={() => {
+                            verifyEmail.mutate(
+                              { token: verifyToken },
+                              {
+                                onSuccess: () => {
+                                  setShowVerifyInput(false);
+                                  setVerifyToken('');
+                                },
+                              },
+                            );
+                          }}
+                        >
+                          {verifyEmail.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            'Submit'
+                          )}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8"
+                          onClick={() => {
+                            setShowVerifyInput(false);
+                            setVerifyToken('');
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 
-// Placeholder for CurrentUser
 export type CurrentUser = {
   id: string;
   username: string;
   email: string;
+  isEmailVerified?: boolean;
+  emailVerified?: boolean;
   displayName?: string;
   role: string;
   profilePictureUrl?: string;

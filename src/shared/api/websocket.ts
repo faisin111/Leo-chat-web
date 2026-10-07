@@ -9,6 +9,11 @@ class WebSocketService {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private typingListeners = new Set<(msg: any) => void>();
 
+  // Track dynamic topic subscriptions
+  // destination -> Map<callback, StompSubscription>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private topicListeners = new Map<string, Map<(msg: any) => void, any>>();
+
   connect() {
     if (this.client && this.client.active) return;
 
@@ -31,13 +36,23 @@ class WebSocketService {
           const parsedMessage = JSON.parse(message.body);
           // eslint-disable-next-line no-console
           console.log('📩 New Private Message:', parsedMessage);
-          this.messageListeners.forEach(listener => listener(parsedMessage));
+          this.messageListeners.forEach((listener) => listener(parsedMessage));
         });
 
         // Optional: Global typing indicator queue
         this.client?.subscribe('/user/queue/typing', (message) => {
           const parsedTyping = JSON.parse(message.body);
-          this.typingListeners.forEach(listener => listener(parsedTyping));
+          this.typingListeners.forEach((listener) => listener(parsedTyping));
+        });
+
+        // Re-establish any pending dynamic topic subscriptions
+        this.topicListeners.forEach((callbacks, destination) => {
+          callbacks.forEach((_, callback) => {
+            const subscription = this.client?.subscribe(destination, (msg) => {
+              callback(JSON.parse(msg.body));
+            });
+            callbacks.set(callback, subscription);
+          });
         });
       },
       onStompError: (frame) => {
@@ -49,7 +64,7 @@ class WebSocketService {
       onWebSocketError: (event) => {
         // eslint-disable-next-line no-console
         console.error('❌ WebSocket error (is the backend running?):', event);
-      }
+      },
     });
 
     this.client.activate();
@@ -60,6 +75,14 @@ class WebSocketService {
       this.client.deactivate();
       this.client = null;
       this.isConnected = false;
+
+      // Clear out active stomp subscription references, but keep the callbacks
+      // so they can be re-subscribed if reconnecting
+      this.topicListeners.forEach((callbacks) => {
+        callbacks.forEach((_, callback) => {
+          callbacks.set(callback, null);
+        });
+      });
     }
   }
 
@@ -80,13 +103,32 @@ class WebSocketService {
   // Subscribe to specific topics (like a group chat)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   subscribe(destination: string, callback: (message: any) => void) {
-    if (!this.client || !this.client.connected) return () => {};
-    
-    const subscription = this.client.subscribe(destination, (msg) => {
-      callback(JSON.parse(msg.body));
-    });
+    if (!this.topicListeners.has(destination)) {
+      this.topicListeners.set(destination, new Map());
+    }
 
-    return () => subscription.unsubscribe();
+    const callbacks = this.topicListeners.get(destination)!;
+
+    if (this.client && this.client.connected) {
+      const subscription = this.client.subscribe(destination, (msg) => {
+        callback(JSON.parse(msg.body));
+      });
+      callbacks.set(callback, subscription);
+    } else {
+      // Add to map, it will be subscribed onConnect
+      callbacks.set(callback, null);
+    }
+
+    return () => {
+      const sub = callbacks.get(callback);
+      if (sub) {
+        sub.unsubscribe();
+      }
+      callbacks.delete(callback);
+      if (callbacks.size === 0) {
+        this.topicListeners.delete(destination);
+      }
+    };
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -97,7 +139,7 @@ class WebSocketService {
     }
     this.client.publish({
       destination,
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     });
   }
 }

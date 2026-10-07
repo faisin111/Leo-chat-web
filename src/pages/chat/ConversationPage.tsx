@@ -157,9 +157,11 @@ export const ConversationPage = () => {
   });
 
   // Sort descending by date so the newest is at the start of the array (bottom of the flex-col-reverse container)
-  const allMessages = Array.from(allMessagesMap.values()).sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
+  const allMessages = Array.from(allMessagesMap.values()).sort((a, b) => {
+    const timeA = a.createdAt ? new Date(a.createdAt).getTime() : Date.now();
+    const timeB = b.createdAt ? new Date(b.createdAt).getTime() : Date.now();
+    return timeB - timeA;
+  });
 
   const handleSend = () => {
     if (!content.trim() || !conversationId) return;

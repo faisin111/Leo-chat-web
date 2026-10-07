@@ -18,7 +18,8 @@ const profileSchema = z.object({
   phoneNumber: z.string().optional(),
 });
 
-type ProfileFormValues = z.infer<typeof profileSchema>;
+type ProfileFormInput = z.input<typeof profileSchema>;
+type ProfileFormOutput = z.infer<typeof profileSchema>;
 
 export const ProfilePage = () => {
   const user = useSession((s) => s.user);
@@ -31,7 +32,7 @@ export const ProfilePage = () => {
     handleSubmit,
     reset,
     formState: { errors, isDirty },
-  } = useForm<ProfileFormValues>({
+  } = useForm<ProfileFormInput, any, ProfileFormOutput>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       displayName: user?.displayName || '',
@@ -42,7 +43,7 @@ export const ProfilePage = () => {
     },
   });
 
-  const onSubmit = (data: ProfileFormValues) => {
+  const onSubmit = (data: ProfileFormOutput) => {
     updateProfile.mutate(data, {
       onSuccess: () => {
         setIsEditing(false);

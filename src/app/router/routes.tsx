@@ -1,5 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { lazy } from 'react';
+
 import AppRoot from '../layouts/AppRoot';
 import AuthLayout from '../layouts/AuthLayout';
 import AppShell from '../layouts/AppShell';
@@ -12,89 +12,33 @@ import { RequireRole } from './guards/RequireRole';
 import { PasswordChangeGate } from './guards/PasswordChangeGate';
 
 // Static lazy imports — Vite can tree-shake and bundle these correctly
-const LandingPage = lazy(() =>
-  import('../../pages/landing/LandingPage').then((m) => ({ default: m.LandingPage })),
-);
-const LoginPage = lazy(() =>
-  import('../../pages/auth/LoginPage').then((m) => ({ default: m.LoginPage })),
-);
-const RegisterPage = lazy(() =>
-  import('../../pages/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })),
-);
-const ForgotPasswordPage = lazy(() =>
-  import('../../pages/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })),
-);
-const ResetPasswordPage = lazy(() =>
-  import('../../pages/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })),
-);
-const VerifyEmailPage = lazy(() =>
-  import('../../pages/auth/VerifyEmailPage').then((m) => ({ default: m.VerifyEmailPage })),
-);
-const ChangePasswordRequiredPage = lazy(() =>
-  import('../../pages/auth/ChangePasswordRequiredPage').then((m) => ({
-    default: m.ChangePasswordRequiredPage,
-  })),
-);
-const ChatHomePage = lazy(() =>
-  import('../../pages/chat/ChatHomePage').then((m) => ({ default: m.ChatHomePage })),
-);
-const ConversationPage = lazy(() =>
-  import('../../pages/chat/ConversationPage').then((m) => ({ default: m.ConversationPage })),
-);
-const NewChatPage = lazy(() =>
-  import('../../pages/chat/NewChatPage').then((m) => ({ default: m.NewChatPage })),
-);
-const NewGroupPage = lazy(() =>
-  import('../../pages/chat/NewGroupPage').then((m) => ({ default: m.NewGroupPage })),
-);
-const PeoplePage = lazy(() =>
-  import('../../pages/chat/PeoplePage').then((m) => ({ default: m.PeoplePage })),
-);
-const ProfilePage = lazy(() =>
-  import('../../pages/settings/ProfilePage').then((m) => ({ default: m.ProfilePage })),
-);
-const SecurityPage = lazy(() =>
-  import('../../pages/settings/SecurityPage').then((m) => ({ default: m.SecurityPage })),
-);
-const SessionsPage = lazy(() =>
-  import('../../pages/settings/SessionsPage').then((m) => ({ default: m.SessionsPage })),
-);
-const BlockedUsersPage = lazy(() =>
-  import('../../pages/settings/BlockedUsersPage').then((m) => ({ default: m.BlockedUsersPage })),
-);
-const AppearancePage = lazy(() =>
-  import('../../pages/settings/AppearancePage').then((m) => ({ default: m.AppearancePage })),
-);
-const DashboardPage = lazy(() =>
-  import('../../pages/admin/DashboardPage').then((m) => ({ default: m.DashboardPage })),
-);
-const UsersPage = lazy(() =>
-  import('../../pages/admin/UsersPage').then((m) => ({ default: m.UsersPage })),
-);
-const UserDetailPage = lazy(() =>
-  import('../../pages/admin/UserDetailPage').then((m) => ({ default: m.UserDetailPage })),
-);
-const ReportsPage = lazy(() =>
-  import('../../pages/admin/ReportsPage').then((m) => ({ default: m.ReportsPage })),
-);
-const ReportDetailPage = lazy(() =>
-  import('../../pages/admin/ReportDetailPage').then((m) => ({ default: m.ReportDetailPage })),
-);
-const ConversationsPage = lazy(() =>
-  import('../../pages/admin/ConversationsPage').then((m) => ({ default: m.ConversationsPage })),
-);
-const AuditLogsPage = lazy(() =>
-  import('../../pages/admin/AuditLogsPage').then((m) => ({ default: m.AuditLogsPage })),
-);
-const OwnershipPage = lazy(() =>
-  import('../../pages/admin/OwnershipPage').then((m) => ({ default: m.OwnershipPage })),
-);
-const ForbiddenPage = lazy(() =>
-  import('../../pages/system/ForbiddenPage').then((m) => ({ default: m.ForbiddenPage })),
-);
-const NotFoundPage = lazy(() =>
-  import('../../pages/system/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
-);
+import { LandingPage } from '../../pages/landing/LandingPage';
+import { LoginPage } from '../../pages/auth/LoginPage';
+import { RegisterPage } from '../../pages/auth/RegisterPage';
+import { ForgotPasswordPage } from '../../pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '../../pages/auth/ResetPasswordPage';
+import { VerifyEmailPage } from '../../pages/auth/VerifyEmailPage';
+import { ChangePasswordRequiredPage } from '../../pages/auth/ChangePasswordRequiredPage';
+import { ChatHomePage } from '../../pages/chat/ChatHomePage';
+import { ConversationPage } from '../../pages/chat/ConversationPage';
+import { NewChatPage } from '../../pages/chat/NewChatPage';
+import { NewGroupPage } from '../../pages/chat/NewGroupPage';
+import { PeoplePage } from '../../pages/chat/PeoplePage';
+import { ProfilePage } from '../../pages/settings/ProfilePage';
+import { SecurityPage } from '../../pages/settings/SecurityPage';
+import { SessionsPage } from '../../pages/settings/SessionsPage';
+import { BlockedUsersPage } from '../../pages/settings/BlockedUsersPage';
+import { AppearancePage } from '../../pages/settings/AppearancePage';
+import { DashboardPage } from '../../pages/admin/DashboardPage';
+import { UsersPage } from '../../pages/admin/UsersPage';
+import { UserDetailPage } from '../../pages/admin/UserDetailPage';
+import { ReportsPage } from '../../pages/admin/ReportsPage';
+import { ReportDetailPage } from '../../pages/admin/ReportDetailPage';
+import { ConversationsPage } from '../../pages/admin/ConversationsPage';
+import { AuditLogsPage } from '../../pages/admin/AuditLogsPage';
+import { OwnershipPage } from '../../pages/admin/OwnershipPage';
+import { ForbiddenPage } from '../../pages/system/ForbiddenPage';
+import { NotFoundPage } from '../../pages/system/NotFoundPage';
 
 export const router = createBrowserRouter([
   {

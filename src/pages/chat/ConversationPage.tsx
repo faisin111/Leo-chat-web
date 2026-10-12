@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { useParams } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import type { KeyboardEvent } from 'react';
 // eslint-disable-next-line no-restricted-imports
 import { useSendMessage } from '@/features/chat/api/use-send-message';
@@ -28,6 +28,8 @@ import { AddMembersModal } from './components/AddMembersModal';
 import { UserProfileSidebar } from './components/UserProfileSidebar';
 // eslint-disable-next-line no-restricted-imports
 import { useUserById } from '@/features/users/api/use-user-by-id';
+// eslint-disable-next-line no-restricted-imports
+import { useSearchUsers } from '@/features/users/api/use-search-users';
 import { wsService } from '@/shared/api/websocket';
 import { useQueryClient } from '@tanstack/react-query';
 // eslint-disable-next-line no-restricted-imports
@@ -171,8 +173,25 @@ export const ConversationPage = () => {
   });
 
   // Derive other user's ID for 1-on-1 direct conversation
+  const directKeyUserId = useMemo(() => {
+    if (!conversation?.directKey) return undefined;
+    const uuids = conversation.directKey.match(
+      /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g,
+    );
+    if (!uuids) return undefined;
+    return uuids.find((id) => id.toLowerCase() !== currentUser?.id?.toLowerCase());
+  }, [conversation?.directKey, currentUser?.id]);
+
+  const targetUsername = conversation?.targetUsername;
+  const { data: searchResults } = useSearchUsers(targetUsername || '');
+  const usernameMatchedUser = targetUsername
+    ? searchResults?.find((u) => u.username?.toLowerCase() === targetUsername.toLowerCase())
+    : undefined;
+
   const otherUserId = !isGroup
     ? conversation?.targetUserId ||
+      directKeyUserId ||
+      usernameMatchedUser?.id ||
       allMessages.find((m) => m.senderId && m.senderId !== currentUser?.id)?.senderId ||
       (conversation?.createdBy && conversation.createdBy !== currentUser?.id
         ? conversation.createdBy
@@ -289,16 +308,9 @@ export const ConversationPage = () => {
         <header className="h-16 border-b border-slate-100 flex items-center justify-between px-6 shrink-0 bg-white">
           <button
             type="button"
-            onClick={() => {
-              if (!isGroup && otherUserId) {
-                setIsProfileSidebarOpen((prev) => !prev);
-              }
-            }}
-            disabled={isGroup || !otherUserId}
-            className={`flex items-center space-x-3 text-left rounded-2xl p-1.5 -ml-1.5 transition-colors ${
-              !isGroup && otherUserId ? 'hover:bg-slate-50 cursor-pointer group/header' : ''
-            }`}
-            title={!isGroup && otherUserId ? 'View user profile' : undefined}
+            onClick={() => setIsProfileSidebarOpen((prev) => !prev)}
+            className="flex items-center space-x-3 text-left rounded-2xl p-1.5 -ml-1.5 transition-colors hover:bg-slate-50 cursor-pointer group/header"
+            title="View details"
           >
             <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden relative border border-slate-100">
               {isGroup ? (
@@ -357,13 +369,8 @@ export const ConversationPage = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => {
-                if (!isGroup && otherUserId) {
-                  setIsProfileSidebarOpen((prev) => !prev);
-                }
-              }}
-              disabled={isGroup || !otherUserId}
-              className={`text-slate-400 hover:text-slate-600 rounded-full h-9 w-9 ${
+              onClick={() => setIsProfileSidebarOpen((prev) => !prev)}
+              className={`text-slate-400 hover:text-slate-600 rounded-full h-9 w-9 cursor-pointer ${
                 isProfileSidebarOpen ? 'bg-slate-100 text-primary' : ''
               }`}
               title="View details"
@@ -534,7 +541,9 @@ export const ConversationPage = () => {
           onClose={() => setIsProfileSidebarOpen(false)}
           userId={otherUserId}
           fallbackName={headerName}
+          fallbackUsername={conversation?.targetUsername || usernameMatchedUser?.username}
           fallbackAvatar={headerAvatar}
+          isGroup={isGroup}
         />
       )}
     </div>

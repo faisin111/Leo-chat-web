@@ -24,34 +24,44 @@ interface UserProfileSidebarProps {
   onClose: () => void;
   userId?: string | null;
   fallbackName?: string;
+  fallbackUsername?: string;
   fallbackAvatar?: string | null;
+  isGroup?: boolean;
 }
 
 export const UserProfileSidebar = ({
   onClose,
   userId,
   fallbackName,
+  fallbackUsername,
   fallbackAvatar,
+  isGroup,
 }: UserProfileSidebarProps) => {
   const { data: user, isLoading } = useUserById(userId);
   const [copiedId, setCopiedId] = useState(false);
+  const targetId = user?.id || userId;
 
   const handleCopyId = () => {
-    if (!userId) return;
-    navigator.clipboard.writeText(userId);
+    if (!targetId) return;
+    navigator.clipboard.writeText(targetId);
     setCopiedId(true);
     setTimeout(() => setCopiedId(false), 2000);
   };
 
-  const displayName = user?.displayName || user?.username || fallbackName || 'User';
-  const initials = displayName.substring(0, 2).toUpperCase();
+  const displayName = isGroup
+    ? fallbackName || 'Group Conversation'
+    : user?.displayName || user?.username || fallbackName || 'User';
+  const username = user?.username || fallbackUsername;
+  const initials = (displayName || 'U').substring(0, 2).toUpperCase();
   const avatarUrl = user?.profilePictureUrl || fallbackAvatar;
 
   return (
     <aside className="w-full sm:w-80 lg:w-96 border-l border-slate-200 bg-white h-full flex flex-col shrink-0 z-30 transition-all duration-300 shadow-sm animate-in slide-in-from-right">
       {/* Top Header with Close Icon */}
       <div className="h-16 px-6 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
-        <h3 className="font-semibold text-base text-slate-900">User Details</h3>
+        <h3 className="font-semibold text-base text-slate-900">
+          {isGroup ? 'Group Details' : 'User Details'}
+        </h3>
         <Button
           variant="ghost"
           size="icon"
@@ -85,15 +95,17 @@ export const UserProfileSidebar = ({
           ) : (
             <>
               <h2 className="text-lg font-bold text-slate-900">{displayName}</h2>
-              {user?.username && (
-                <p className="text-xs font-medium text-slate-500 mt-0.5">@{user.username}</p>
-              )}
-              {user?.role && (
+              {username && <p className="text-xs font-medium text-slate-500 mt-0.5">@{username}</p>}
+              {isGroup ? (
+                <span className="mt-2.5 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                  Group Conversation
+                </span>
+              ) : user?.role ? (
                 <span className="mt-2.5 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
                   <Shield className="w-3 h-3 mr-1" />
                   {user.role}
                 </span>
-              )}
+              ) : null}
             </>
           )}
         </div>
@@ -119,6 +131,34 @@ export const UserProfileSidebar = ({
             <Skeleton className="h-16 w-full rounded-2xl" />
             <Skeleton className="h-28 w-full rounded-2xl" />
           </div>
+        ) : isGroup ? (
+          <div className="space-y-4">
+            <div className="space-y-3 bg-slate-50/70 p-4 rounded-2xl border border-slate-100 text-sm">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                Group Information
+              </h4>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Group conversations allow team collaboration with multiple participants.
+              </p>
+            </div>
+            {targetId && (
+              <div className="flex items-center justify-between px-3 py-2 bg-slate-100/70 rounded-xl text-xs text-slate-500">
+                <span className="truncate font-mono text-[11px] max-w-[240px]">ID: {targetId}</span>
+                <button
+                  type="button"
+                  onClick={handleCopyId}
+                  className="text-slate-500 hover:text-slate-800 p-1 rounded transition-colors ml-2"
+                  title="Copy ID"
+                >
+                  {copiedId ? (
+                    <Check className="w-3.5 h-3.5 text-green-600" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="space-y-5">
             {/* Bio */}
@@ -139,73 +179,87 @@ export const UserProfileSidebar = ({
                 User Details
               </h4>
 
-              {/* Email */}
-              {user?.email && (
-                <div className="flex items-center justify-between py-1">
-                  <div className="flex items-center space-x-2.5 text-slate-700 min-w-0 pr-2">
-                    <Mail className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span className="truncate text-xs">{user.email}</span>
-                  </div>
-                  {user.emailVerified !== undefined && (
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
-                        user.emailVerified
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-orange-100 text-orange-700'
-                      }`}
-                    >
-                      {user.emailVerified ? (
-                        <>
-                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                          Verified
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle className="w-3 h-3 mr-1" />
-                          Unverified
-                        </>
+              {user?.email ||
+              user?.phoneNumber ||
+              user?.region ||
+              (user?.age !== undefined && user?.age !== null && user.age > 0) ? (
+                <>
+                  {/* Email */}
+                  {user?.email && (
+                    <div className="flex items-center justify-between py-1">
+                      <div className="flex items-center space-x-2.5 text-slate-700 min-w-0 pr-2">
+                        <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span className="truncate text-xs">{user.email}</span>
+                      </div>
+                      {user.emailVerified !== undefined && (
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                            user.emailVerified
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-orange-100 text-orange-700'
+                          }`}
+                        >
+                          {user.emailVerified ? (
+                            <>
+                              <CheckCircle2 className="w-3 h-3 mr-1" />
+                              Verified
+                            </>
+                          ) : (
+                            <>
+                              <AlertCircle className="w-3 h-3 mr-1" />
+                              Unverified
+                            </>
+                          )}
+                        </span>
                       )}
-                    </span>
+                    </div>
                   )}
-                </div>
-              )}
 
-              {/* Phone */}
-              {user?.phoneNumber && (
-                <div className="flex items-center justify-between py-1 border-t border-slate-100 pt-2.5">
-                  <div className="flex items-center space-x-2.5 text-slate-700 text-xs">
-                    <Phone className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span>{user.phoneNumber}</span>
-                  </div>
-                </div>
-              )}
+                  {/* Phone */}
+                  {user?.phoneNumber && (
+                    <div className="flex items-center justify-between py-1 border-t border-slate-100 pt-2.5">
+                      <div className="flex items-center space-x-2.5 text-slate-700 text-xs">
+                        <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span>{user.phoneNumber}</span>
+                      </div>
+                    </div>
+                  )}
 
-              {/* Region */}
-              {user?.region && (
-                <div className="flex items-center justify-between py-1 border-t border-slate-100 pt-2.5">
-                  <div className="flex items-center space-x-2.5 text-slate-700 text-xs">
-                    <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span>{user.region}</span>
-                  </div>
-                </div>
-              )}
+                  {/* Region */}
+                  {user?.region && (
+                    <div className="flex items-center justify-between py-1 border-t border-slate-100 pt-2.5">
+                      <div className="flex items-center space-x-2.5 text-slate-700 text-xs">
+                        <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span>{user.region}</span>
+                      </div>
+                    </div>
+                  )}
 
-              {/* Age */}
-              {user?.age !== undefined && user?.age !== null && user?.age > 0 && (
-                <div className="flex items-center justify-between py-1 border-t border-slate-100 pt-2.5">
-                  <div className="flex items-center space-x-2.5 text-slate-700 text-xs">
-                    <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span>{user.age} years old</span>
-                  </div>
-                </div>
+                  {/* Age */}
+                  {user?.age !== undefined && user?.age !== null && user?.age > 0 && (
+                    <div className="flex items-center justify-between py-1 border-t border-slate-100 pt-2.5">
+                      <div className="flex items-center space-x-2.5 text-slate-700 text-xs">
+                        <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span>{user.age} years old</span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs text-slate-500 py-1">
+                  {targetId
+                    ? 'No additional contact details provided.'
+                    : 'Direct message with user.'}
+                </p>
               )}
             </div>
 
             {/* User ID with copy button */}
-            {user?.id && (
+            {targetId && (
               <div className="flex items-center justify-between px-3 py-2 bg-slate-100/70 rounded-xl text-xs text-slate-500">
-                <span className="truncate font-mono text-[11px] max-w-[240px]">ID: {user.id}</span>
+                <span className="truncate font-mono text-[11px] max-w-[240px]">ID: {targetId}</span>
                 <button
+                  type="button"
                   onClick={handleCopyId}
                   className="text-slate-500 hover:text-slate-800 p-1 rounded transition-colors ml-2"
                   title="Copy User ID"

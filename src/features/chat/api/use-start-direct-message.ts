@@ -12,12 +12,12 @@ export function useStartDirectMessage() {
     onSuccess: (data) => {
       // Invalidate the conversations list so the new chat shows up in the sidebar
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      
+
       // Navigate to the newly created (or existing) conversation
       navigate(`/app/c/${data.id}`);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to start conversation');
-    }
+    },
   });
 }

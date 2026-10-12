@@ -11,6 +11,7 @@ import {
 import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
+import { Skeleton } from '@/shared/ui/skeleton';
 import { useState, useEffect } from 'react';
 // eslint-disable-next-line no-restricted-imports
 import { useSearchUsers } from '@/features/users/api/use-search-users';
@@ -122,11 +123,7 @@ export const PeoplePage = () => {
             </div>
 
             <div className="space-y-3">
-              {isLoading && (
-                <div className="flex justify-center p-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
-                </div>
-              )}
+              {isLoading && <PeopleListSkeleton />}
 
               {!isLoading && users?.length === 0 && (
                 <div className="text-center py-12 text-slate-500 text-sm">
@@ -243,8 +240,15 @@ function PeopleNavItem({ icon, label, active = false, count }: any) {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function PeopleResult({ user, selected, onClick, onMessage, isPending }: any) {
+interface PeopleResultProps {
+  user: UserSearchItem;
+  selected: boolean;
+  onClick: () => void;
+  onMessage: () => void;
+  isPending: boolean;
+}
+
+function PeopleResult({ user, selected, onClick, onMessage, isPending }: PeopleResultProps) {
   const isOnline = user.status === 'ONLINE';
   const name = user.displayName || user.username;
   const initials = name.substring(0, 2).toUpperCase();
@@ -294,6 +298,29 @@ function PeopleResult({ user, selected, onClick, onMessage, isPending }: any) {
       >
         {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Message'}
       </Button>
+    </div>
+  );
+}
+
+function PeopleListSkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="flex items-center p-3 rounded-xl border-2 border-slate-200 bg-white shadow-sm"
+        >
+          <Skeleton className="w-10 h-10 rounded-full mr-4 shrink-0" />
+          <div className="flex-1 min-w-0 pr-4 space-y-2">
+            <div className="flex items-center space-x-2">
+              <Skeleton className={`h-4 ${i % 2 === 0 ? 'w-32' : 'w-40'} rounded-md`} />
+              <Skeleton className="h-3.5 w-16 rounded-md" />
+            </div>
+            <Skeleton className={`h-3 ${i % 3 === 0 ? 'w-48' : 'w-36'} rounded-md`} />
+          </div>
+          <Skeleton className="h-8 w-20 rounded-full shrink-0" />
+        </div>
+      ))}
     </div>
   );
 }

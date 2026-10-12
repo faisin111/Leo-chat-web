@@ -2,6 +2,7 @@ import { ArrowLeft, Users, Loader2, X, MessageSquarePlus, Search } from 'lucide-
 import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
+import { Skeleton } from '@/shared/ui/skeleton';
 import { useState, useEffect } from 'react';
 // eslint-disable-next-line no-restricted-imports
 import { useSearchUsers } from '@/features/users/api/use-search-users';
@@ -99,11 +100,7 @@ export const NewGroupPage = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-2 relative">
-                {isSearchLoading && debouncedQuery && (
-                  <div className="flex justify-center p-8">
-                    <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
-                  </div>
-                )}
+                {isSearchLoading && debouncedQuery && <SelectableUserSkeleton />}
 
                 {!isSearchLoading && searchResults?.length === 0 && debouncedQuery && (
                   <p className="text-sm text-slate-500 text-center py-8">
@@ -232,8 +229,23 @@ export const NewGroupPage = () => {
   );
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function SelectableUser({ initials, name, handle, selected, avatarUrl, onClick }: any) {
+interface SelectableUserProps {
+  initials: string;
+  name: string;
+  handle: string;
+  selected: boolean;
+  avatarUrl?: string | null;
+  onClick: () => void;
+}
+
+function SelectableUser({
+  initials,
+  name,
+  handle,
+  selected,
+  avatarUrl,
+  onClick,
+}: SelectableUserProps) {
   return (
     <div
       onClick={onClick}
@@ -264,7 +276,15 @@ function SelectableUser({ initials, name, handle, selected, avatarUrl, onClick }
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface SelectedMemberProps {
+  initials: string;
+  name: string;
+  memberRole: string;
+  removable?: boolean;
+  avatarUrl?: string | null;
+  onRemove?: () => void;
+}
+
 function SelectedMember({
   initials,
   name,
@@ -272,7 +292,7 @@ function SelectedMember({
   removable = false,
   avatarUrl,
   onRemove,
-}: any) {
+}: SelectedMemberProps) {
   return (
     <div className="flex items-center justify-between group">
       <div className="flex items-center space-x-3 min-w-0 pr-2">
@@ -302,6 +322,22 @@ function SelectedMember({
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+function SelectableUserSkeleton() {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="flex items-center p-3 rounded-2xl border border-transparent">
+          <Skeleton className="w-10 h-10 rounded-full mr-4 shrink-0" />
+          <div className="flex-1 min-w-0 pr-4 space-y-2">
+            <Skeleton className={`h-4 ${i % 2 === 0 ? 'w-28' : 'w-36'} rounded-md`} />
+            <Skeleton className="h-3 w-20 rounded-md" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

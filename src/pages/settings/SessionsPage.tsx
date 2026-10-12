@@ -1,5 +1,6 @@
 import { Button } from '@/shared/ui/button';
-import { Laptop, Smartphone, AlertTriangle, Monitor, Loader2 } from 'lucide-react';
+import { Laptop, Smartphone, AlertTriangle, Monitor } from 'lucide-react';
+import { Skeleton } from '@/shared/ui/skeleton';
 // eslint-disable-next-line no-restricted-imports
 import { useSessions } from '@/features/users/api/use-sessions';
 // eslint-disable-next-line no-restricted-imports
@@ -48,11 +49,7 @@ export const SessionsPage = () => {
       </div>
 
       <div className="space-y-4">
-        {isLoading && (
-          <div className="flex justify-center p-12">
-            <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
-          </div>
-        )}
+        {isLoading && <SessionsSkeleton />}
 
         {isError && (
           <div className="p-6 bg-red-50 text-red-600 rounded-2xl border border-red-100 text-center">
@@ -127,3 +124,28 @@ export const SessionsPage = () => {
     </div>
   );
 };
+
+function SessionsSkeleton() {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div
+          key={i}
+          className="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Skeleton className="w-12 h-12 rounded-full shrink-0" />
+              <div className="space-y-2">
+                <Skeleton className={`h-4 ${i === 0 ? 'w-40' : 'w-32'} rounded-md`} />
+                <Skeleton className="h-3 w-28 rounded-md" />
+                <Skeleton className="h-2.5 w-64 rounded-md" />
+              </div>
+            </div>
+            <Skeleton className="h-9 w-24 rounded-lg shrink-0" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

@@ -1,5 +1,6 @@
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
+import { Skeleton } from '@/shared/ui/skeleton';
 import { Search, UserPlus, ArrowLeft, Loader2, MessageSquarePlus, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -62,11 +63,7 @@ export const NewChatPage = () => {
           {debouncedQuery ? 'Search Results' : 'Type to search users'}
         </p>
 
-        {isLoading && debouncedQuery && (
-          <div className="flex justify-center p-4">
-            <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
-          </div>
-        )}
+        {isLoading && debouncedQuery && <UserRowSkeleton />}
 
         {!isLoading && users?.length === 0 && debouncedQuery && (
           <p className="text-sm text-slate-500 text-center py-8">
@@ -218,6 +215,25 @@ function UserRow({ name, handle, status, initials, color, onClick, isPending, av
           <UserPlus className="w-5 h-5 text-primary" />
         )}
       </Button>
+    </div>
+  );
+}
+
+function UserRowSkeleton() {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="flex items-center justify-between p-3 rounded-2xl">
+          <div className="flex items-center gap-3">
+            <Skeleton className="w-12 h-12 rounded-full shrink-0" />
+            <div className="space-y-2">
+              <Skeleton className={`h-4 ${i % 2 === 0 ? 'w-28' : 'w-36'} rounded-md`} />
+              <Skeleton className="h-3 w-20 rounded-md" />
+            </div>
+          </div>
+          <Skeleton className="w-8 h-8 rounded-full shrink-0" />
+        </div>
+      ))}
     </div>
   );
 }

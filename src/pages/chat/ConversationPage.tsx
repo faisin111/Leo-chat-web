@@ -25,7 +25,7 @@ import { useConversations } from '@/features/chat/api/use-conversations';
 import { useSession } from '@/features/auth';
 import { format } from 'date-fns';
 import { AddMembersModal } from './components/AddMembersModal';
-import { UserProfileModal } from './components/UserProfileModal';
+import { UserProfileSidebar } from './components/UserProfileSidebar';
 // eslint-disable-next-line no-restricted-imports
 import { useUserById } from '@/features/users/api/use-user-by-id';
 import { wsService } from '@/shared/api/websocket';
@@ -37,7 +37,7 @@ export const ConversationPage = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
   const [content, setContent] = useState('');
   const [isAddMembersOpen, setIsAddMembersOpen] = useState(false);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isProfileSidebarOpen, setIsProfileSidebarOpen] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Record<string, number>>({});
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -59,6 +59,7 @@ export const ConversationPage = () => {
   // Clear live messages when changing conversations
   useEffect(() => {
     setLiveMessages([]);
+    setIsProfileSidebarOpen(false);
   }, [conversationId]);
 
   useEffect(() => {
@@ -276,256 +277,266 @@ export const ConversationPage = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-white relative">
-      <AddMembersModal
-        isOpen={isAddMembersOpen}
-        onClose={() => setIsAddMembersOpen(false)}
-        conversationId={conversationId || ''}
-      />
-      <UserProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-        userId={otherUserId}
-        fallbackName={headerName}
-        fallbackAvatar={headerAvatar}
-      />
-      {/* Header */}
-      <header className="h-16 border-b border-slate-100 flex items-center justify-between px-6 shrink-0 bg-white">
-        <button
-          type="button"
-          onClick={() => {
-            if (!isGroup && otherUserId) {
-              setIsProfileModalOpen(true);
-            }
-          }}
-          disabled={isGroup || !otherUserId}
-          className={`flex items-center space-x-3 text-left rounded-2xl p-1.5 -ml-1.5 transition-colors ${
-            !isGroup && otherUserId ? 'hover:bg-slate-50 cursor-pointer group/header' : ''
-          }`}
-          title={!isGroup && otherUserId ? 'View user profile' : undefined}
-        >
-          <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden relative border border-slate-100">
-            {isGroup ? (
-              '#'
-            ) : isTargetUserLoading && !headerAvatar ? (
-              <Skeleton className="w-full h-full rounded-full" />
-            ) : headerAvatar ? (
-              <img src={headerAvatar} alt={headerName} className="w-full h-full object-cover" />
-            ) : (
-              headerInitials
-            )}
-          </div>
-          <div>
-            <div className="flex items-center space-x-1.5">
-              <h2 className="font-semibold text-sm text-slate-900 group-hover/header:text-primary transition-colors">
-                {isTargetUserLoading && !headerName ? (
-                  <Skeleton className="h-4 w-28 rounded-md" />
-                ) : (
-                  headerName
-                )}
-              </h2>
-            </div>
-            <p className="text-[11px] text-slate-500 font-medium">{headerSubtitle}</p>
-          </div>
-        </button>
-        <div className="flex items-center space-x-2">
-          {isGroup && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsAddMembersOpen(true)}
-                className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9"
-                title="Add members"
-              >
-                <UserPlus className="w-4 h-4" />
-              </Button>
-              <div className="w-px h-4 bg-slate-200 mx-1"></div>
-            </>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9"
-          >
-            <Phone className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9"
-          >
-            <Video className="w-4 h-4" />
-          </Button>
-          <div className="w-px h-4 bg-slate-200 mx-1"></div>
-          <Button
-            variant="ghost"
-            size="icon"
+    <div className="flex-1 flex h-full bg-white relative overflow-hidden">
+      {/* Main Chat Column */}
+      <div className="flex-1 flex flex-col h-full min-w-0 bg-white">
+        <AddMembersModal
+          isOpen={isAddMembersOpen}
+          onClose={() => setIsAddMembersOpen(false)}
+          conversationId={conversationId || ''}
+        />
+        {/* Header */}
+        <header className="h-16 border-b border-slate-100 flex items-center justify-between px-6 shrink-0 bg-white">
+          <button
+            type="button"
             onClick={() => {
               if (!isGroup && otherUserId) {
-                setIsProfileModalOpen(true);
+                setIsProfileSidebarOpen((prev) => !prev);
               }
             }}
             disabled={isGroup || !otherUserId}
-            className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9"
-            title="View details"
+            className={`flex items-center space-x-3 text-left rounded-2xl p-1.5 -ml-1.5 transition-colors ${
+              !isGroup && otherUserId ? 'hover:bg-slate-50 cursor-pointer group/header' : ''
+            }`}
+            title={!isGroup && otherUserId ? 'View user profile' : undefined}
           >
-            <Info className="w-4 h-4" />
-          </Button>
-        </div>
-      </header>
-
-      {/* Messages List */}
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col-reverse gap-6 pb-4">
-        {isLoading ? (
-          <ChatMessagesSkeleton />
-        ) : allMessages.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
-            <p className="text-sm">No messages yet.</p>
-            <p className="text-xs">Send a message to start the conversation!</p>
-          </div>
-        ) : (
-          <>
-            {allMessages.map((msg) => {
-              const isOwn = msg.senderId === currentUser?.id;
-              // Very simple initials generation for now
-              const initials = isOwn ? (currentUser?.displayName?.[0] || 'U').toUpperCase() : 'U';
-              const name = isOwn ? currentUser?.displayName || 'You' : msg.senderId.substring(0, 8);
-              const color = isOwn ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-700';
-              const time = format(new Date(msg.createdAt), 'h:mm a');
-
-              return (
-                <div
-                  key={msg.id}
-                  className={`group flex items-start space-x-3 ${isOwn ? 'flex-row-reverse space-x-reverse' : ''}`}
+            <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden relative border border-slate-100">
+              {isGroup ? (
+                '#'
+              ) : isTargetUserLoading && !headerAvatar ? (
+                <Skeleton className="w-full h-full rounded-full" />
+              ) : headerAvatar ? (
+                <img src={headerAvatar} alt={headerName} className="w-full h-full object-cover" />
+              ) : (
+                headerInitials
+              )}
+            </div>
+            <div>
+              <div className="flex items-center space-x-1.5">
+                <h2 className="font-semibold text-sm text-slate-900 group-hover/header:text-primary transition-colors">
+                  {isTargetUserLoading && !headerName ? (
+                    <Skeleton className="h-4 w-28 rounded-md" />
+                  ) : (
+                    headerName
+                  )}
+                </h2>
+              </div>
+              <p className="text-[11px] text-slate-500 font-medium">{headerSubtitle}</p>
+            </div>
+          </button>
+          <div className="flex items-center space-x-2">
+            {isGroup && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsAddMembersOpen(true)}
+                  className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9"
+                  title="Add members"
                 >
+                  <UserPlus className="w-4 h-4" />
+                </Button>
+                <div className="w-px h-4 bg-slate-200 mx-1"></div>
+              </>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9"
+            >
+              <Phone className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9"
+            >
+              <Video className="w-4 h-4" />
+            </Button>
+            <div className="w-px h-4 bg-slate-200 mx-1"></div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                if (!isGroup && otherUserId) {
+                  setIsProfileSidebarOpen((prev) => !prev);
+                }
+              }}
+              disabled={isGroup || !otherUserId}
+              className={`text-slate-400 hover:text-slate-600 rounded-full h-9 w-9 ${
+                isProfileSidebarOpen ? 'bg-slate-100 text-primary' : ''
+              }`}
+              title="View details"
+            >
+              <Info className="w-4 h-4" />
+            </Button>
+          </div>
+        </header>
+
+        {/* Messages List */}
+        <div className="flex-1 overflow-y-auto p-6 flex flex-col-reverse gap-6 pb-4">
+          {isLoading ? (
+            <ChatMessagesSkeleton />
+          ) : allMessages.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+              <p className="text-sm">No messages yet.</p>
+              <p className="text-xs">Send a message to start the conversation!</p>
+            </div>
+          ) : (
+            <>
+              {allMessages.map((msg) => {
+                const isOwn = msg.senderId === currentUser?.id;
+                // Very simple initials generation for now
+                const initials = isOwn ? (currentUser?.displayName?.[0] || 'U').toUpperCase() : 'U';
+                const name = isOwn
+                  ? currentUser?.displayName || 'You'
+                  : msg.senderId.substring(0, 8);
+                const color = isOwn ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-700';
+                const time = format(new Date(msg.createdAt), 'h:mm a');
+
+                return (
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-1 ${color}`}
+                    key={msg.id}
+                    className={`group flex items-start space-x-3 ${isOwn ? 'flex-row-reverse space-x-reverse' : ''}`}
                   >
-                    {initials}
-                  </div>
-                  <div
-                    className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[70%]`}
-                  >
-                    <div className="flex items-baseline space-x-2 mb-1">
-                      <span className="text-xs font-semibold">{name}</span>
-                      <span className="text-[10px] text-slate-400">{time}</span>
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-1 ${color}`}
+                    >
+                      {initials}
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      {isOwn && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteMessage(msg.id)}
-                          disabled={deletingId === msg.id}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer shrink-0"
-                          title="Delete message"
+                    <div
+                      className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[70%]`}
+                    >
+                      <div className="flex items-baseline space-x-2 mb-1">
+                        <span className="text-xs font-semibold">{name}</span>
+                        <span className="text-[10px] text-slate-400">{time}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {isOwn && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteMessage(msg.id)}
+                            disabled={deletingId === msg.id}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer shrink-0"
+                            title="Delete message"
+                          >
+                            {deletingId === msg.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        )}
+                        <div
+                          className={`px-4 py-2.5 rounded-2xl text-sm ${isOwn ? 'bg-primary text-white rounded-tr-sm' : 'bg-slate-100 text-slate-800 rounded-tl-sm'}`}
                         >
-                          {deletingId === msg.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500" />
-                          ) : (
-                            <Trash2 className="w-3.5 h-3.5" />
-                          )}
-                        </button>
-                      )}
-                      <div
-                        className={`px-4 py-2.5 rounded-2xl text-sm ${isOwn ? 'bg-primary text-white rounded-tr-sm' : 'bg-slate-100 text-slate-800 rounded-tl-sm'}`}
-                      >
-                        {msg.content}
+                          {msg.content}
+                        </div>
                       </div>
                     </div>
                   </div>
+                );
+              })}
+
+              {/* Load more is now at the END of the DOM, which appears at the visually TOP due to flex-col-reverse */}
+              {hasNextPage && (
+                <div className="text-center pt-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                    className="text-xs text-primary"
+                  >
+                    {isFetchingNextPage ? 'Loading older...' : 'Load older messages'}
+                  </Button>
                 </div>
-              );
-            })}
-
-            {/* Load more is now at the END of the DOM, which appears at the visually TOP due to flex-col-reverse */}
-            {hasNextPage && (
-              <div className="text-center pt-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => fetchNextPage()}
-                  disabled={isFetchingNextPage}
-                  className="text-xs text-primary"
-                >
-                  {isFetchingNextPage ? 'Loading older...' : 'Load older messages'}
-                </Button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* Input Area */}
-      <div className="p-4 bg-white border-t border-slate-100">
-        {/* Typing Indicator */}
-        {Object.keys(typingUsers).length > 0 && (
-          <div className="flex items-center space-x-2 text-xs text-slate-400 mb-2 px-2">
-            <div className="flex space-x-1">
-              <span
-                className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"
-                style={{ animationDelay: '0ms' }}
-              ></span>
-              <span
-                className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce"
-                style={{ animationDelay: '150ms' }}
-              ></span>
-              <span
-                className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"
-                style={{ animationDelay: '300ms' }}
-              ></span>
-            </div>
-            <span>
-              {Object.keys(typingUsers).length === 1
-                ? 'Someone is typing...'
-                : 'Several people are typing...'}
-            </span>
-          </div>
-        )}
-
-        <div className="flex items-end bg-slate-50 rounded-2xl border border-slate-200 p-1 pl-4 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
-          <textarea
-            className="flex-1 bg-transparent border-none focus:ring-0 resize-none py-3 max-h-32 text-sm focus:outline-none"
-            placeholder="Write a message..."
-            rows={1}
-            value={content}
-            onChange={(e) => handleTyping(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={sendMessage.isPending}
-          />
-          <div className="flex items-center space-x-1 p-2 shrink-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-slate-400 hover:text-slate-600 rounded-full h-8 w-8"
-            >
-              <Paperclip className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-slate-400 hover:text-slate-600 rounded-full h-8 w-8"
-            >
-              <Smile className="w-4 h-4" />
-            </Button>
-            <Button
-              size="icon"
-              className="rounded-full h-8 w-8 bg-primary text-white hover:bg-primary/90 ml-2 shadow-sm"
-              onClick={handleSend}
-              disabled={!content.trim() || sendMessage.isPending}
-            >
-              {sendMessage.isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Send className="w-3.5 h-3.5 ml-0.5" />
               )}
-            </Button>
-          </div>
+            </>
+          )}
         </div>
-        <p className="text-[10px] text-slate-400 text-center mt-2 font-medium">
-          <strong>Return</strong> to send, <strong>Shift + Return</strong> for new line
-        </p>
+
+        {/* Input Area */}
+        <div className="p-4 bg-white border-t border-slate-100">
+          {/* Typing Indicator */}
+          {Object.keys(typingUsers).length > 0 && (
+            <div className="flex items-center space-x-2 text-xs text-slate-400 mb-2 px-2">
+              <div className="flex space-x-1">
+                <span
+                  className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"
+                  style={{ animationDelay: '0ms' }}
+                ></span>
+                <span
+                  className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce"
+                  style={{ animationDelay: '150ms' }}
+                ></span>
+                <span
+                  className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"
+                  style={{ animationDelay: '300ms' }}
+                ></span>
+              </div>
+              <span>
+                {Object.keys(typingUsers).length === 1
+                  ? 'Someone is typing...'
+                  : 'Several people are typing...'}
+              </span>
+            </div>
+          )}
+
+          <div className="flex items-end bg-slate-50 rounded-2xl border border-slate-200 p-1 pl-4 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+            <textarea
+              className="flex-1 bg-transparent border-none focus:ring-0 resize-none py-3 max-h-32 text-sm focus:outline-none"
+              placeholder="Write a message..."
+              rows={1}
+              value={content}
+              onChange={(e) => handleTyping(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={sendMessage.isPending}
+            />
+            <div className="flex items-center space-x-1 p-2 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-slate-400 hover:text-slate-600 rounded-full h-8 w-8"
+              >
+                <Paperclip className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-slate-400 hover:text-slate-600 rounded-full h-8 w-8"
+              >
+                <Smile className="w-4 h-4" />
+              </Button>
+              <Button
+                size="icon"
+                className="rounded-full h-8 w-8 bg-primary text-white hover:bg-primary/90 ml-2 shadow-sm"
+                onClick={handleSend}
+                disabled={!content.trim() || sendMessage.isPending}
+              >
+                {sendMessage.isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Send className="w-3.5 h-3.5 ml-0.5" />
+                )}
+              </Button>
+            </div>
+          </div>
+          <p className="text-[10px] text-slate-400 text-center mt-2 font-medium">
+            <strong>Return</strong> to send, <strong>Shift + Return</strong> for new line
+          </p>
+        </div>
       </div>
+
+      {/* Side View Layout Panel for User Details */}
+      {isProfileSidebarOpen && (
+        <UserProfileSidebar
+          onClose={() => setIsProfileSidebarOpen(false)}
+          userId={otherUserId}
+          fallbackName={headerName}
+          fallbackAvatar={headerAvatar}
+        />
+      )}
     </div>
   );
 };

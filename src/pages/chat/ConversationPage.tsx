@@ -25,6 +25,9 @@ import { useConversations } from '@/features/chat/api/use-conversations';
 import { useSession } from '@/features/auth';
 import { format } from 'date-fns';
 import { AddMembersModal } from './components/AddMembersModal';
+import { UserProfileModal } from './components/UserProfileModal';
+// eslint-disable-next-line no-restricted-imports
+import { useUserById } from '@/features/users/api/use-user-by-id';
 import { wsService } from '@/shared/api/websocket';
 import { useQueryClient } from '@tanstack/react-query';
 // eslint-disable-next-line no-restricted-imports
@@ -34,6 +37,7 @@ export const ConversationPage = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
   const [content, setContent] = useState('');
   const [isAddMembersOpen, setIsAddMembersOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Record<string, number>>({});
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -165,6 +169,45 @@ export const ConversationPage = () => {
     return timeB - timeA;
   });
 
+  // Derive other user's ID for 1-on-1 direct conversation
+  const otherUserId = !isGroup
+    ? conversation?.targetUserId ||
+      allMessages.find((m) => m.senderId && m.senderId !== currentUser?.id)?.senderId ||
+      (conversation?.createdBy && conversation.createdBy !== currentUser?.id
+        ? conversation.createdBy
+        : undefined)
+    : undefined;
+
+  const { data: targetUserProfile, isLoading: isTargetUserLoading } = useUserById(otherUserId);
+
+  const headerName = isGroup
+    ? conversation?.title || 'Group Conversation'
+    : targetUserProfile?.displayName ||
+      targetUserProfile?.username ||
+      conversation?.targetDisplayName ||
+      conversation?.targetUsername ||
+      'Direct Message';
+
+  const headerAvatar = isGroup
+    ? conversation?.avatarUrl
+    : targetUserProfile?.profilePictureUrl ||
+      conversation?.targetAvatarUrl ||
+      conversation?.avatarUrl;
+
+  const headerInitials = (headerName || 'U').substring(0, 2).toUpperCase();
+
+  const isUserTyping = otherUserId && typingUsers[otherUserId];
+
+  const headerSubtitle = isGroup
+    ? 'Group Conversation'
+    : isUserTyping
+      ? 'typing...'
+      : targetUserProfile?.username
+        ? `@${targetUserProfile.username}${targetUserProfile.region ? ` · ${targetUserProfile.region}` : ''}`
+        : conversation?.targetUsername
+          ? `@${conversation.targetUsername}`
+          : 'Click to view profile';
+
   const handleSend = () => {
     if (!content.trim() || !conversationId) return;
 
@@ -239,17 +282,52 @@ export const ConversationPage = () => {
         onClose={() => setIsAddMembersOpen(false)}
         conversationId={conversationId || ''}
       />
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        userId={otherUserId}
+        fallbackName={headerName}
+        fallbackAvatar={headerAvatar}
+      />
       {/* Header */}
-      <header className="h-16 border-b border-slate-100 flex items-center justify-between px-6 shrink-0">
-        <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-xs">
-            #
+      <header className="h-16 border-b border-slate-100 flex items-center justify-between px-6 shrink-0 bg-white">
+        <button
+          type="button"
+          onClick={() => {
+            if (!isGroup && otherUserId) {
+              setIsProfileModalOpen(true);
+            }
+          }}
+          disabled={isGroup || !otherUserId}
+          className={`flex items-center space-x-3 text-left rounded-2xl p-1.5 -ml-1.5 transition-colors ${
+            !isGroup && otherUserId ? 'hover:bg-slate-50 cursor-pointer group/header' : ''
+          }`}
+          title={!isGroup && otherUserId ? 'View user profile' : undefined}
+        >
+          <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden relative border border-slate-100">
+            {isGroup ? (
+              '#'
+            ) : isTargetUserLoading && !headerAvatar ? (
+              <Skeleton className="w-full h-full rounded-full" />
+            ) : headerAvatar ? (
+              <img src={headerAvatar} alt={headerName} className="w-full h-full object-cover" />
+            ) : (
+              headerInitials
+            )}
           </div>
           <div>
-            <h2 className="font-semibold text-sm">Conversation</h2>
-            <p className="text-[10px] text-slate-500">{conversationId}</p>
+            <div className="flex items-center space-x-1.5">
+              <h2 className="font-semibold text-sm text-slate-900 group-hover/header:text-primary transition-colors">
+                {isTargetUserLoading && !headerName ? (
+                  <Skeleton className="h-4 w-28 rounded-md" />
+                ) : (
+                  headerName
+                )}
+              </h2>
+            </div>
+            <p className="text-[11px] text-slate-500 font-medium">{headerSubtitle}</p>
           </div>
-        </div>
+        </button>
         <div className="flex items-center space-x-2">
           {isGroup && (
             <>
@@ -283,7 +361,14 @@ export const ConversationPage = () => {
           <Button
             variant="ghost"
             size="icon"
+            onClick={() => {
+              if (!isGroup && otherUserId) {
+                setIsProfileModalOpen(true);
+              }
+            }}
+            disabled={isGroup || !otherUserId}
             className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9"
+            title="View details"
           >
             <Info className="w-4 h-4" />
           </Button>

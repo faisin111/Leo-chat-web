@@ -11,6 +11,7 @@ export type Conversation = {
   lastMessageAt: string | null;
   createdAt: string;
   status: string;
+  targetUserId?: string;
   targetUsername?: string;
   targetDisplayName?: string;
   targetAvatarUrl?: string;

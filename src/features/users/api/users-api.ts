@@ -19,9 +19,28 @@ export type SessionItem = {
   deviceInfo: string;
 };
 
+export type UserProfile = {
+  id: string;
+  username: string;
+  displayName?: string;
+  email?: string;
+  role?: string;
+  profilePictureUrl?: string | null;
+  phoneNumber?: string | null;
+  bio?: string | null;
+  age?: number | null;
+  region?: string | null;
+  emailVerified?: boolean;
+};
+
 export const usersApi = {
   searchUsers: async (q: string): Promise<UserSearchItem[]> => {
     const response = await http.get(`/users/search?q=${encodeURIComponent(q)}&size=20`);
+    return response.data;
+  },
+
+  getUserById: async (id: string): Promise<UserProfile> => {
+    const response = await http.get(`/users/${id}`);
     return response.data;
   },
 

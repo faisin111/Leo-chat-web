@@ -1,6 +1,7 @@
 import { AnimatedOutlet } from './AnimatedOutlet';
-import { Search, PenSquare, Hash, Loader2 } from 'lucide-react';
+import { Search, PenSquare, Hash } from 'lucide-react';
 import { Input } from '@/shared/ui/input';
+import { Skeleton } from '@/shared/ui/skeleton';
 // eslint-disable-next-line no-restricted-imports
 import { useConversations } from '@/features/chat/api/use-conversations';
 import { formatDistanceToNow } from 'date-fns';
@@ -53,9 +54,7 @@ export default function ChatLayout() {
 
           <div className="flex-1 overflow-y-auto pr-2 pb-4 space-y-2">
             {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
-              </div>
+              <ConversationsListSkeleton />
             ) : conversations.length === 0 ? (
               <p className="text-sm text-slate-500 text-center py-4">No conversations found.</p>
             ) : (
@@ -171,5 +170,26 @@ function ChatItem({
         </div>
       )}
     </Link>
+  );
+}
+
+function ConversationsListSkeleton() {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center p-3 rounded-2xl space-x-3">
+          <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="flex items-center justify-between">
+              <Skeleton className={`h-3.5 ${i % 2 === 0 ? 'w-24' : 'w-32'} rounded-md`} />
+              <Skeleton className="h-2.5 w-8 rounded-md" />
+            </div>
+            <Skeleton
+              className={`h-3 ${i % 3 === 0 ? 'w-40' : i % 2 === 0 ? 'w-28' : 'w-48'} rounded-md`}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

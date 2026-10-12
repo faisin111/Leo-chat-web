@@ -104,4 +104,8 @@ export const conversationsApi = {
     const response = await http.get('/conversations/unread-count');
     return response.data;
   },
+
+  deleteMessage: async (messageId: string): Promise<void> => {
+    await http.delete(`/messages/${messageId}`);
+  },
 };

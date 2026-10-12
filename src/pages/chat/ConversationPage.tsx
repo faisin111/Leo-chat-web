@@ -1,5 +1,16 @@
 import { Button } from '@/shared/ui/button';
-import { Phone, Video, Info, Smile, Paperclip, Send, Loader2, UserPlus } from 'lucide-react';
+import {
+  Phone,
+  Video,
+  Info,
+  Smile,
+  Paperclip,
+  Send,
+  Loader2,
+  UserPlus,
+  Trash2,
+} from 'lucide-react';
+import { Skeleton } from '@/shared/ui/skeleton';
 import { useParams } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import type { KeyboardEvent } from 'react';
@@ -7,6 +18,8 @@ import type { KeyboardEvent } from 'react';
 import { useSendMessage } from '@/features/chat/api/use-send-message';
 // eslint-disable-next-line no-restricted-imports
 import { useMessages } from '@/features/chat/api/use-messages';
+// eslint-disable-next-line no-restricted-imports
+import { useDeleteMessage } from '@/features/chat/api/use-delete-message';
 // eslint-disable-next-line no-restricted-imports
 import { useConversations } from '@/features/chat/api/use-conversations';
 import { useSession } from '@/features/auth';
@@ -23,8 +36,10 @@ export const ConversationPage = () => {
   const [isAddMembersOpen, setIsAddMembersOpen] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Record<string, number>>({});
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const sendMessage = useSendMessage(conversationId || '');
+  const deleteMessage = useDeleteMessage(conversationId || '');
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useMessages(
     conversationId || '',
   );
@@ -205,6 +220,18 @@ export const ConversationPage = () => {
     }
   };
 
+  const handleDeleteMessage = (messageId: string) => {
+    setDeletingId(messageId);
+    deleteMessage.mutate(messageId, {
+      onSuccess: () => {
+        setLiveMessages((prev) => prev.filter((m) => m.id !== messageId));
+      },
+      onSettled: () => {
+        setDeletingId(null);
+      },
+    });
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full bg-white relative">
       <AddMembersModal
@@ -266,9 +293,7 @@ export const ConversationPage = () => {
       {/* Messages List */}
       <div className="flex-1 overflow-y-auto p-6 flex flex-col-reverse gap-6 pb-4">
         {isLoading ? (
-          <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
-          </div>
+          <ChatMessagesSkeleton />
         ) : allMessages.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
             <p className="text-sm">No messages yet.</p>
@@ -287,7 +312,7 @@ export const ConversationPage = () => {
               return (
                 <div
                   key={msg.id}
-                  className={`flex items-start space-x-3 ${isOwn ? 'flex-row-reverse space-x-reverse' : ''}`}
+                  className={`group flex items-start space-x-3 ${isOwn ? 'flex-row-reverse space-x-reverse' : ''}`}
                 >
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-1 ${color}`}
@@ -301,10 +326,27 @@ export const ConversationPage = () => {
                       <span className="text-xs font-semibold">{name}</span>
                       <span className="text-[10px] text-slate-400">{time}</span>
                     </div>
-                    <div
-                      className={`px-4 py-2.5 rounded-2xl text-sm ${isOwn ? 'bg-primary text-white rounded-tr-sm' : 'bg-slate-100 text-slate-800 rounded-tl-sm'}`}
-                    >
-                      {msg.content}
+                    <div className="flex items-center gap-1.5">
+                      {isOwn && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteMessage(msg.id)}
+                          disabled={deletingId === msg.id}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer shrink-0"
+                          title="Delete message"
+                        >
+                          {deletingId === msg.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      )}
+                      <div
+                        className={`px-4 py-2.5 rounded-2xl text-sm ${isOwn ? 'bg-primary text-white rounded-tr-sm' : 'bg-slate-100 text-slate-800 rounded-tl-sm'}`}
+                      >
+                        {msg.content}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -402,3 +444,69 @@ export const ConversationPage = () => {
     </div>
   );
 };
+
+function ChatMessagesSkeleton() {
+  return (
+    <div className="flex flex-col-reverse gap-6 w-full py-2">
+      {/* 1. Recent own message (at visual bottom) */}
+      <div className="flex items-start flex-row-reverse space-x-reverse space-x-3 max-w-[75%] self-end">
+        <Skeleton className="w-8 h-8 rounded-full shrink-0 mt-1" />
+        <div className="flex flex-col items-end space-y-1.5">
+          <div className="flex items-center space-x-2">
+            <Skeleton className="h-2.5 w-10 rounded-md" />
+            <Skeleton className="h-3 w-12 rounded-md" />
+          </div>
+          <Skeleton className="h-10 w-52 rounded-2xl rounded-tr-sm bg-primary/20" />
+        </div>
+      </div>
+
+      {/* 2. Other user message */}
+      <div className="flex items-start space-x-3 max-w-[75%]">
+        <Skeleton className="w-8 h-8 rounded-full shrink-0 mt-1" />
+        <div className="flex flex-col items-start space-y-1.5">
+          <div className="flex items-center space-x-2">
+            <Skeleton className="h-3 w-20 rounded-md" />
+            <Skeleton className="h-2.5 w-12 rounded-md" />
+          </div>
+          <Skeleton className="h-16 w-72 rounded-2xl rounded-tl-sm" />
+        </div>
+      </div>
+
+      {/* 3. Own message */}
+      <div className="flex items-start flex-row-reverse space-x-reverse space-x-3 max-w-[75%] self-end">
+        <Skeleton className="w-8 h-8 rounded-full shrink-0 mt-1" />
+        <div className="flex flex-col items-end space-y-1.5">
+          <div className="flex items-center space-x-2">
+            <Skeleton className="h-2.5 w-10 rounded-md" />
+            <Skeleton className="h-3 w-12 rounded-md" />
+          </div>
+          <Skeleton className="h-14 w-60 rounded-2xl rounded-tr-sm bg-primary/20" />
+        </div>
+      </div>
+
+      {/* 4. Other user short message */}
+      <div className="flex items-start space-x-3 max-w-[75%]">
+        <Skeleton className="w-8 h-8 rounded-full shrink-0 mt-1" />
+        <div className="flex flex-col items-start space-y-1.5">
+          <div className="flex items-center space-x-2">
+            <Skeleton className="h-3 w-16 rounded-md" />
+            <Skeleton className="h-2.5 w-10 rounded-md" />
+          </div>
+          <Skeleton className="h-10 w-44 rounded-2xl rounded-tl-sm" />
+        </div>
+      </div>
+
+      {/* 5. Other user longer message */}
+      <div className="flex items-start space-x-3 max-w-[75%]">
+        <Skeleton className="w-8 h-8 rounded-full shrink-0 mt-1" />
+        <div className="flex flex-col items-start space-y-1.5">
+          <div className="flex items-center space-x-2">
+            <Skeleton className="h-3 w-24 rounded-md" />
+            <Skeleton className="h-2.5 w-10 rounded-md" />
+          </div>
+          <Skeleton className="h-20 w-80 rounded-2xl rounded-tl-sm" />
+        </div>
+      </div>
+    </div>
+  );
+}

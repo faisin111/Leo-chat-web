@@ -17,7 +17,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'https://leo-chat-backend.onrender.com',
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:8080',
         changeOrigin: true,
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq) => {
@@ -26,7 +26,10 @@ export default defineConfig({
         },
       },
       '/ws': {
-        target: 'wss://leo-chat-backend.onrender.com',
+        target:
+          process.env.VITE_WS_BACKEND_URL ||
+          process.env.VITE_BACKEND_URL ||
+          'http://localhost:8080',
         ws: true,
         changeOrigin: true,
         configure: (proxy) => {

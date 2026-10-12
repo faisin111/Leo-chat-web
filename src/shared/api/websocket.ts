@@ -1,5 +1,19 @@
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { env } from '../config/env';
+
+const safeParse = (body: string) => {
+  try {
+    return JSON.parse(body);
+  } catch {
+    return body;
+  }
+};
+
+const getWsUrl = () => {
+  if (env.WS_URL) return env.WS_URL;
+  return '/ws';
+};
 
 class WebSocketService {
   private client: Client | null = null;
@@ -21,7 +35,7 @@ class WebSocketService {
       // We use SockJS to fallback and handle cross-origin WebSocket upgrades cleanly.
       // Pointing to /ws takes advantage of Vite's proxy in dev, and relative paths in prod.
       webSocketFactory: () => {
-        return new SockJS('/ws');
+        return new SockJS(getWsUrl());
       },
       connectHeaders: {},
       heartbeatIncoming: 10000,
@@ -33,7 +47,7 @@ class WebSocketService {
 
         // Subscribe to global user queue for private messages
         this.client?.subscribe('/user/queue/messages', (message) => {
-          const parsedMessage = JSON.parse(message.body);
+          const parsedMessage = safeParse(message.body);
           // eslint-disable-next-line no-console
           console.log('📩 New Private Message:', parsedMessage);
           this.messageListeners.forEach((listener) => listener(parsedMessage));
@@ -41,7 +55,7 @@ class WebSocketService {
 
         // Optional: Global typing indicator queue
         this.client?.subscribe('/user/queue/typing', (message) => {
-          const parsedTyping = JSON.parse(message.body);
+          const parsedTyping = safeParse(message.body);
           this.typingListeners.forEach((listener) => listener(parsedTyping));
         });
 
@@ -49,7 +63,7 @@ class WebSocketService {
         this.topicListeners.forEach((callbacks, destination) => {
           callbacks.forEach((_, callback) => {
             const subscription = this.client?.subscribe(destination, (msg) => {
-              const parsed = JSON.parse(msg.body);
+              const parsed = safeParse(msg.body);
               // eslint-disable-next-line no-console
               console.log(`[STOMP] Received on ${destination}:`, parsed);
               callback(parsed);
@@ -114,7 +128,7 @@ class WebSocketService {
 
     if (this.client && this.client.connected) {
       const subscription = this.client.subscribe(destination, (msg) => {
-        const parsed = JSON.parse(msg.body);
+        const parsed = safeParse(msg.body);
         // eslint-disable-next-line no-console
         console.log(`[STOMP] Received on ${destination}:`, parsed);
         callback(parsed);

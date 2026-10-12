@@ -68,7 +68,17 @@ export const ConversationPage = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleIncomingMessage = (rawMsg: any) => {
       // Handle potential payload wrapping from different backend STOMP configurations
-      const msg = rawMsg.payload || rawMsg;
+      const rawObj = rawMsg.payload || rawMsg;
+      let msg = rawObj;
+      if (typeof rawObj === 'string') {
+        try {
+          msg = JSON.parse(rawObj);
+        } catch {
+          msg = { content: rawObj };
+        }
+      }
+
+      if (!msg) return;
 
       // INTERCEPT TYPING EVENTS: If backend broadcasts typing on the same topic
       if (msg.type === 'TYPING' || msg.isTyping || msg.action === 'TYPING') {
@@ -82,17 +92,39 @@ export const ConversationPage = () => {
       const targetId = msg.conversationId || msg.groupId || msg.chatId;
 
       if (!targetId || targetId === conversationId) {
+        const normalizedMsg: Message = {
+          ...msg,
+          id: msg.id || msg.messageId || crypto.randomUUID(),
+          conversationId: targetId || conversationId || '',
+          content: msg.content || msg.text || msg.message || '',
+          senderId: msg.senderId || msg.sender_id || msg.userId || '',
+          createdAt:
+            msg.createdAt ||
+            msg.timestamp ||
+            msg.created_at ||
+            msg.sentAt ||
+            new Date().toISOString(),
+          type: msg.type || 'TEXT',
+          clientMessageId: msg.clientMessageId || null,
+          replyToId: msg.replyToId || null,
+          editedAt: msg.editedAt || null,
+          deletedAt: msg.deletedAt || null,
+          seq: msg.seq || Date.now(),
+        };
+
         // Instantly show the message on screen via local state
         setLiveMessages((prev) => {
           if (
             prev.find(
               (m) =>
-                m.id === msg.id || (m.clientMessageId && m.clientMessageId === msg.clientMessageId),
+                m.id === normalizedMsg.id ||
+                (normalizedMsg.clientMessageId &&
+                  m.clientMessageId === normalizedMsg.clientMessageId),
             )
           ) {
             return prev;
           }
-          return [msg, ...prev];
+          return [normalizedMsg, ...prev];
         });
       }
 
@@ -110,7 +142,10 @@ export const ConversationPage = () => {
       handleIncomingMessage,
     );
 
-    // 2. Explicit typing indicator topic
+    // 2. Also listen for direct messages arriving on user queue
+    const cleanupUserQueue = wsService.addMessageListener(handleIncomingMessage);
+
+    // 3. Explicit typing indicator topic
     const cleanupTypingSub = wsService.subscribe(
       `/topic/conversations.${conversationId}.typing`,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -132,6 +167,7 @@ export const ConversationPage = () => {
 
     return () => {
       cleanupMessages();
+      cleanupUserQueue();
       cleanupTypingSub();
     };
   }, [conversationId, queryClient, currentUser?.id]);
@@ -399,7 +435,10 @@ export const ConversationPage = () => {
                   ? currentUser?.displayName || 'You'
                   : msg.senderId.substring(0, 8);
                 const color = isOwn ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-700';
-                const time = format(new Date(msg.createdAt), 'h:mm a');
+                const msgDate = msg.createdAt ? new Date(msg.createdAt) : new Date();
+                const time = isNaN(msgDate.getTime())
+                  ? format(new Date(), 'h:mm a')
+                  : format(msgDate, 'h:mm a');
 
                 return (
                   <div

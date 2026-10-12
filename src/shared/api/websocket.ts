@@ -1,6 +1,7 @@
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { env } from '../config/env';
+import { useSession } from '@/features/auth';
 
 const safeParse = (body: string) => {
   try {
@@ -12,7 +13,20 @@ const safeParse = (body: string) => {
 
 const getWsUrl = () => {
   if (env.WS_URL) return env.WS_URL;
+  if (
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ) {
+    return 'http://localhost:8080/ws';
+  }
   return '/ws';
+};
+
+export type SendChatMessagePayload = {
+  conversationId: string;
+  clientMessageId: string;
+  content: string;
+  type?: string;
 };
 
 class WebSocketService {
@@ -22,6 +36,8 @@ class WebSocketService {
   private messageListeners = new Set<(msg: any) => void>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private typingListeners = new Set<(msg: any) => void>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private ackListeners = new Set<(ack: any) => void>();
 
   // Track dynamic topic subscriptions
   // destination -> Map<callback, StompSubscription>
@@ -31,13 +47,26 @@ class WebSocketService {
   connect() {
     if (this.client && this.client.active) return;
 
+    const token = useSession.getState().accessToken;
+
     this.client = new Client({
-      // We use SockJS to fallback and handle cross-origin WebSocket upgrades cleanly.
-      // Pointing to /ws takes advantage of Vite's proxy in dev, and relative paths in prod.
+      // Connect to WebSocket via SockJS
       webSocketFactory: () => {
         return new SockJS(getWsUrl());
       },
-      connectHeaders: {},
+      connectHeaders: token
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : {},
+      beforeConnect: () => {
+        const currentToken = useSession.getState().accessToken;
+        if (currentToken) {
+          this.client!.connectHeaders = {
+            Authorization: `Bearer ${currentToken}`,
+          };
+        }
+      },
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,
       onConnect: (frame) => {
@@ -45,21 +74,29 @@ class WebSocketService {
         console.log('✅ Connected to Real-time Chat WebSocket:', frame);
         this.isConnected = true;
 
-        // Subscribe to global user queue for private messages
+        // 1. Subscribe to /user/queue/acks for delivery confirmations
+        this.client?.subscribe('/user/queue/acks', (message) => {
+          const parsedAck = safeParse(message.body);
+          // eslint-disable-next-line no-console
+          console.log('✅ Received Ack on /user/queue/acks:', parsedAck);
+          this.ackListeners.forEach((listener) => listener(parsedAck));
+        });
+
+        // 2. Subscribe to global user queue for private messages
         this.client?.subscribe('/user/queue/messages', (message) => {
           const parsedMessage = safeParse(message.body);
           // eslint-disable-next-line no-console
-          console.log('📩 New Private Message:', parsedMessage);
+          console.log('📩 New Private Message on /user/queue/messages:', parsedMessage);
           this.messageListeners.forEach((listener) => listener(parsedMessage));
         });
 
-        // Optional: Global typing indicator queue
+        // 3. Global typing indicator queue
         this.client?.subscribe('/user/queue/typing', (message) => {
           const parsedTyping = safeParse(message.body);
           this.typingListeners.forEach((listener) => listener(parsedTyping));
         });
 
-        // Re-establish any pending dynamic topic subscriptions
+        // 4. Re-establish any pending dynamic topic subscriptions
         this.topicListeners.forEach((callbacks, destination) => {
           callbacks.forEach((_, callback) => {
             const subscription = this.client?.subscribe(destination, (msg) => {
@@ -110,6 +147,13 @@ class WebSocketService {
     return () => this.messageListeners.delete(listener);
   }
 
+  // Listeners for acknowledgements
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  addAckListener(listener: (ack: any) => void) {
+    this.ackListeners.add(listener);
+    return () => this.ackListeners.delete(listener);
+  }
+
   // Listeners for typing indicators
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   addTypingListener(listener: (msg: any) => void) {
@@ -117,7 +161,7 @@ class WebSocketService {
     return () => this.typingListeners.delete(listener);
   }
 
-  // Subscribe to specific topics (like a group chat)
+  // Subscribe to specific topics (like /topic/conversations.{id})
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   subscribe(destination: string, callback: (message: any) => void) {
     if (!this.topicListeners.has(destination)) {
@@ -159,11 +203,22 @@ class WebSocketService {
   publish(destination: string, body: any) {
     if (!this.client || !this.client.connected) {
       console.warn('⚠️ Cannot publish, STOMP client is not connected');
-      return;
+      return false;
     }
     this.client.publish({
       destination,
       body: JSON.stringify(body),
+    });
+    return true;
+  }
+
+  // Send message over STOMP to /app/chat.send
+  sendChatMessage(payload: SendChatMessagePayload) {
+    return this.publish('/app/chat.send', {
+      conversationId: payload.conversationId,
+      clientMessageId: payload.clientMessageId,
+      content: payload.content,
+      type: payload.type || 'TEXT',
     });
   }
 }

@@ -165,10 +165,20 @@ export const ConversationPage = () => {
       },
     );
 
+    // 4. Listen for delivery / save acks on /user/queue/acks
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cleanupAcks = wsService.addAckListener((ack: any) => {
+      const ackConvId = ack?.conversationId || ack?.chatId;
+      if (!ackConvId || ackConvId === conversationId) {
+        queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      }
+    });
+
     return () => {
       cleanupMessages();
       cleanupUserQueue();
       cleanupTypingSub();
+      cleanupAcks();
     };
   }, [conversationId, queryClient, currentUser?.id]);
 
@@ -292,8 +302,18 @@ export const ConversationPage = () => {
     setLiveMessages((prev) => [optimisticMsg, ...prev]);
     setContent('');
 
-    // Send to server
-    sendMessage.mutate(payload);
+    // 1. Send STOMP frame to /app/chat.send with JSON payload
+    const sentViaWs = wsService.sendChatMessage({
+      conversationId,
+      clientMessageId: optimisticId,
+      content: content.trim(),
+      type: 'TEXT',
+    });
+
+    // 2. Fallback to REST API if WebSocket is not yet connected
+    if (!sentViaWs) {
+      sendMessage.mutate(payload);
+    }
   };
 
   const handleTyping = (val: string) => {

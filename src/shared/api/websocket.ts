@@ -13,12 +13,6 @@ const safeParse = (body: string) => {
 
 const getWsUrl = () => {
   if (env.WS_URL) return env.WS_URL;
-  if (
-    typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  ) {
-    return 'http://localhost:8080/ws';
-  }
   return '/ws';
 };
 

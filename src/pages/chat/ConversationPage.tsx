@@ -34,7 +34,7 @@ import { wsService } from '@/shared/api/websocket';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 // eslint-disable-next-line no-restricted-imports
-import { conversationsApi, type Message } from '@/features/chat/api/conversations-api';
+import type { Message } from '@/features/chat/api/conversations-api';
 
 export const ConversationPage = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
@@ -110,7 +110,7 @@ export const ConversationPage = () => {
           replyToId: msg.replyToId || null,
           editedAt: msg.editedAt || null,
           deletedAt: msg.deletedAt || null,
-          seq: msg.seq || Date.now(),
+          seq: typeof msg.seq === 'number' && msg.seq < 1000000000 ? msg.seq : 0,
         };
 
         // Instantly show the message on screen via local state
@@ -338,7 +338,7 @@ export const ConversationPage = () => {
       id: optimisticId,
       conversationId,
       senderId: currentUser?.id || '',
-      seq: Date.now(),
+      seq: 0,
       clientMessageId: optimisticId,
       type: 'TEXT',
       content: content.trim(),
@@ -369,7 +369,7 @@ export const ConversationPage = () => {
   const latestSeq = useMemo(() => {
     let max = 0;
     for (const msg of allMessages) {
-      if (typeof msg.seq === 'number' && msg.seq > max) {
+      if (typeof msg.seq === 'number' && msg.seq > max && msg.seq < 1000000000) {
         max = msg.seq;
       }
     }
@@ -379,10 +379,14 @@ export const ConversationPage = () => {
   const lastReportedReadSeq = useRef<number>(0);
 
   useEffect(() => {
-    if (conversationId && latestSeq > 0 && latestSeq > lastReportedReadSeq.current) {
+    if (
+      conversationId &&
+      latestSeq > 0 &&
+      latestSeq < 1000000000 &&
+      latestSeq > lastReportedReadSeq.current
+    ) {
       lastReportedReadSeq.current = latestSeq;
       wsService.sendChatRead(conversationId, latestSeq);
-      conversationsApi.markConversationRead(conversationId, latestSeq).catch(() => {});
       queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
     }
   }, [conversationId, latestSeq, queryClient]);

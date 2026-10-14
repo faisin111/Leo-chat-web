@@ -12,7 +12,17 @@ const safeParse = (body: string) => {
 };
 
 const getWsUrl = () => {
-  if (env.WS_URL) return env.WS_URL;
+  if (env.WS_URL && env.WS_URL.startsWith('http')) {
+    if (
+      typeof window !== 'undefined' &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1' &&
+      env.WS_URL.includes('localhost')
+    ) {
+      return 'https://leo-chat-backend.onrender.com/ws';
+    }
+    return env.WS_URL;
+  }
   return 'https://leo-chat-backend.onrender.com/ws';
 };
 

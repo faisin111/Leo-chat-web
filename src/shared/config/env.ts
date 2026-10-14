@@ -2,7 +2,15 @@ import { z } from 'zod';
 
 const schema = z.object({
   VITE_API_BASE_URL: z.string().default(''),
-  VITE_WS_URL: z.string().default(''),
+  VITE_WS_URL: z
+    .string()
+    .transform((val) => {
+      if (!val || !val.startsWith('http')) {
+        return 'https://leo-chat-backend.onrender.com/ws';
+      }
+      return val;
+    })
+    .default('https://leo-chat-backend.onrender.com/ws'),
   VITE_APP_ENV: z.enum(['local', 'staging', 'prod']).default('prod'),
   VITE_SENTRY_DSN: z.string().optional(),
   VITE_MAX_UPLOAD_MB: z.coerce.number().default(10),

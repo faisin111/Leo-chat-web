@@ -180,12 +180,21 @@ export const ConversationPage = () => {
       toast.error(err.message || 'Action failed');
     });
 
+    // 6. Listen for notifications on /user/queue/notifications
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cleanupNotifications = wsService.addNotificationListener((notif: any) => {
+      if (notif?.message) {
+        toast.info(notif.message);
+      }
+    });
+
     return () => {
       cleanupMessages();
       cleanupUserQueue();
       cleanupTypingSub();
       cleanupAcks();
       cleanupErrors();
+      cleanupNotifications();
     };
   }, [conversationId, queryClient, currentUser?.id]);
 

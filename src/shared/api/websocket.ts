@@ -13,7 +13,7 @@ const safeParse = (body: string) => {
 
 const getWsUrl = () => {
   if (env.WS_URL) return env.WS_URL;
-  return '/ws';
+  return 'https://leo-chat-backend.onrender.com/ws';
 };
 
 export type SendChatMessagePayload = {
@@ -40,6 +40,8 @@ class WebSocketService {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private ackListeners = new Set<(ack: any) => void>();
   private errorListeners = new Set<(err: WsError) => void>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private notificationListeners = new Set<(notif: any) => void>();
 
   // Track dynamic topic subscriptions
   // destination -> Map<callback, StompSubscription>
@@ -69,6 +71,7 @@ class WebSocketService {
           };
         }
       },
+      reconnectDelay: 5000,
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,
       onConnect: (frame) => {
@@ -76,23 +79,31 @@ class WebSocketService {
         console.log('✅ Connected to Real-time Chat WebSocket:', frame);
         this.isConnected = true;
 
-        // 1. Subscribe to /user/queue/errors for STOMP error events
-        this.client?.subscribe('/user/queue/errors', (message) => {
-          const parsedErr: WsError = safeParse(message.body);
-          // eslint-disable-next-line no-console
-          console.error('❌ Received STOMP error on /user/queue/errors:', parsedErr);
-          this.errorListeners.forEach((listener) => listener(parsedErr));
-        });
-
-        // 2. Subscribe to /user/queue/acks for delivery confirmations
+        // 1. Private server acknowledgements
         this.client?.subscribe('/user/queue/acks', (message) => {
           const parsedAck = safeParse(message.body);
           // eslint-disable-next-line no-console
-          console.log('✅ Received Ack on /user/queue/acks:', parsedAck);
+          console.log('✅ Message saved:', parsedAck);
           this.ackListeners.forEach((listener) => listener(parsedAck));
         });
 
-        // 3. Subscribe to global user queue for private messages
+        // 2. WebSocket errors
+        this.client?.subscribe('/user/queue/errors', (message) => {
+          const parsedErr: WsError = safeParse(message.body);
+          // eslint-disable-next-line no-console
+          console.error('❌ WebSocket error:', parsedErr);
+          this.errorListeners.forEach((listener) => listener(parsedErr));
+        });
+
+        // 3. Private server notifications
+        this.client?.subscribe('/user/queue/notifications', (message) => {
+          const parsedNotif = safeParse(message.body);
+          // eslint-disable-next-line no-console
+          console.log('🔔 Notification:', parsedNotif);
+          this.notificationListeners.forEach((listener) => listener(parsedNotif));
+        });
+
+        // 4. Global user queue for private messages
         this.client?.subscribe('/user/queue/messages', (message) => {
           const parsedMessage = safeParse(message.body);
           // eslint-disable-next-line no-console
@@ -100,13 +111,13 @@ class WebSocketService {
           this.messageListeners.forEach((listener) => listener(parsedMessage));
         });
 
-        // 4. Global typing indicator queue
+        // 5. Global typing indicator queue
         this.client?.subscribe('/user/queue/typing', (message) => {
           const parsedTyping = safeParse(message.body);
           this.typingListeners.forEach((listener) => listener(parsedTyping));
         });
 
-        // 5. Re-establish any pending dynamic topic subscriptions
+        // 6. Re-establish any pending dynamic topic subscriptions
         this.topicListeners.forEach((callbacks, destination) => {
           callbacks.forEach((_, callback) => {
             const subscription = this.client?.subscribe(destination, (msg) => {
@@ -121,13 +132,11 @@ class WebSocketService {
       },
       onStompError: (frame) => {
         // eslint-disable-next-line no-console
-        console.error('❌ Broker reported error: ' + frame.headers['message']);
-        // eslint-disable-next-line no-console
-        console.error('❌ Additional details: ' + frame.body);
+        console.error('❌ STOMP error: ' + frame.headers['message'], frame.body);
       },
       onWebSocketError: (event) => {
         // eslint-disable-next-line no-console
-        console.error('❌ WebSocket error (is the backend running?):', event);
+        console.error('❌ WebSocket error:', event);
       },
     });
 
@@ -168,6 +177,13 @@ class WebSocketService {
   addErrorListener(listener: (err: WsError) => void) {
     this.errorListeners.add(listener);
     return () => this.errorListeners.delete(listener);
+  }
+
+  // Listeners for notifications
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  addNotificationListener(listener: (notif: any) => void) {
+    this.notificationListeners.add(listener);
+    return () => this.notificationListeners.delete(listener);
   }
 
   // Listeners for typing indicators

@@ -1,5 +1,6 @@
 import { useSession } from '../store/session.store';
 import { http } from '@/shared/api/http-client';
+import { wsService } from '@/shared/api/websocket';
 
 // Lightweight flag stored in sessionStorage to indicate if user previously authenticated.
 const SESSION_FLAG_KEY = 'lc_session';
@@ -25,9 +26,10 @@ export const authSession = {
     return token;
   },
 
-  /** Expire session: clear flag and store */
+  /** Expire session: clear flag, disconnect websocket, and clear store */
   expire: () => {
     sessionStorage.removeItem(SESSION_FLAG_KEY);
     useSession.getState().clear();
+    wsService.disconnect();
   },
 };

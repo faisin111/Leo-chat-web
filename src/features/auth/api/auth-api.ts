@@ -1,7 +1,25 @@
-import { http } from '@/shared/api/http-client';
+import { http, clearCsrfToken } from '@/shared/api/http-client';
+import { useSession } from '../store/session.store';
 import type { RegisterFormValues } from '../schemas/auth.schema';
 
+export type TokenResponse = {
+  accessToken: string;
+  tokenType: string;
+  refreshToken?: string;
+  expiresIn?: number;
+  refreshExpiresIn?: number;
+  id?: string;
+  username?: string;
+  email?: string;
+  user?: unknown;
+};
+
 export const authApi = {
+  getCsrf: async () => {
+    const response = await http.get<{ headerName: string; token: string }>('/auth/csrf');
+    return response.data;
+  },
+
   register: async (data: RegisterFormValues) => {
     // Strip UI-only `terms` field and any undefined optional fields
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -16,39 +34,55 @@ export const authApi = {
     const response = await http.post('/auth/register', payload);
     return response.data;
   },
+
   login: async (data: { username: string; password: string }) => {
-    const response = await http.post<{ accessToken: string; user: unknown }>('/auth/login', data);
+    const response = await http.post<TokenResponse>('/auth/login', data);
     return response.data;
   },
+
+  refresh: async (data?: { refreshToken?: string }) => {
+    const response = await http.post<TokenResponse>('/auth/refresh', data);
+    return response.data;
+  },
+
   forgotPassword: async (data: { email: string }) => {
-    const response = await http.post<{ token?: string; message?: string }>(
-      '/auth/forgot-password',
-      data,
-    );
+    const response = await http.post<{ message?: string }>('/auth/forgot-password', data);
     return response.data;
   },
+
   resetPassword: async (data: { token: string; newPassword: string }) => {
-    const response = await http.post('/auth/reset-password', data);
+    const response = await http.post<{ message?: string }>('/auth/reset-password', data);
     return response.data;
   },
+
   changePassword: async (data: { currentPassword: string; newPassword: string }) => {
-    const response = await http.post('/auth/change-password', data);
+    const response = await http.post<{ message?: string }>('/auth/change-password', data);
     return response.data;
   },
+
   verifyEmail: async (data: { token: string }) => {
-    const response = await http.post('/auth/verify-email', data);
+    const response = await http.post<{ message?: string }>('/auth/verify-email', data);
     return response.data;
   },
-  resendVerification: async () => {
-    const response = await http.post('/auth/resend-verification');
+
+  resendVerification: async (data?: { email?: string }) => {
+    const email = data?.email || useSession.getState().user?.email;
+    const response = await http.post<{ message?: string }>('/auth/resend-verification', {
+      email,
+    });
     return response.data;
   },
+
   getMe: async () => {
     const response = await http.get('/users/me');
     return response.data;
   },
+
   logout: async () => {
-    const response = await http.post('/auth/logout');
-    return response.data;
+    try {
+      await http.post('/auth/logout');
+    } finally {
+      clearCsrfToken();
+    }
   },
 };

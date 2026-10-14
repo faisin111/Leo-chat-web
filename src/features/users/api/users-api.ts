@@ -30,17 +30,64 @@ export type UserProfile = {
   bio?: string | null;
   age?: number | null;
   region?: string | null;
+  isEmailVerified?: boolean;
   emailVerified?: boolean;
 };
 
+export type ProfileUpdateBody = {
+  profilePictureUrl?: string;
+  phoneNumber?: string;
+  bio?: string;
+  age?: number;
+  region?: string;
+  displayName?: string;
+};
+
+export type PresenceItem = {
+  id: string;
+  status: string;
+  lastSeenAt: string;
+};
+
 export const usersApi = {
-  searchUsers: async (q: string): Promise<UserSearchItem[]> => {
-    const response = await http.get(`/users/search?q=${encodeURIComponent(q)}&size=20`);
+  getMe: async (): Promise<UserProfile> => {
+    const response = await http.get('/users/me');
     return response.data;
   },
 
   getUserById: async (id: string): Promise<UserProfile> => {
     const response = await http.get(`/users/${id}`);
+    return response.data;
+  },
+
+  updateProfile: async (data: ProfileUpdateBody): Promise<UserProfile> => {
+    const response = await http.patch('/users/me/profile', data);
+    return response.data;
+  },
+
+  deactivateAccount: async (): Promise<void> => {
+    await http.delete('/users/me');
+  },
+
+  searchUsers: async (
+    q: string,
+    page: number = 0,
+    size: number = 20,
+  ): Promise<UserSearchItem[]> => {
+    const params = new URLSearchParams({
+      q,
+      page: page.toString(),
+      size: size.toString(),
+    });
+    const response = await http.get(`/users/search?${params.toString()}`);
+    return response.data;
+  },
+
+  getPresence: async (ids: string[]): Promise<PresenceItem[]> => {
+    if (!ids || ids.length === 0) return [];
+    const params = new URLSearchParams();
+    ids.forEach((id) => params.append('ids', id));
+    const response = await http.get(`/users/presence?${params.toString()}`);
     return response.data;
   },
 
@@ -51,10 +98,5 @@ export const usersApi = {
 
   revokeSession: async (sessionId: string): Promise<void> => {
     await http.delete(`/users/me/sessions/${sessionId}`);
-  },
-
-  updateProfile: async (data: Record<string, unknown>) => {
-    const response = await http.patch('/users/me/profile', data);
-    return response.data;
   },
 };

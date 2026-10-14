@@ -32,8 +32,9 @@ import { useUserById } from '@/features/users/api/use-user-by-id';
 import { useSearchUsers } from '@/features/users/api/use-search-users';
 import { wsService } from '@/shared/api/websocket';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 // eslint-disable-next-line no-restricted-imports
-import type { Message } from '@/features/chat/api/conversations-api';
+import { conversationsApi, type Message } from '@/features/chat/api/conversations-api';
 
 export const ConversationPage = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
@@ -174,11 +175,17 @@ export const ConversationPage = () => {
       }
     });
 
+    // 5. Listen for errors on /user/queue/errors
+    const cleanupErrors = wsService.addErrorListener((err) => {
+      toast.error(err.message || 'Action failed');
+    });
+
     return () => {
       cleanupMessages();
       cleanupUserQueue();
       cleanupTypingSub();
       cleanupAcks();
+      cleanupErrors();
     };
   }, [conversationId, queryClient, currentUser?.id]);
 
@@ -316,18 +323,40 @@ export const ConversationPage = () => {
     }
   };
 
+  // Mark messages as read up to the latest sequence
+  const latestSeq = useMemo(() => {
+    let max = 0;
+    for (const msg of allMessages) {
+      if (typeof msg.seq === 'number' && msg.seq > max) {
+        max = msg.seq;
+      }
+    }
+    return max;
+  }, [allMessages]);
+
+  const lastReportedReadSeq = useRef<number>(0);
+
+  useEffect(() => {
+    if (conversationId && latestSeq > 0 && latestSeq > lastReportedReadSeq.current) {
+      lastReportedReadSeq.current = latestSeq;
+      wsService.sendChatRead(conversationId, latestSeq);
+      conversationsApi.markConversationRead(conversationId, latestSeq).catch(() => {});
+      queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
+    }
+  }, [conversationId, latestSeq, queryClient]);
+
   const handleTyping = (val: string) => {
     setContent(val);
 
     if (val.trim() && conversationId) {
-      wsService.publish('/app/chat.typing', { conversationId, isTyping: true });
+      wsService.sendChatTyping(conversationId, true);
 
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
 
       typingTimeoutRef.current = setTimeout(() => {
-        wsService.publish('/app/chat.typing', { conversationId, isTyping: false });
+        wsService.sendChatTyping(conversationId, false);
       }, 2000);
     }
   };

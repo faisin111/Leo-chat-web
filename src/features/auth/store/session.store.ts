@@ -8,11 +8,11 @@ export type CurrentUser = {
   emailVerified?: boolean;
   displayName?: string;
   role: string;
-  profilePictureUrl?: string;
-  phoneNumber?: string;
-  bio?: string;
-  age?: number;
-  region?: string;
+  profilePictureUrl?: string | null;
+  phoneNumber?: string | null;
+  bio?: string | null;
+  age?: number | null;
+  region?: string | null;
   mustChangePassword?: boolean;
 };
 

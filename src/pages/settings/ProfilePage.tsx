@@ -2,15 +2,17 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { useSession } from '@/features/auth';
-import { MonitorSmartphone, Bell, Edit2, X, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { MonitorSmartphone, Bell, Edit2, X, Loader2, Upload } from 'lucide-react';
+import { useState, useRef, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { toast } from 'sonner';
 // eslint-disable-next-line no-restricted-imports
 import { useUpdateProfile } from '@/features/users/api/use-update-profile';
 // eslint-disable-next-line no-restricted-imports
 import { useResendVerification } from '@/features/auth/api/use-resend-verification';
+import { mediaApi } from '@/features/media';
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'Display name is required'),
@@ -27,6 +29,8 @@ export const ProfilePage = () => {
   const user = useSession((s) => s.user);
   const getInitials = (name: string) => name.substring(0, 2).toUpperCase();
   const [isEditing, setIsEditing] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const updateProfile = useUpdateProfile();
   const resendVerification = useResendVerification();
 
@@ -57,6 +61,30 @@ export const ProfilePage = () => {
   const handleCancel = () => {
     reset(); // Revert back to default values
     setIsEditing(false);
+  };
+
+  const handlePhotoSelected = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size exceeds the 10 MB limit');
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const res = await mediaApi.uploadImage(file);
+      await updateProfile.mutateAsync({ profilePictureUrl: res.url });
+      toast.success('Profile photo updated successfully');
+    } catch {
+      toast.error('Failed to upload profile photo');
+    } finally {
+      setIsUploadingPhoto(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   return (
@@ -105,20 +133,44 @@ export const ProfilePage = () => {
             </div>
 
             <div className="flex items-center space-x-4 mb-6">
-              <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xl shrink-0">
-                {user?.displayName ? getInitials(user.displayName) : 'U'}
+              <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xl shrink-0 overflow-hidden">
+                {user?.profilePictureUrl ? (
+                  <img
+                    src={user.profilePictureUrl}
+                    alt={user.displayName || 'User'}
+                    className="w-full h-full object-cover"
+                  />
+                ) : user?.displayName ? (
+                  getInitials(user.displayName)
+                ) : (
+                  'U'
+                )}
               </div>
               <div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handlePhotoSelected}
+                  accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+                  className="hidden"
+                />
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
                   className="rounded-full mb-1"
-                  disabled={!isEditing}
+                  disabled={!isEditing || isUploadingPhoto}
+                  onClick={() => fileInputRef.current?.click()}
                 >
-                  Upload new photo
+                  {isUploadingPhoto ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4 mr-2" />
+                  )}
+                  {isUploadingPhoto ? 'Uploading...' : 'Upload new photo'}
                 </Button>
                 <p className="text-[10px] text-slate-400 uppercase tracking-wider">
-                  JPG or PNG - 4 MB max
+                  JPEG, PNG, WEBP, GIF, AVIF - 10 MB max
                 </p>
               </div>
             </div>
@@ -192,8 +244,8 @@ export const ProfilePage = () => {
                         type="button"
                         variant="outline"
                         size="sm"
-                        disabled={resendVerification.isPending}
-                        onClick={() => resendVerification.mutate()}
+                        disabled={resendVerification.isPending || !user?.email}
+                        onClick={() => resendVerification.mutate({ email: user?.email || '' })}
                       >
                         {resendVerification.isPending ? (
                           <Loader2 className="w-4 h-4 animate-spin" />

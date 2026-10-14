@@ -27,6 +27,13 @@ export type SendChatMessagePayload = {
   clientMessageId: string;
   content: string;
   type?: string;
+  replyToId?: string | null;
+};
+
+export type WsError = {
+  code:
+    'FORBIDDEN' | 'NOT_FOUND' | 'BUSINESS_RULE' | 'VALIDATION_ERROR' | 'INTERNAL_ERROR' | string;
+  message: string;
 };
 
 class WebSocketService {
@@ -38,6 +45,7 @@ class WebSocketService {
   private typingListeners = new Set<(msg: any) => void>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private ackListeners = new Set<(ack: any) => void>();
+  private errorListeners = new Set<(err: WsError) => void>();
 
   // Track dynamic topic subscriptions
   // destination -> Map<callback, StompSubscription>
@@ -74,7 +82,15 @@ class WebSocketService {
         console.log('✅ Connected to Real-time Chat WebSocket:', frame);
         this.isConnected = true;
 
-        // 1. Subscribe to /user/queue/acks for delivery confirmations
+        // 1. Subscribe to /user/queue/errors for STOMP error events
+        this.client?.subscribe('/user/queue/errors', (message) => {
+          const parsedErr: WsError = safeParse(message.body);
+          // eslint-disable-next-line no-console
+          console.error('❌ Received STOMP error on /user/queue/errors:', parsedErr);
+          this.errorListeners.forEach((listener) => listener(parsedErr));
+        });
+
+        // 2. Subscribe to /user/queue/acks for delivery confirmations
         this.client?.subscribe('/user/queue/acks', (message) => {
           const parsedAck = safeParse(message.body);
           // eslint-disable-next-line no-console
@@ -82,7 +98,7 @@ class WebSocketService {
           this.ackListeners.forEach((listener) => listener(parsedAck));
         });
 
-        // 2. Subscribe to global user queue for private messages
+        // 3. Subscribe to global user queue for private messages
         this.client?.subscribe('/user/queue/messages', (message) => {
           const parsedMessage = safeParse(message.body);
           // eslint-disable-next-line no-console
@@ -90,13 +106,13 @@ class WebSocketService {
           this.messageListeners.forEach((listener) => listener(parsedMessage));
         });
 
-        // 3. Global typing indicator queue
+        // 4. Global typing indicator queue
         this.client?.subscribe('/user/queue/typing', (message) => {
           const parsedTyping = safeParse(message.body);
           this.typingListeners.forEach((listener) => listener(parsedTyping));
         });
 
-        // 4. Re-establish any pending dynamic topic subscriptions
+        // 5. Re-establish any pending dynamic topic subscriptions
         this.topicListeners.forEach((callbacks, destination) => {
           callbacks.forEach((_, callback) => {
             const subscription = this.client?.subscribe(destination, (msg) => {
@@ -152,6 +168,12 @@ class WebSocketService {
   addAckListener(listener: (ack: any) => void) {
     this.ackListeners.add(listener);
     return () => this.ackListeners.delete(listener);
+  }
+
+  // Listeners for STOMP errors
+  addErrorListener(listener: (err: WsError) => void) {
+    this.errorListeners.add(listener);
+    return () => this.errorListeners.delete(listener);
   }
 
   // Listeners for typing indicators
@@ -217,8 +239,25 @@ class WebSocketService {
     return this.publish('/app/chat.send', {
       conversationId: payload.conversationId,
       clientMessageId: payload.clientMessageId,
-      content: payload.content,
       type: payload.type || 'TEXT',
+      content: payload.content,
+      replyToId: payload.replyToId ?? null,
+    });
+  }
+
+  // Send read receipt over STOMP to /app/chat.read
+  sendChatRead(conversationId: string, upToSeq: number) {
+    return this.publish('/app/chat.read', {
+      conversationId,
+      upToSeq,
+    });
+  }
+
+  // Send typing indicator over STOMP to /app/chat.typing
+  sendChatTyping(conversationId: string, isTyping: boolean) {
+    return this.publish('/app/chat.typing', {
+      conversationId,
+      isTyping,
     });
   }
 }

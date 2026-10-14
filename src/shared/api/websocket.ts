@@ -30,6 +30,19 @@ export type WsError = {
   message: string;
 };
 
+const isJwtExpiredOrExpiring = (token: string): boolean => {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2 || !parts[1]) return false;
+    const payload = JSON.parse(atob(parts[1]));
+    if (!payload.exp) return false;
+    // Expiring within the next 15 seconds
+    return Date.now() >= payload.exp * 1000 - 15000;
+  } catch {
+    return false;
+  }
+};
+
 class WebSocketService {
   private client: Client | null = null;
   public isConnected = false;
@@ -63,8 +76,19 @@ class WebSocketService {
             Authorization: `Bearer ${token}`,
           }
         : {},
-      beforeConnect: () => {
-        const currentToken = useSession.getState().accessToken;
+      beforeConnect: async () => {
+        let currentToken = useSession.getState().accessToken;
+        // Refresh token through HTTP before reconnecting after expiry
+        if (!currentToken || isJwtExpiredOrExpiring(currentToken)) {
+          try {
+            const { authSession } = await import('@/features/auth/lib/auth-session');
+            if (authSession.mightBeActive()) {
+              currentToken = await authSession.refresh();
+            }
+          } catch {
+            // Ignore if refresh cookie expired
+          }
+        }
         if (currentToken) {
           this.client!.connectHeaders = {
             Authorization: `Bearer ${currentToken}`,
@@ -132,11 +156,22 @@ class WebSocketService {
       },
       onStompError: (frame) => {
         // eslint-disable-next-line no-console
-        console.error('❌ STOMP error: ' + frame.headers['message'], frame.body);
+        console.error('❌ STOMP error:', frame.headers, frame.body);
+        if (
+          frame.headers['message']?.toLowerCase().includes('unauthorized') ||
+          frame.headers['message']?.toLowerCase().includes('forbidden')
+        ) {
+          // Token expired, refresh token through HTTP before next reconnect
+          import('@/features/auth/lib/auth-session').then(({ authSession }) => {
+            if (authSession.mightBeActive()) {
+              authSession.refresh().catch(() => {});
+            }
+          });
+        }
       },
-      onWebSocketError: (event) => {
+      onWebSocketError: (error) => {
         // eslint-disable-next-line no-console
-        console.error('❌ WebSocket error:', event);
+        console.error('❌ WebSocket error:', error);
       },
     });
 

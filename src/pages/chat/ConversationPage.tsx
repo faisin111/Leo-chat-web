@@ -115,15 +115,17 @@ export const ConversationPage = () => {
 
         // Instantly show the message on screen via local state
         setLiveMessages((prev) => {
-          if (
-            prev.find(
-              (m) =>
-                m.id === normalizedMsg.id ||
-                (normalizedMsg.clientMessageId &&
-                  m.clientMessageId === normalizedMsg.clientMessageId),
-            )
-          ) {
-            return prev;
+          const index = prev.findIndex(
+            (m) =>
+              m.id === normalizedMsg.id ||
+              (normalizedMsg.clientMessageId &&
+                m.clientMessageId === normalizedMsg.clientMessageId),
+          );
+          if (index !== -1) {
+            // Upgrade optimistic message with real server id and seq
+            const next = [...prev];
+            next[index] = normalizedMsg;
+            return next;
           }
           return [normalizedMsg, ...prev];
         });
@@ -154,6 +156,14 @@ export const ConversationPage = () => {
         const msg = rawMsg.payload || rawMsg;
         const uid = msg.userId || msg.senderId || 'typing';
 
+        // Ignore typing events from oneself
+        if (
+          uid === currentUser?.id ||
+          (currentUser?.username && msg.username === currentUser.username)
+        ) {
+          return;
+        }
+
         if (msg.isTyping) {
           setTypingUsers((prev) => ({ ...prev, [uid]: Date.now() }));
         } else {
@@ -171,6 +181,9 @@ export const ConversationPage = () => {
     const cleanupAcks = wsService.addAckListener((ack: any) => {
       const ackConvId = ack?.conversationId || ack?.chatId;
       if (!ackConvId || ackConvId === conversationId) {
+        if (ack?.id && ack?.clientMessageId) {
+          handleIncomingMessage(ack);
+        }
         queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       }
     });
@@ -196,7 +209,27 @@ export const ConversationPage = () => {
       cleanupErrors();
       cleanupNotifications();
     };
-  }, [conversationId, queryClient, currentUser?.id]);
+  }, [conversationId, queryClient, currentUser?.id, currentUser?.username]);
+
+  // Auto-clear stale typing indicators after 3.5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setTypingUsers((prev) => {
+        let changed = false;
+        const next: Record<string, number> = {};
+        for (const [uid, timestamp] of Object.entries(prev)) {
+          if (now - timestamp < 3500) {
+            next[uid] = timestamp;
+          } else {
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

@@ -32,11 +32,13 @@ export const authApi = {
     }
 
     const response = await http.post('/auth/register', payload);
+    clearCsrfToken();
     return response.data;
   },
 
   login: async (data: { username: string; password: string }) => {
     const response = await http.post<TokenResponse>('/auth/login', data);
+    clearCsrfToken();
     return response.data;
   },
 

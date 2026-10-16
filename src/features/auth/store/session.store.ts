@@ -35,3 +35,9 @@ export const useSession = create<SessionState>()((set) => ({
   setUser: (user) => set({ user }),
   clear: () => set({ status: 'anonymous', accessToken: null, user: null }),
 }));
+
+export const isAdminRole = (role?: string | null): boolean => {
+  if (!role) return false;
+  const normalized = role.trim().toUpperCase();
+  return normalized === 'ADMIN' || normalized === 'ROLE_ADMIN';
+};

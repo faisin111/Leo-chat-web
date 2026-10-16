@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MessageSquare, Users, Settings, Shield, HelpCircle, LogOut } from 'lucide-react';
-import { useSession, authSession, authApi } from '@/features/auth';
+import { useSession, authSession, authApi, isAdminRole } from '@/features/auth';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 // eslint-disable-next-line no-restricted-imports
@@ -68,7 +68,7 @@ export function NavigationRail() {
           active={location.pathname.startsWith('/app/settings')}
           label="Settings"
         />
-        {user?.role === 'ADMIN' && (
+        {isAdminRole(user?.role) && (
           <NavItem
             to="/app/admin"
             icon={<Shield className="w-5 h-5" />}

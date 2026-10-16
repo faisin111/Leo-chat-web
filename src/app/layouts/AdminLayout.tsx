@@ -2,18 +2,24 @@ import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AnimatedOutlet } from './AnimatedOutlet';
 import { NavigationRail } from './components/NavigationRail';
+import { useQuery } from '@tanstack/react-query';
+import { adminApi } from '@/features/admin';
 import {
   LayoutDashboard,
   Users,
   Flag,
   MessageSquare,
   ShieldAlert,
-  Settings,
+  KeyRound,
   Shield,
 } from 'lucide-react';
 
 export default function AdminLayout() {
   const location = useLocation();
+  const { data: stats } = useQuery({
+    queryKey: ['admin-stats'],
+    queryFn: adminApi.getStatsOverview,
+  });
 
   return (
     <div className="flex flex-col md:flex-row h-[100dvh] w-full bg-background text-foreground overflow-hidden">
@@ -27,8 +33,8 @@ export default function AdminLayout() {
               <Shield className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-semibold text-lg leading-tight">Admin console</h2>
-              <p className="text-xs text-slate-400">Platform owner workspace</p>
+              <h2 className="font-semibold text-lg leading-tight">Admin Console</h2>
+              <p className="text-xs text-slate-400">Platform management & security</p>
             </div>
           </div>
 
@@ -44,14 +50,14 @@ export default function AdminLayout() {
               icon={<Users className="w-4 h-4" />}
               label="Users"
               active={location.pathname.startsWith('/app/admin/users')}
-              badge="248"
+              badge={stats?.totalUsers != null ? String(stats.totalUsers) : undefined}
             />
             <AdminNavItem
               to="/app/admin/reports"
               icon={<Flag className="w-4 h-4" />}
               label="Moderation"
               active={location.pathname.startsWith('/app/admin/reports')}
-              badge="6"
+              badge={stats?.totalReports != null ? String(stats.totalReports) : undefined}
               badgeColor="bg-red-500"
             />
             <AdminNavItem
@@ -59,17 +65,20 @@ export default function AdminLayout() {
               icon={<MessageSquare className="w-4 h-4" />}
               label="Conversations"
               active={location.pathname.startsWith('/app/admin/conversations')}
+              badge={
+                stats?.totalConversations != null ? String(stats.totalConversations) : undefined
+              }
             />
             <AdminNavItem
               to="/app/admin/audit-logs"
               icon={<ShieldAlert className="w-4 h-4" />}
-              label="Audit logs"
+              label="Audit Logs"
               active={location.pathname.startsWith('/app/admin/audit-logs')}
             />
             <AdminNavItem
               to="/app/admin/ownership"
-              icon={<Settings className="w-4 h-4" />}
-              label="Platform settings"
+              icon={<KeyRound className="w-4 h-4" />}
+              label="Transfer Ownership"
               active={location.pathname.startsWith('/app/admin/ownership')}
             />
           </nav>

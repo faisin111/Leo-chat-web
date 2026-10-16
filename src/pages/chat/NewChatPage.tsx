@@ -6,10 +6,7 @@ import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 // eslint-disable-next-line no-restricted-imports
 import { useStartDirectMessage } from '@/features/chat/api/use-start-direct-message';
-// eslint-disable-next-line no-restricted-imports
-import { useSearchUsers } from '@/features/users/api/use-search-users';
-// eslint-disable-next-line no-restricted-imports
-import type { UserSearchItem } from '@/features/users/api/users-api';
+import { useSearchUsers, type UserSearchItem } from '@/features/users';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export const NewChatPage = () => {

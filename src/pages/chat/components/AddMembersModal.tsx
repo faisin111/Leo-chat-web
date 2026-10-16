@@ -3,10 +3,7 @@ import { Search, Users, X, Loader2 } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Skeleton } from '@/shared/ui/skeleton';
-// eslint-disable-next-line no-restricted-imports
-import { useSearchUsers } from '@/features/users/api/use-search-users';
-// eslint-disable-next-line no-restricted-imports
-import type { UserSearchItem } from '@/features/users/api/users-api';
+import { useSearchUsers, type UserSearchItem } from '@/features/users';
 // eslint-disable-next-line no-restricted-imports
 import { useAddGroupMembers } from '@/features/chat/api/use-add-group-members';
 import { useSession } from '@/features/auth';

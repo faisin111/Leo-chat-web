@@ -1,16 +1,25 @@
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
-import { useSession } from '@/features/auth';
-import { MonitorSmartphone, Bell, Edit2, X, Loader2, Upload } from 'lucide-react';
+import { useSession, isAdminRole } from '@/features/auth';
+import {
+  MonitorSmartphone,
+  Bell,
+  Edit2,
+  X,
+  Loader2,
+  Upload,
+  AlertTriangle,
+  ShieldAlert,
+} from 'lucide-react';
 import { useState, useRef, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { showApiError } from '@/shared/api/api-error';
-// eslint-disable-next-line no-restricted-imports
-import { useUpdateProfile } from '@/features/users/api/use-update-profile';
+import { Link } from 'react-router-dom';
+import { useUpdateProfile, useDeactivateAccount } from '@/features/users';
 // eslint-disable-next-line no-restricted-imports
 import { useResendVerification } from '@/features/auth/api/use-resend-verification';
 import { mediaApi } from '@/features/media';
@@ -31,9 +40,13 @@ export const ProfilePage = () => {
   const getInitials = (name: string) => name.substring(0, 2).toUpperCase();
   const [isEditing, setIsEditing] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
+  const [deactivateConfirmText, setDeactivateConfirmText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const updateProfile = useUpdateProfile();
+  const deactivateAccount = useDeactivateAccount();
   const resendVerification = useResendVerification();
+  const isAdmin = isAdminRole(user?.role);
 
   const {
     register,
@@ -312,6 +325,57 @@ export const ProfilePage = () => {
               </div>
             </div>
           </div>
+
+          {/* Danger Zone: Deactivate Account Card */}
+          <div className="bg-white rounded-2xl p-6 border border-red-200/80 shadow-xs">
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-900 text-base">Danger Zone</h3>
+                <p className="text-xs text-slate-500">Irreversible account actions</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed mt-3 mb-4">
+              Deactivating your account will disable your public profile, set your account status to
+              disabled, and prevent you from logging in. Direct message channels with other users
+              will be frozen.
+            </p>
+
+            {isAdmin ? (
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200/60 text-xs text-amber-800 space-y-1 mb-4">
+                <p className="font-semibold flex items-center gap-1.5">
+                  <ShieldAlert className="w-4 h-4 text-amber-600" />
+                  Admin Account Restriction
+                </p>
+                <p className="text-[11px] text-amber-700 leading-relaxed">
+                  The backend rules prohibit deactivating the single active Administrator account.
+                  You must first transfer platform ownership to another member in the Admin Console.
+                </p>
+                <Link
+                  to="/app/admin/ownership"
+                  className="inline-block font-bold text-amber-900 underline mt-1"
+                >
+                  Go to Transfer Ownership &rarr;
+                </Link>
+              </div>
+            ) : null}
+
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isAdmin || deactivateAccount.isPending}
+              onClick={() => {
+                setDeactivateConfirmText('');
+                setIsDeactivateModalOpen(true);
+              }}
+              className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 shadow-xs text-xs font-semibold"
+            >
+              Deactivate Account
+            </Button>
+          </div>
         </div>
 
         {/* Right Column */}
@@ -400,6 +464,65 @@ export const ProfilePage = () => {
           </div>
         </div>
       </div>
+
+      {/* Deactivate Account Confirmation Modal */}
+      {isDeactivateModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Deactivate Account</h3>
+                <p className="text-xs text-slate-500">This action will immediately log you out</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed mb-4">
+              Your profile will be deactivated, and other members won&apos;t be able to send you
+              messages. To proceed, please type{' '}
+              <strong className="font-mono text-red-600">deactivate</strong> in the box below:
+            </p>
+
+            <Input
+              value={deactivateConfirmText}
+              onChange={(e) => setDeactivateConfirmText(e.target.value)}
+              placeholder='Type "deactivate" to confirm'
+              className="mb-4 text-xs h-10"
+            />
+
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsDeactivateModalOpen(false)}
+                disabled={deactivateAccount.isPending}
+                className="rounded-xl"
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={
+                  deactivateConfirmText.trim().toLowerCase() !== 'deactivate' ||
+                  deactivateAccount.isPending
+                }
+                onClick={() => {
+                  deactivateAccount.mutate();
+                }}
+                className="rounded-xl shadow-xs"
+              >
+                {deactivateAccount.isPending && (
+                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                )}
+                Confirm Deactivation
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

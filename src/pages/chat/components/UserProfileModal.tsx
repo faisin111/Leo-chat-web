@@ -14,8 +14,7 @@ import {
 import { Button } from '@/shared/ui/button';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
-// eslint-disable-next-line no-restricted-imports
-import { useUserById } from '@/features/users/api/use-user-by-id';
+import { useUserById, usePresence } from '@/features/users';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -33,6 +32,7 @@ export const UserProfileModal = ({
   fallbackAvatar,
 }: UserProfileModalProps) => {
   const { data: user, isLoading } = useUserById(isOpen ? userId : null);
+  const { isOnline, getLastSeenText } = usePresence([userId]);
   const [copiedId, setCopiedId] = useState(false);
 
   const handleCopyId = () => {
@@ -83,22 +83,44 @@ export const UserProfileModal = ({
             <div className="px-6 pb-6 pt-0 overflow-y-auto flex-1">
               {/* Avatar overlapping banner */}
               <div className="relative -mt-14 mb-4 flex items-end justify-between">
-                <div className="w-24 h-24 rounded-full border-4 border-white bg-slate-100 text-slate-700 font-bold text-2xl flex items-center justify-center overflow-hidden shadow-md">
-                  {isLoading ? (
-                    <Skeleton className="w-full h-full rounded-full" />
-                  ) : avatarUrl ? (
-                    <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
-                  ) : (
-                    initials
+                <div className="relative">
+                  <div className="w-24 h-24 rounded-full border-4 border-white bg-slate-100 text-slate-700 font-bold text-2xl flex items-center justify-center overflow-hidden shadow-md">
+                    {isLoading ? (
+                      <Skeleton className="w-full h-full rounded-full" />
+                    ) : avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt={displayName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      initials
+                    )}
+                  </div>
+                  {userId && isOnline(userId) && (
+                    <span className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-4 border-white rounded-full ring-2 ring-emerald-500/20" />
                   )}
                 </div>
 
-                {user?.role && (
-                  <span className="mb-2 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                    <Shield className="w-3 h-3 mr-1 text-slate-500" />
-                    {user.role}
-                  </span>
-                )}
+                <div className="flex items-center gap-1.5 flex-wrap justify-end mb-2">
+                  {userId && (
+                    <span
+                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        isOnline(userId)
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
+                          : 'bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      {getLastSeenText(userId)}
+                    </span>
+                  )}
+                  {user?.role && (
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                      <Shield className="w-3 h-3 mr-1 text-slate-500" />
+                      {user.role}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {isLoading ? (

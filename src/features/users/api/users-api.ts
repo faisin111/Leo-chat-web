@@ -44,9 +44,10 @@ export type ProfileUpdateBody = {
 };
 
 export type PresenceItem = {
+  userId: string;
   id: string;
   status: string;
-  lastSeenAt: string;
+  lastSeenAt?: string;
 };
 
 export const usersApi = {
@@ -60,13 +61,14 @@ export const usersApi = {
     return response.data;
   },
 
-  updateProfile: async (data: ProfileUpdateBody): Promise<UserProfile> => {
+  updateProfile: async (data: ProfileUpdateBody): Promise<{ message: string }> => {
     const response = await http.patch('/users/me/profile', data);
     return response.data;
   },
 
-  deactivateAccount: async (): Promise<void> => {
-    await http.delete('/users/me');
+  deactivateAccount: async (): Promise<{ message: string }> => {
+    const response = await http.delete('/users/me');
+    return response.data;
   },
 
   searchUsers: async (
@@ -75,7 +77,7 @@ export const usersApi = {
     size: number = 20,
   ): Promise<UserSearchItem[]> => {
     const params = new URLSearchParams({
-      q,
+      q: q.trim(),
       page: page.toString(),
       size: size.toString(),
     });
@@ -87,8 +89,15 @@ export const usersApi = {
     if (!ids || ids.length === 0) return [];
     const params = new URLSearchParams();
     ids.forEach((id) => params.append('ids', id));
-    const response = await http.get(`/users/presence?${params.toString()}`);
-    return response.data;
+    const response = await http.get<
+      Array<{ userId?: string; id?: string; status: string; lastSeenAt?: string }>
+    >(`/users/presence?${params.toString()}`);
+    return (response.data || []).map((item) => ({
+      userId: item.userId || item.id || '',
+      id: item.userId || item.id || '',
+      status: item.status,
+      lastSeenAt: item.lastSeenAt,
+    }));
   },
 
   getSessions: async (): Promise<SessionItem[]> => {

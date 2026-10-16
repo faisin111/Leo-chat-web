@@ -1,10 +1,7 @@
 import { Button } from '@/shared/ui/button';
 import { Laptop, Smartphone, AlertTriangle, Monitor } from 'lucide-react';
 import { Skeleton } from '@/shared/ui/skeleton';
-// eslint-disable-next-line no-restricted-imports
-import { useSessions } from '@/features/users/api/use-sessions';
-// eslint-disable-next-line no-restricted-imports
-import { useRevokeSession } from '@/features/users/api/use-revoke-session';
+import { useSessions, useRevokeSession } from '@/features/users';
 import { formatDistanceToNow } from 'date-fns';
 
 function parseUserAgent(ua: string) {

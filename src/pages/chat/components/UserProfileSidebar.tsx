@@ -17,8 +17,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { Skeleton } from '@/shared/ui/skeleton';
-// eslint-disable-next-line no-restricted-imports
-import { useUserById } from '@/features/users/api/use-user-by-id';
+import { useUserById, usePresence } from '@/features/users';
 
 interface UserProfileSidebarProps {
   onClose: () => void;
@@ -38,6 +37,7 @@ export const UserProfileSidebar = ({
   isGroup,
 }: UserProfileSidebarProps) => {
   const { data: user, isLoading } = useUserById(userId);
+  const { isOnline, getLastSeenText } = usePresence([userId]);
   const [copiedId, setCopiedId] = useState(false);
   const targetId = user?.id || userId;
 
@@ -77,13 +77,18 @@ export const UserProfileSidebar = ({
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {/* Avatar & Main Info */}
         <div className="flex flex-col items-center text-center">
-          <div className="w-24 h-24 rounded-full border-4 border-slate-50 bg-slate-100 text-slate-700 font-bold text-2xl flex items-center justify-center overflow-hidden shadow-sm relative mb-4">
-            {isLoading ? (
-              <Skeleton className="w-full h-full rounded-full" />
-            ) : avatarUrl ? (
-              <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
-            ) : (
-              initials
+          <div className="relative mb-4">
+            <div className="w-24 h-24 rounded-full border-4 border-slate-50 bg-slate-100 text-slate-700 font-bold text-2xl flex items-center justify-center overflow-hidden shadow-sm">
+              {isLoading ? (
+                <Skeleton className="w-full h-full rounded-full" />
+              ) : avatarUrl ? (
+                <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+              ) : (
+                initials
+              )}
+            </div>
+            {!isGroup && userId && isOnline(userId) && (
+              <span className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-4 border-white rounded-full ring-2 ring-emerald-500/20" />
             )}
           </div>
 
@@ -96,16 +101,33 @@ export const UserProfileSidebar = ({
             <>
               <h2 className="text-lg font-bold text-slate-900">{displayName}</h2>
               {username && <p className="text-xs font-medium text-slate-500 mt-0.5">@{username}</p>}
-              {isGroup ? (
-                <span className="mt-2.5 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                  Group Conversation
-                </span>
-              ) : user?.role ? (
-                <span className="mt-2.5 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                  <Shield className="w-3 h-3 mr-1" />
-                  {user.role}
-                </span>
-              ) : null}
+              <div className="flex items-center gap-1.5 flex-wrap justify-center mt-2.5">
+                {isGroup ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                    Group Conversation
+                  </span>
+                ) : (
+                  <>
+                    {userId && (
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                          isOnline(userId)
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
+                            : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {getLastSeenText(userId)}
+                      </span>
+                    )}
+                    {user?.role && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                        <Shield className="w-3 h-3 mr-1" />
+                        {user.role}
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
             </>
           )}
         </div>

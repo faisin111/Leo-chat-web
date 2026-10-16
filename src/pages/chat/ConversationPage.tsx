@@ -27,10 +27,7 @@ import { useSession } from '@/features/auth';
 import { format } from 'date-fns';
 import { AddMembersModal } from './components/AddMembersModal';
 import { UserProfileSidebar } from './components/UserProfileSidebar';
-// eslint-disable-next-line no-restricted-imports
-import { useUserById } from '@/features/users/api/use-user-by-id';
-// eslint-disable-next-line no-restricted-imports
-import { useSearchUsers } from '@/features/users/api/use-search-users';
+import { useUserById, useSearchUsers } from '@/features/users';
 import { wsService } from '@/shared/api/websocket';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';

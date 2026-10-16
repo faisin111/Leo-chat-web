@@ -4,10 +4,7 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { useState, useEffect } from 'react';
-// eslint-disable-next-line no-restricted-imports
-import { useSearchUsers } from '@/features/users/api/use-search-users';
-// eslint-disable-next-line no-restricted-imports
-import type { UserSearchItem } from '@/features/users/api/users-api';
+import { useSearchUsers, type UserSearchItem } from '@/features/users';
 // eslint-disable-next-line no-restricted-imports
 import { useCreateGroup } from '@/features/chat/api/use-create-group';
 import { useSession } from '@/features/auth';

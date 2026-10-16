@@ -25,13 +25,16 @@ import {
   X,
   FileText,
   ExternalLink,
+  HardDrive,
+  UploadCloud,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { Input } from '@/shared/ui/input';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Avatar } from '@/shared/ui/avatar';
 import { useParams, Link } from 'react-router-dom';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, DragEvent, ChangeEvent, ClipboardEvent } from 'react';
 import {
   useSendMessage,
   useMessages,
@@ -66,8 +69,15 @@ export const ConversationPage = () => {
   const [isAddMembersOpen, setIsAddMembersOpen] = useState(false);
   const [isEditGroupOpen, setIsEditGroupOpen] = useState(false);
   const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
+  const [pendingAttachmentFile, setPendingAttachmentFile] = useState<File | null>(null);
+  const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
+  const [isWindowDragOver, setIsWindowDragOver] = useState(false);
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const [isProfileSidebarOpen, setIsProfileSidebarOpen] = useState(false);
+
+  const imageFileInputRef = useRef<HTMLInputElement>(null);
+  const docFileInputRef = useRef<HTMLInputElement>(null);
+  const attachmentMenuRef = useRef<HTMLDivElement>(null);
 
   // In-chat search state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -145,7 +155,25 @@ export const ConversationPage = () => {
     setEditingMessageId(null);
     setIsSearchOpen(false);
     setMessageSearchQuery('');
+    setIsAttachmentMenuOpen(false);
+    setPendingAttachmentFile(null);
+    setIsWindowDragOver(false);
   }, [conversationId]);
+
+  // Close attachment menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(e.target as Node)) {
+        setIsAttachmentMenuOpen(false);
+      }
+    };
+    if (isAttachmentMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isAttachmentMenuOpen]);
 
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -450,6 +478,60 @@ export const ConversationPage = () => {
     }
   };
 
+  // Quick file picked from internal storage via hidden file inputs
+  const handleQuickFilePicked = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPendingAttachmentFile(file);
+      setIsAttachmentModalOpen(true);
+      setIsAttachmentMenuOpen(false);
+    }
+    e.target.value = '';
+  };
+
+  // Drag and drop files from desktop/storage onto conversation
+  const handleChatDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isWindowDragOver) setIsWindowDragOver(true);
+  };
+
+  const handleChatDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsWindowDragOver(false);
+  };
+
+  const handleChatDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsWindowDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      setPendingAttachmentFile(file);
+      setIsAttachmentModalOpen(true);
+    }
+  };
+
+  // Paste image / file from clipboard / storage
+  const handlePaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item && item.kind === 'file') {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          setPendingAttachmentFile(file);
+          setIsAttachmentModalOpen(true);
+          return;
+        }
+      }
+    }
+  };
+
   // Sending image or file attachment
   const handleSendAttachment = (type: MessageType, url: string, caption?: string) => {
     if (!conversationId) return;
@@ -659,7 +741,23 @@ export const ConversationPage = () => {
   };
 
   return (
-    <div className="flex-1 flex h-full bg-white relative overflow-hidden">
+    <div
+      className="flex-1 flex h-full bg-white relative overflow-hidden"
+      onDragOver={handleChatDragOver}
+      onDragLeave={handleChatDragLeave}
+      onDrop={handleChatDrop}
+    >
+      {/* Drag & Drop Visual Indicator */}
+      {isWindowDragOver && (
+        <div className="absolute inset-0 z-50 bg-primary/10 backdrop-blur-xs border-2 border-dashed border-primary rounded-2xl m-3 flex flex-col items-center justify-center pointer-events-none">
+          <div className="w-16 h-16 rounded-3xl bg-white shadow-xl flex items-center justify-center text-primary mb-3">
+            <UploadCloud className="w-8 h-8 animate-bounce" />
+          </div>
+          <p className="font-bold text-base text-primary">Drop file here to send</p>
+          <p className="text-xs text-slate-600 mt-1">Image or document from your device</p>
+        </div>
+      )}
+
       {/* Main Chat Column */}
       <div className="flex-1 flex flex-col h-full min-w-0 bg-white">
         <AddMembersModal
@@ -676,9 +774,13 @@ export const ConversationPage = () => {
         />
         <AttachmentModal
           isOpen={isAttachmentModalOpen}
-          onClose={() => setIsAttachmentModalOpen(false)}
+          onClose={() => {
+            setIsAttachmentModalOpen(false);
+            setPendingAttachmentFile(null);
+          }}
           onSendAttachment={handleSendAttachment}
           isSending={sendMessage.isPending}
+          initialFile={pendingAttachmentFile}
         />
 
         {/* Header */}
@@ -1213,27 +1315,50 @@ export const ConversationPage = () => {
                             </div>
                           ) : msg.type === 'FILE' ? (
                             /* Document / File Message */
-                            <a
-                              href={msg.content || '#'}
-                              target="_blank"
-                              rel="noreferrer"
-                              className={`flex items-center space-x-2.5 p-2 rounded-xl transition-colors ${
-                                isOwn
-                                  ? 'bg-white/10 hover:bg-white/20'
-                                  : 'bg-white hover:bg-slate-50'
-                              }`}
-                            >
-                              <FileText className="w-6 h-6 text-primary shrink-0" />
-                              <div className="min-w-0 pr-2">
-                                <span className="text-xs font-semibold block truncate max-w-[160px]">
-                                  {(msg.content || '').split('/').pop() || 'Attachment'}
-                                </span>
-                                <span className="text-[10px] opacity-75">
-                                  Click to view document
-                                </span>
-                              </div>
-                              <ExternalLink className="w-3.5 h-3.5 opacity-60 shrink-0" />
-                            </a>
+                            (() => {
+                              const [rawFileUrl, ...captionParts] = (msg.content || '').split('\n');
+                              const fileUrl = rawFileUrl || '#';
+                              const fileCaption = captionParts.join('\n');
+                              const cleanFileName = decodeURIComponent(
+                                (fileUrl.split('?')[0] || '').split('/').pop() || 'Document',
+                              );
+
+                              return (
+                                <div className="space-y-1.5">
+                                  <a
+                                    href={fileUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    download={cleanFileName}
+                                    className={`flex items-center space-x-2.5 p-2 rounded-xl transition-colors ${
+                                      isOwn
+                                        ? 'bg-white/15 hover:bg-white/25 text-white'
+                                        : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200/80 shadow-2xs'
+                                    }`}
+                                  >
+                                    <FileText
+                                      className={`w-6 h-6 shrink-0 ${
+                                        isOwn ? 'text-white' : 'text-primary'
+                                      }`}
+                                    />
+                                    <div className="min-w-0 pr-2">
+                                      <span className="text-xs font-semibold block truncate max-w-[170px]">
+                                        {cleanFileName}
+                                      </span>
+                                      <span className="text-[10px] opacity-75">
+                                        Click to view or download
+                                      </span>
+                                    </div>
+                                    <ExternalLink className="w-3.5 h-3.5 opacity-60 shrink-0" />
+                                  </a>
+                                  {fileCaption && (
+                                    <p className="text-xs pt-0.5 px-0.5 break-words">
+                                      {fileCaption}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })()
                           ) : (
                             /* Standard Text Message */
                             msg.content || ''
@@ -1374,19 +1499,100 @@ export const ConversationPage = () => {
               value={content}
               onChange={(e) => handleTyping(e.target.value)}
               onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
               disabled={sendMessage.isPending}
             />
+
+            {/* Hidden Inputs for Direct Picking from Internal Storage */}
+            <input
+              ref={imageFileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+              className="hidden"
+              onChange={handleQuickFilePicked}
+            />
+            <input
+              ref={docFileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.json,application/*,text/*"
+              className="hidden"
+              onChange={handleQuickFilePicked}
+            />
+
             <div className="flex items-center space-x-1 p-1 sm:p-2 shrink-0">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsAttachmentModalOpen(true)}
-                className="text-slate-400 hover:text-slate-600 rounded-full h-8 w-8 min-h-[36px] min-w-[36px] cursor-pointer"
-                title="Attach image or file"
-              >
-                <Paperclip className="w-4 h-4" />
-              </Button>
+              {/* Attachment Popover & Trigger */}
+              <div className="relative" ref={attachmentMenuRef}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsAttachmentMenuOpen((prev) => !prev)}
+                  className={`rounded-full h-8 w-8 min-h-[36px] min-w-[36px] cursor-pointer transition-colors ${
+                    isAttachmentMenuOpen
+                      ? 'text-primary bg-primary/10'
+                      : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                  title="Attach photo or document from internal storage"
+                >
+                  <Paperclip className="w-4 h-4" />
+                </Button>
+
+                {/* Popover Menu */}
+                {isAttachmentMenuOpen && (
+                  <div className="absolute bottom-12 left-0 z-40 bg-white rounded-2xl shadow-xl border border-slate-100 p-1.5 w-52 flex flex-col space-y-1 animate-in fade-in zoom-in-95 duration-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAttachmentMenuOpen(false);
+                        imageFileInputRef.current?.click();
+                      }}
+                      className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-primary transition-colors cursor-pointer text-left w-full"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <ImageIcon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="block font-medium">Photos & Videos</span>
+                        <span className="text-[10px] text-slate-400 font-normal">
+                          Pick from device
+                        </span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAttachmentMenuOpen(false);
+                        docFileInputRef.current?.click();
+                      }}
+                      className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-primary transition-colors cursor-pointer text-left w-full"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="block font-medium">Document / File</span>
+                        <span className="text-[10px] text-slate-400 font-normal">
+                          PDF, doc, sheet, zip
+                        </span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAttachmentMenuOpen(false);
+                        setPendingAttachmentFile(null);
+                        setIsAttachmentModalOpen(true);
+                      }}
+                      className="flex items-center space-x-2 px-3 py-2 rounded-xl text-[11px] font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors cursor-pointer text-left w-full border-t border-slate-100 mt-1"
+                    >
+                      <HardDrive className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span>Browse internal storage</span>
+                    </button>
+                  </div>
+                )}
+              </div>
               <Button
                 type="button"
                 variant="ghost"

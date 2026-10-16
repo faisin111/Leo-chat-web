@@ -37,19 +37,44 @@ export type ConversationsResponse = {
 
 export type MessageType = 'TEXT' | 'IMAGE' | 'FILE' | 'SYSTEM' | string;
 
+export type MessageReactionUser = {
+  id: string;
+  username: string | null;
+  displayName: string | null;
+};
+
+export type MessageReaction = {
+  emoji: string;
+  count: number;
+  users: MessageReactionUser[];
+};
+
+export type MessageReply = {
+  id: string;
+  senderId: string;
+  senderUsername: string | null;
+  senderDisplayName: string | null;
+  content: string | null;
+  deleted: boolean;
+};
+
 export type Message = {
   id: string;
   conversationId: string;
   senderId: string;
+  senderUsername?: string | null;
+  senderDisplayName?: string | null;
   seq: number;
   clientMessageId: string | null;
   type: MessageType;
-  content: string;
+  content: string | null;
   replyToId: string | null;
+  replyTo?: MessageReply | null;
   createdAt: string;
   editedAt: string | null;
   deletedAt: string | null;
-  reactions?: Record<string, string[]>; // emoji -> array of userIds
+  deleted?: boolean;
+  reactions?: MessageReaction[] | Record<string, string[]>;
 };
 
 export type SendMessageRequest = {

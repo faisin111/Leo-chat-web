@@ -182,8 +182,10 @@ export const ConversationPage = () => {
           ...msg,
           id: msg.id || msg.messageId || crypto.randomUUID(),
           conversationId: targetId || conversationId || '',
-          content: msg.content || msg.text || msg.message || '',
+          content: msg.content != null ? msg.content || msg.text || msg.message || '' : null,
           senderId: msg.senderId || msg.sender_id || msg.userId || '',
+          senderUsername: msg.senderUsername || null,
+          senderDisplayName: msg.senderDisplayName || null,
           createdAt:
             msg.createdAt ||
             msg.timestamp ||
@@ -193,8 +195,11 @@ export const ConversationPage = () => {
           type: msg.type || 'TEXT',
           clientMessageId: msg.clientMessageId || null,
           replyToId: msg.replyToId || null,
+          replyTo: msg.replyTo || null,
+          reactions: msg.reactions || [],
           editedAt: msg.editedAt || null,
           deletedAt: msg.deletedAt || null,
+          deleted: !!msg.deleted || msg.deletedAt != null,
           seq: typeof msg.seq === 'number' && msg.seq < 1000000000 ? msg.seq : 0,
         };
 
@@ -304,11 +309,19 @@ export const ConversationPage = () => {
   const allMessagesMap = useMemo(() => {
     const map = new Map<string, Message>();
     historicalMessages.forEach((m) => {
-      const key = m.clientMessageId || m.id || Math.random().toString();
+      const key = m.id || m.clientMessageId || Math.random().toString();
       map.set(key, m);
     });
     liveMessages.forEach((m) => {
-      const key = m.clientMessageId || m.id || Math.random().toString();
+      if (m.id && map.has(m.id)) {
+        map.set(m.id, { ...map.get(m.id), ...m });
+        return;
+      }
+      if (m.clientMessageId && map.has(m.clientMessageId)) {
+        map.set(m.clientMessageId, { ...map.get(m.clientMessageId), ...m });
+        return;
+      }
+      const key = m.id || m.clientMessageId || Math.random().toString();
       const isDuplicateFallback = Array.from(map.values()).some(
         (existing) =>
           existing.senderId === m.senderId &&
@@ -508,9 +521,16 @@ export const ConversationPage = () => {
   // Reactions toggle
   const handleToggleReaction = (messageId: string, emoji: string) => {
     if (!currentUser?.id || !conversationId) return;
-    const currentReactions = reactionsState[messageId] || {};
-    const userIds = currentReactions[emoji] || [];
-    const hasReacted = userIds.includes(currentUser.id);
+
+    // Check if user already reacted
+    const targetMsg = allMessagesMap.get(messageId);
+    let hasReacted = false;
+    if (targetMsg?.reactions && Array.isArray(targetMsg.reactions)) {
+      const match = targetMsg.reactions.find((r) => r.emoji === emoji);
+      hasReacted = !!match?.users.some((u) => u.id === currentUser.id);
+    } else if (reactionsState[messageId]?.[emoji]?.includes(currentUser.id)) {
+      hasReacted = true;
+    }
 
     if (hasReacted) {
       removeReaction({ messageId, emoji, conversationId });
@@ -520,6 +540,24 @@ export const ConversationPage = () => {
         if (msgR[emoji].length === 0) delete msgR[emoji];
         return { ...prev, [messageId]: msgR };
       });
+      // Optimistic reaction update
+      setLiveMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== messageId || !Array.isArray(m.reactions)) return m;
+          const updated = m.reactions
+            .map((r) => {
+              if (r.emoji !== emoji) return r;
+              const remainingUsers = r.users.filter((u) => u.id !== currentUser.id);
+              return {
+                ...r,
+                count: remainingUsers.length,
+                users: remainingUsers,
+              };
+            })
+            .filter((r) => r.count > 0);
+          return { ...m, reactions: updated };
+        }),
+      );
     } else {
       addReaction({ messageId, emoji, conversationId });
       setReactionsState((prev) => {
@@ -527,6 +565,35 @@ export const ConversationPage = () => {
         msgR[emoji] = [...(msgR[emoji] || []), currentUser.id];
         return { ...prev, [messageId]: msgR };
       });
+      // Optimistic reaction update
+      setLiveMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== messageId || !Array.isArray(m.reactions)) return m;
+          const existing = m.reactions.find((r) => r.emoji === emoji);
+          const currentUserObj = {
+            id: currentUser.id,
+            username: currentUser.username || null,
+            displayName: currentUser.displayName || null,
+          };
+          let updated;
+          if (existing) {
+            updated = m.reactions.map((r) =>
+              r.emoji === emoji
+                ? {
+                    ...r,
+                    count: r.users.some((u) => u.id === currentUser.id) ? r.count : r.count + 1,
+                    users: r.users.some((u) => u.id === currentUser.id)
+                      ? r.users
+                      : [...r.users, currentUserObj],
+                  }
+                : r,
+            );
+          } else {
+            updated = [...m.reactions, { emoji, count: 1, users: [currentUserObj] }];
+          }
+          return { ...m, reactions: updated };
+        }),
+      );
     }
   };
 
@@ -887,7 +954,7 @@ export const ConversationPage = () => {
             <>
               {allMessages.map((msg) => {
                 const isOwn = msg.senderId === currentUser?.id;
-                const isDeleted = msg.deletedAt != null;
+                const isDeleted = !!msg.deleted || msg.deletedAt != null;
                 const isEdited = msg.editedAt != null;
                 const isEditingThis = editingMessageId === msg.id;
 
@@ -899,13 +966,15 @@ export const ConversationPage = () => {
 
                 const senderName = isOwn
                   ? currentUser?.displayName || currentUser?.username || 'You'
-                  : !isGroup
-                    ? conversation?.targetDisplayName ||
-                      conversation?.targetUsername ||
-                      targetUserProfile?.displayName ||
-                      targetUserProfile?.username ||
-                      'User'
-                    : `User ${msg.senderId.substring(0, 6)}`;
+                  : msg.senderDisplayName ||
+                    msg.senderUsername ||
+                    (!isGroup
+                      ? conversation?.targetDisplayName ||
+                        conversation?.targetUsername ||
+                        targetUserProfile?.displayName ||
+                        targetUserProfile?.username
+                      : undefined) ||
+                    `User ${msg.senderId.substring(0, 6)}`;
 
                 const senderInitials = (senderName || 'U').substring(0, 2).toUpperCase();
                 const color = isOwn ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-700';
@@ -914,9 +983,28 @@ export const ConversationPage = () => {
                   ? format(new Date(), 'h:mm a')
                   : format(msgDate, 'h:mm a');
 
+                const replyInfo = msg.replyTo;
                 const parentReplyMsg = msg.replyToId
                   ? allMessagesMap.get(msg.replyToId)
                   : undefined;
+                const replySenderName = replyInfo
+                  ? replyInfo.senderId === currentUser?.id
+                    ? 'You'
+                    : replyInfo.senderDisplayName || replyInfo.senderUsername || 'Reply'
+                  : parentReplyMsg
+                    ? parentReplyMsg.senderId === currentUser?.id
+                      ? 'You'
+                      : parentReplyMsg.senderDisplayName || parentReplyMsg.senderUsername || 'Reply'
+                    : 'Reply';
+                const replyContent = replyInfo
+                  ? replyInfo.deleted
+                    ? 'This message was deleted'
+                    : replyInfo.content || ''
+                  : parentReplyMsg
+                    ? parentReplyMsg.deleted || parentReplyMsg.deletedAt != null
+                      ? 'This message was deleted'
+                      : parentReplyMsg.content || ''
+                    : '';
 
                 // Determine read receipt status for own message
                 const isRead =
@@ -924,7 +1012,30 @@ export const ConversationPage = () => {
                   targetMember?.lastReadSeq != null &&
                   msg.seq <= targetMember.lastReadSeq;
 
-                const msgReactions = reactionsState[msg.id] || {};
+                const localReactions = reactionsState[msg.id];
+                const normalizedReactions: Array<{
+                  emoji: string;
+                  count: number;
+                  users: Array<{
+                    id: string;
+                    username?: string | null;
+                    displayName?: string | null;
+                  }>;
+                }> = Array.isArray(msg.reactions)
+                  ? msg.reactions
+                  : msg.reactions && typeof msg.reactions === 'object'
+                    ? Object.entries(msg.reactions).map(([emoji, userIds]) => ({
+                        emoji,
+                        count: userIds.length,
+                        users: userIds.map((id) => ({ id, username: null, displayName: null })),
+                      }))
+                    : localReactions
+                      ? Object.entries(localReactions).map(([emoji, userIds]) => ({
+                          emoji,
+                          count: userIds.length,
+                          users: userIds.map((id) => ({ id, username: null, displayName: null })),
+                        }))
+                      : [];
 
                 return (
                   <div
@@ -992,7 +1103,7 @@ export const ConversationPage = () => {
                                 type="button"
                                 onClick={() => {
                                   setEditingMessageId(msg.id);
-                                  setEditingContent(msg.content);
+                                  setEditingContent(msg.content || '');
                                 }}
                                 className="p-1 text-slate-400 hover:text-primary transition-colors cursor-pointer"
                                 title="Edit message"
@@ -1029,7 +1140,7 @@ export const ConversationPage = () => {
                           }`}
                         >
                           {/* Replied Parent Message Quote */}
-                          {parentReplyMsg && !isDeleted && (
+                          {(replyInfo || parentReplyMsg) && !isDeleted && (
                             <div
                               className={`text-[11px] mb-2 p-1.5 pl-2.5 rounded-lg border-l-2 max-w-full truncate ${
                                 isOwn
@@ -1038,17 +1149,16 @@ export const ConversationPage = () => {
                               }`}
                             >
                               <span className="font-semibold block truncate">
-                                {parentReplyMsg.senderId === currentUser?.id ? 'You' : 'Reply'}
+                                {replySenderName}
                               </span>
-                              <span className="truncate block opacity-90">
-                                {parentReplyMsg.content}
-                              </span>
+                              <span className="truncate block opacity-90">{replyContent}</span>
                             </div>
                           )}
 
                           {/* Message Body */}
                           {isDeleted ? (
-                            <span className="italic opacity-60 text-xs">
+                            <span className="italic opacity-70 text-xs flex items-center gap-1.5 py-0.5">
+                              <Trash2 className="w-3.5 h-3.5 opacity-60" />
                               This message was deleted
                             </span>
                           ) : isEditingThis ? (
@@ -1084,18 +1194,18 @@ export const ConversationPage = () => {
                               <button
                                 type="button"
                                 onClick={() =>
-                                  setPreviewImageUrl(msg.content.split('\n')[0] || null)
+                                  setPreviewImageUrl((msg.content || '').split('\n')[0] || null)
                                 }
                                 className="block p-0 bg-transparent border-none cursor-pointer rounded-xl overflow-hidden hover:opacity-95 transition-opacity"
                                 title="Click to view full image"
                               >
                                 <img
-                                  src={msg.content.split('\n')[0]}
+                                  src={(msg.content || '').split('\n')[0]}
                                   alt="Shared attachment"
                                   className="max-w-xs sm:max-w-sm rounded-xl object-cover max-h-60"
                                 />
                               </button>
-                              {msg.content.includes('\n') && (
+                              {msg.content?.includes('\n') && (
                                 <p className="text-xs pt-1">
                                   {msg.content.substring(msg.content.indexOf('\n') + 1)}
                                 </p>
@@ -1104,7 +1214,7 @@ export const ConversationPage = () => {
                           ) : msg.type === 'FILE' ? (
                             /* Document / File Message */
                             <a
-                              href={msg.content}
+                              href={msg.content || '#'}
                               target="_blank"
                               rel="noreferrer"
                               className={`flex items-center space-x-2.5 p-2 rounded-xl transition-colors ${
@@ -1116,7 +1226,7 @@ export const ConversationPage = () => {
                               <FileText className="w-6 h-6 text-primary shrink-0" />
                               <div className="min-w-0 pr-2">
                                 <span className="text-xs font-semibold block truncate max-w-[160px]">
-                                  {msg.content.split('/').pop() || 'Attachment'}
+                                  {(msg.content || '').split('/').pop() || 'Attachment'}
                                 </span>
                                 <span className="text-[10px] opacity-75">
                                   Click to view document
@@ -1126,7 +1236,7 @@ export const ConversationPage = () => {
                             </a>
                           ) : (
                             /* Standard Text Message */
-                            msg.content
+                            msg.content || ''
                           )}
 
                           {/* Own Read Status Icon */}
@@ -1146,24 +1256,38 @@ export const ConversationPage = () => {
                       </div>
 
                       {/* Reactions Pill Display */}
-                      {Object.keys(msgReactions).length > 0 && !isDeleted && (
+                      {normalizedReactions.length > 0 && !isDeleted && (
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {Object.entries(msgReactions).map(([emoji, userIds]) => {
+                          {normalizedReactions.map((reaction) => {
                             const hasUserReacted =
-                              currentUser?.id && userIds.includes(currentUser.id);
+                              !!currentUser?.id &&
+                              reaction.users.some((u) => u.id === currentUser.id);
+                            const userNames = reaction.users
+                              .map((u) =>
+                                u.id === currentUser?.id
+                                  ? 'You'
+                                  : u.displayName || u.username || 'User',
+                              )
+                              .join(', ');
+
                             return (
                               <button
-                                key={emoji}
+                                key={reaction.emoji}
                                 type="button"
-                                onClick={() => handleToggleReaction(msg.id, emoji)}
-                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
+                                onClick={() => handleToggleReaction(msg.id, reaction.emoji)}
+                                title={
+                                  userNames
+                                    ? `${reaction.emoji} by ${userNames}`
+                                    : `${reaction.count} reaction${reaction.count > 1 ? 's' : ''}`
+                                }
+                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
                                   hasUserReacted
-                                    ? 'bg-primary/10 border-primary/30 text-primary'
+                                    ? 'bg-primary/10 border-primary/30 text-primary shadow-2xs font-bold'
                                     : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
                                 }`}
                               >
-                                <span className="mr-1">{emoji}</span>
-                                <span className="text-[10px]">{userIds.length}</span>
+                                <span className="mr-1">{reaction.emoji}</span>
+                                <span className="text-[10px]">{reaction.count}</span>
                               </button>
                             );
                           })}

@@ -31,4 +31,7 @@ export type {
   Message,
   MessageType,
   SendMessageRequest,
+  MessageReaction,
+  MessageReactionUser,
+  MessageReply,
 } from './api/conversations-api';

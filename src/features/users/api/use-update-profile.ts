@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from './users-api';
 import { toast } from 'sonner';
 import { useSession } from '@/features/auth';
+import { showApiError } from '@/shared/api/api-error';
 
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
@@ -19,7 +20,7 @@ export function useUpdateProfile() {
       toast.success('Profile updated successfully');
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to update profile');
+      showApiError(error, 'Failed to update profile');
     },
   });
 }

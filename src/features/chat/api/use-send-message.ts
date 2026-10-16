@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { conversationsApi } from './conversations-api';
 import type { SendMessageRequest } from './conversations-api';
-import { toast } from 'sonner';
+import { showApiError } from '@/shared/api/api-error';
 
 export function useSendMessage(conversationId: string) {
   const queryClient = useQueryClient();
@@ -14,7 +14,7 @@ export function useSendMessage(conversationId: string) {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to send message');
+      showApiError(error, 'Failed to send message');
     },
   });
 }

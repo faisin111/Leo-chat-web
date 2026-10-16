@@ -192,9 +192,11 @@ export const ConversationPage = () => {
       }
     });
 
-    // 5. Listen for errors on /user/queue/errors
     const cleanupErrors = wsService.addErrorListener((err) => {
-      toast.error(err.message || 'Action failed');
+      toast.error('Chat Error', {
+        description: err.message || 'An error occurred during real-time messaging',
+        duration: 5000,
+      });
     });
 
     // 6. Listen for notifications on /user/queue/notifications

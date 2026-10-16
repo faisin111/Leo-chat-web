@@ -6,6 +6,7 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { KeyRound, Shield, AlertTriangle, Loader2, User, Search, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { showApiError } from '@/shared/api/api-error';
 
 export const OwnershipPage = () => {
   const currentUser = useSession((s) => s.user);
@@ -39,10 +40,10 @@ export const OwnershipPage = () => {
       }, 1500);
     },
     onError: (err: unknown) => {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Ownership transfer rejected. Verify your current password and target user eligibility.';
-      toast.error(msg);
+      showApiError(
+        err,
+        'Ownership transfer rejected. Verify your current password and target user eligibility.',
+      );
       setIsConfirmOpen(false);
     },
   });

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { showApiError } from '@/shared/api/api-error';
 
 export const ConversationsPage = () => {
   const queryClient = useQueryClient();
@@ -73,10 +74,7 @@ export const ConversationsPage = () => {
       setStatusReason('');
     },
     onError: (err: unknown) => {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to update conversation status';
-      toast.error(msg);
+      showApiError(err, 'Failed to update conversation status');
     },
   });
 

@@ -1,9 +1,18 @@
 import type { PropsWithChildren } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, MutationCache } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { SessionBootstrap } from './SessionBootstrap';
+import { showApiError } from '@/shared/api/api-error';
 
 const queryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onError: (error, _variables, _context, mutation) => {
+      // Surface unhandled mutation errors globally with clear backend details
+      if (!mutation.options.onError) {
+        showApiError(error);
+      }
+    },
+  }),
   defaultOptions: {
     queries: {
       staleTime: 30_000,
@@ -27,6 +36,8 @@ export function AppProviders({ children }: PropsWithChildren) {
       <SessionBootstrap>{children}</SessionBootstrap>
       <Toaster
         position="top-right"
+        closeButton
+        expand
         className="toaster group"
         toastOptions={{
           classNames: {

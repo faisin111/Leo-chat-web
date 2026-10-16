@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { showApiError } from '@/shared/api/api-error';
 // eslint-disable-next-line no-restricted-imports
 import { useUpdateProfile } from '@/features/users/api/use-update-profile';
 // eslint-disable-next-line no-restricted-imports
@@ -78,10 +79,7 @@ export const ProfilePage = () => {
       await updateProfile.mutateAsync({ profilePictureUrl: res.url });
       toast.success('Profile photo updated successfully');
     } catch (err: unknown) {
-      const errorMsg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to upload profile photo';
-      toast.error(errorMsg);
+      showApiError(err, 'Failed to upload profile photo');
     } finally {
       setIsUploadingPhoto(false);
       if (fileInputRef.current) {

@@ -17,6 +17,7 @@ import {
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { showApiError } from '@/shared/api/api-error';
 
 export const UsersPage = () => {
   const queryClient = useQueryClient();
@@ -68,10 +69,7 @@ export const UsersPage = () => {
       setStatusReason('');
     },
     onError: (err: unknown) => {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to update user status';
-      toast.error(msg);
+      showApiError(err, 'Failed to update user status');
     },
   });
 
@@ -85,10 +83,7 @@ export const UsersPage = () => {
       setSelectedUserForDelete(null);
     },
     onError: (err: unknown) => {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to delete user';
-      toast.error(msg);
+      showApiError(err, 'Failed to delete user');
     },
     onSettled: () => setIsDeleting(false),
   });

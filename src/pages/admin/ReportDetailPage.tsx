@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { showApiError } from '@/shared/api/api-error';
 
 export const ReportDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -43,10 +44,7 @@ export const ReportDetailPage = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-reports'] });
     },
     onError: (err: unknown) => {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to resolve report';
-      toast.error(msg);
+      showApiError(err, 'Failed to resolve report');
     },
   });
 
@@ -58,10 +56,7 @@ export const ReportDetailPage = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-report', id] });
     },
     onError: (err: unknown) => {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to delete message';
-      toast.error(msg);
+      showApiError(err, 'Failed to delete message');
     },
   });
 

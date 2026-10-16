@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { showApiError } from '@/shared/api/api-error';
 // eslint-disable-next-line no-restricted-imports
 import { conversationsApi } from './conversations-api';
 
@@ -17,8 +18,7 @@ export const useAddGroupMembers = () => {
       // Optionally invalidate queries related to members, but conversation doesn't change much
     },
     onError: (error) => {
-      console.error('Failed to add members:', error);
-      toast.error('Failed to add members');
+      showApiError(error, 'Failed to add members');
     },
   });
 };

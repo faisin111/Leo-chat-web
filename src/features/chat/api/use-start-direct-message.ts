@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { conversationsApi } from './conversations-api';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { showApiError } from '@/shared/api/api-error';
 
 export function useStartDirectMessage() {
   const queryClient = useQueryClient();
@@ -17,7 +17,7 @@ export function useStartDirectMessage() {
       navigate(`/app/c/${data.id}`);
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to start conversation');
+      showApiError(error, 'Failed to start conversation');
     },
   });
 }

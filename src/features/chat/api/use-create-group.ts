@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { showApiError } from '@/shared/api/api-error';
 // eslint-disable-next-line no-restricted-imports
 import { conversationsApi } from './conversations-api';
 
@@ -23,8 +24,7 @@ export const useCreateGroup = () => {
       toast.success('Group created successfully');
     },
     onError: (error) => {
-      console.error('Failed to create group:', error);
-      toast.error('Failed to create group');
+      showApiError(error, 'Failed to create group');
     },
   });
 };

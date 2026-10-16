@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { showApiError } from '@/shared/api/api-error';
 
 export const UserDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -60,10 +61,7 @@ export const UserDetailPage = () => {
       setStatusReason('');
     },
     onError: (err: unknown) => {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to update user status';
-      toast.error(msg);
+      showApiError(err, 'Failed to update user status');
     },
   });
 
@@ -75,10 +73,7 @@ export const UserDetailPage = () => {
       navigate('/app/admin/users');
     },
     onError: (err: unknown) => {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to delete user';
-      toast.error(msg);
+      showApiError(err, 'Failed to delete user');
     },
   });
 
@@ -88,10 +83,7 @@ export const UserDetailPage = () => {
       toast.success('Force logout command dispatched');
     },
     onError: (err: unknown) => {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Stateless JWT tokens cannot be revoked server-side';
-      toast.info(msg);
+      showApiError(err, 'Stateless JWT tokens cannot be revoked server-side');
     },
   });
 

@@ -1,6 +1,7 @@
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
+import { Avatar } from '@/shared/ui/avatar';
 import { useSession, isAdminRole } from '@/features/auth';
 import {
   MonitorSmartphone,
@@ -147,19 +148,12 @@ export const ProfilePage = () => {
             </div>
 
             <div className="flex items-center space-x-4 mb-6">
-              <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xl shrink-0 overflow-hidden">
-                {user?.profilePictureUrl ? (
-                  <img
-                    src={user.profilePictureUrl}
-                    alt={user.displayName || 'User'}
-                    className="w-full h-full object-cover"
-                  />
-                ) : user?.displayName ? (
-                  getInitials(user.displayName)
-                ) : (
-                  'U'
-                )}
-              </div>
+              <Avatar
+                src={user?.profilePictureUrl}
+                alt={user?.displayName || 'User'}
+                className="w-16 h-16 bg-primary/10 text-primary font-bold text-xl shrink-0"
+                fallback={user?.displayName ? getInitials(user.displayName) : 'U'}
+              />
               <div>
                 <input
                   type="file"

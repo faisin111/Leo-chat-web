@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, type AdminUserItem, type AdminUserStatus } from '@/features/admin';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
+import { Avatar } from '@/shared/ui/avatar';
 import { UserTableSkeleton } from '@/shared/ui/skeleton';
 import {
   Search,
@@ -188,17 +189,12 @@ export const UsersPage = () => {
                     <tr key={u.id} className="hover:bg-slate-50/60 transition-colors group">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
-                            {u.profilePictureUrl ? (
-                              <img
-                                src={u.profilePictureUrl}
-                                alt={name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              initials
-                            )}
-                          </div>
+                          <Avatar
+                            src={u.profilePictureUrl}
+                            alt={name}
+                            className="w-9 h-9 bg-slate-100 text-slate-700 font-bold text-xs shrink-0"
+                            fallback={initials}
+                          />
                           <div className="min-w-0">
                             <Link
                               to={`/app/admin/users/${u.id}`}

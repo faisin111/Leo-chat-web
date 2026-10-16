@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { Input } from '@/shared/ui/input';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { Avatar } from '@/shared/ui/avatar';
 import { useParams, Link } from 'react-router-dom';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import type { KeyboardEvent } from 'react';
@@ -348,6 +349,7 @@ export const ConversationPage = () => {
   const otherUserId = !isGroup
     ? conversation?.targetUserId ||
       directKeyUserId ||
+      targetMember?.userId ||
       usernameMatchedUser?.id ||
       allMessages.find((m) => m.senderId && m.senderId !== currentUser?.id)?.senderId ||
       (conversation?.createdBy && conversation.createdBy !== currentUser?.id
@@ -359,16 +361,16 @@ export const ConversationPage = () => {
 
   const headerName = isGroup
     ? conversation?.title || 'Group Conversation'
-    : targetUserProfile?.displayName ||
-      targetUserProfile?.username ||
-      conversation?.targetDisplayName ||
+    : conversation?.targetDisplayName ||
       conversation?.targetUsername ||
+      targetUserProfile?.displayName ||
+      targetUserProfile?.username ||
       'Direct Message';
 
   const headerAvatar = isGroup
     ? conversation?.avatarUrl
-    : targetUserProfile?.profilePictureUrl ||
-      conversation?.targetAvatarUrl ||
+    : conversation?.targetAvatarUrl ||
+      targetUserProfile?.profilePictureUrl ||
       conversation?.avatarUrl;
 
   const headerInitials = (headerName || 'U').substring(0, 2).toUpperCase();
@@ -630,17 +632,20 @@ export const ConversationPage = () => {
               className="flex items-center space-x-2.5 sm:space-x-3 text-left rounded-2xl p-1 -ml-1 transition-colors hover:bg-slate-50 cursor-pointer group/header min-w-0"
               title="View details"
             >
-              <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden relative border border-slate-100">
-                {isGroup && !headerAvatar ? (
-                  <Users className="w-5 h-5 text-slate-500" />
-                ) : isTargetUserLoading && !headerAvatar ? (
-                  <Skeleton className="w-full h-full rounded-full" />
-                ) : headerAvatar ? (
-                  <img src={headerAvatar} alt={headerName} className="w-full h-full object-cover" />
-                ) : (
-                  headerInitials
-                )}
-              </div>
+              <Avatar
+                src={headerAvatar}
+                alt={headerName}
+                className="w-10 h-10 bg-slate-100 text-slate-700 font-bold text-xs shrink-0 border border-slate-100"
+                fallback={
+                  isGroup && !headerAvatar ? (
+                    <Users className="w-5 h-5 text-slate-500" />
+                  ) : isTargetUserLoading && !headerAvatar ? (
+                    <Skeleton className="w-full h-full rounded-full" />
+                  ) : (
+                    headerInitials
+                  )
+                }
+              />
               <div className="min-w-0">
                 <div className="flex items-center space-x-1.5 min-w-0">
                   <h2 className="font-semibold text-sm text-slate-900 group-hover/header:text-primary transition-colors truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs md:max-w-sm flex items-center gap-1.5">
@@ -886,10 +891,23 @@ export const ConversationPage = () => {
                 const isEdited = msg.editedAt != null;
                 const isEditingThis = editingMessageId === msg.id;
 
-                const initials = isOwn ? (currentUser?.displayName?.[0] || 'U').toUpperCase() : 'U';
-                const name = isOwn
-                  ? currentUser?.displayName || 'You'
-                  : msg.senderId.substring(0, 8);
+                const senderAvatar = isOwn
+                  ? currentUser?.profilePictureUrl
+                  : !isGroup
+                    ? conversation?.targetAvatarUrl || targetUserProfile?.profilePictureUrl
+                    : undefined;
+
+                const senderName = isOwn
+                  ? currentUser?.displayName || currentUser?.username || 'You'
+                  : !isGroup
+                    ? conversation?.targetDisplayName ||
+                      conversation?.targetUsername ||
+                      targetUserProfile?.displayName ||
+                      targetUserProfile?.username ||
+                      'User'
+                    : `User ${msg.senderId.substring(0, 6)}`;
+
+                const senderInitials = (senderName || 'U').substring(0, 2).toUpperCase();
                 const color = isOwn ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-700';
                 const msgDate = msg.createdAt ? new Date(msg.createdAt) : new Date();
                 const time = isNaN(msgDate.getTime())
@@ -915,18 +933,19 @@ export const ConversationPage = () => {
                       isOwn ? 'flex-row-reverse space-x-reverse' : ''
                     } relative`}
                   >
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-1 ${color}`}
-                    >
-                      {initials}
-                    </div>
+                    <Avatar
+                      src={senderAvatar}
+                      alt={senderName}
+                      className={`w-8 h-8 font-bold text-xs shrink-0 mt-1 ${color}`}
+                      fallback={senderInitials}
+                    />
 
                     <div
                       className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[85%] sm:max-w-[75%]`}
                     >
                       {/* Name and time header */}
                       <div className="flex items-baseline space-x-2 mb-1">
-                        <span className="text-xs font-semibold text-slate-900">{name}</span>
+                        <span className="text-xs font-semibold text-slate-900">{senderName}</span>
                         <span className="text-[10px] text-slate-400">{time}</span>
                         {isEdited && !isDeleted && (
                           <span className="text-[9px] text-slate-400 italic">(edited)</span>

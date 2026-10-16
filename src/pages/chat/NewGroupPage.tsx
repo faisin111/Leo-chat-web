@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { Avatar } from '@/shared/ui/avatar';
 import { useState, useEffect } from 'react';
 import { useSearchUsers, type UserSearchItem } from '@/features/users';
 import { useCreateGroup } from '@/features/chat';
@@ -255,15 +256,12 @@ function SelectableUser({
       >
         {selected && <span className="text-xs font-bold">✓</span>}
       </div>
-      <div
-        className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm mr-4 shrink-0 overflow-hidden bg-slate-100 text-slate-700`}
-      >
-        {avatarUrl ? (
-          <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
-        ) : (
-          initials
-        )}
-      </div>
+      <Avatar
+        src={avatarUrl}
+        alt={name}
+        className="w-10 h-10 font-bold text-sm mr-4 shrink-0 bg-slate-100 text-slate-700"
+        fallback={initials}
+      />
       <div className="flex-1 min-w-0 pr-4">
         <p className="font-semibold text-sm text-slate-900 truncate">{name}</p>
         <p className="text-xs text-slate-500 truncate">{handle}</p>
@@ -292,15 +290,12 @@ function SelectedMember({
   return (
     <div className="flex items-center justify-between group">
       <div className="flex items-center space-x-3 min-w-0 pr-2">
-        <div
-          className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold overflow-hidden shrink-0 ${memberRole === 'OWNER' ? 'bg-slate-900 text-white' : 'bg-primary/10 text-primary'}`}
-        >
-          {avatarUrl ? (
-            <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
-          ) : (
-            initials
-          )}
-        </div>
+        <Avatar
+          src={avatarUrl}
+          alt={name}
+          className={`w-8 h-8 text-[10px] font-bold shrink-0 ${memberRole === 'OWNER' ? 'bg-slate-900 text-white' : 'bg-primary/10 text-primary'}`}
+          fallback={initials}
+        />
         <span className="text-xs font-semibold text-slate-900 truncate">{name}</span>
       </div>
       <div className="flex items-center space-x-2 shrink-0">

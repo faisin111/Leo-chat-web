@@ -21,6 +21,7 @@ import {
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { Avatar } from '@/shared/ui/avatar';
 import { useSearchUsers, usePresence, useUserById, type UserSearchItem } from '@/features/users';
 import { useStartDirectMessage } from '@/features/chat';
 import { useSession } from '@/features/auth';
@@ -477,17 +478,12 @@ function UserGridCard({
         <div className="flex items-start justify-between mb-4">
           {/* Avatar with Live Online Indicator */}
           <div className="relative">
-            <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-700 font-bold text-base flex items-center justify-center overflow-hidden border border-slate-200/80">
-              {user.profilePictureUrl ? (
-                <img
-                  src={user.profilePictureUrl}
-                  alt={name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                initials
-              )}
-            </div>
+            <Avatar
+              src={user.profilePictureUrl}
+              alt={name}
+              className="w-12 h-12 rounded-xl bg-slate-100 text-slate-700 font-bold text-base border border-slate-200/80"
+              fallback={initials}
+            />
             {online ? (
               <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full ring-2 ring-emerald-500/20" />
             ) : (
@@ -584,13 +580,12 @@ function UserListRow({
     >
       <div className="flex items-center gap-3.5 min-w-0">
         <div className="relative shrink-0">
-          <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 font-bold text-sm flex items-center justify-center overflow-hidden border border-slate-200/80">
-            {user.profilePictureUrl ? (
-              <img src={user.profilePictureUrl} alt={name} className="w-full h-full object-cover" />
-            ) : (
-              initials
-            )}
-          </div>
+          <Avatar
+            src={user.profilePictureUrl}
+            alt={name}
+            className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 font-bold text-sm border border-slate-200/80"
+            fallback={initials}
+          />
           {online ? (
             <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
           ) : (
@@ -708,17 +703,12 @@ function UserInspectorPanel({
       {/* Profile Header Avatar */}
       <div className="flex flex-col items-center text-center pb-6 border-b border-slate-100">
         <div className="relative mb-3">
-          <div className="w-20 h-20 rounded-2xl bg-slate-100 text-slate-700 font-bold text-2xl flex items-center justify-center overflow-hidden border-2 border-slate-200/80 shadow-xs">
-            {profile.profilePictureUrl ? (
-              <img
-                src={profile.profilePictureUrl}
-                alt={name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              initials
-            )}
-          </div>
+          <Avatar
+            src={profile.profilePictureUrl}
+            alt={name}
+            className="w-20 h-20 rounded-2xl bg-slate-100 text-slate-700 font-bold text-2xl border-2 border-slate-200/80 shadow-xs"
+            fallback={initials}
+          />
           {online ? (
             <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full ring-2 ring-emerald-500/20" />
           ) : (

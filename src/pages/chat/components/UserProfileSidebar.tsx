@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { Avatar } from '@/shared/ui/avatar';
 import { useUserById, usePresence } from '@/features/users';
 import {
   useConversationMembers,
@@ -153,7 +154,7 @@ export const UserProfileSidebar = ({
     : user?.displayName || user?.username || fallbackName || 'User';
   const username = user?.username || fallbackUsername;
   const initials = (displayName || 'U').substring(0, 2).toUpperCase();
-  const avatarUrl = user?.profilePictureUrl || fallbackAvatar;
+  const avatarUrl = fallbackAvatar || user?.profilePictureUrl;
 
   return (
     <aside className="w-full h-full border-l border-slate-200 bg-white flex flex-col shrink-0 shadow-2xl lg:shadow-none animate-in slide-in-from-right duration-200">
@@ -178,17 +179,20 @@ export const UserProfileSidebar = ({
         {/* Avatar & Main Info */}
         <div className="flex flex-col items-center text-center">
           <div className="relative mb-4">
-            <div className="w-24 h-24 rounded-full border-4 border-slate-50 bg-slate-100 text-slate-700 font-bold text-2xl flex items-center justify-center overflow-hidden shadow-sm">
-              {isGroup && !avatarUrl ? (
-                <Users className="w-10 h-10 text-slate-400" />
-              ) : isUserLoading && !avatarUrl ? (
-                <Skeleton className="w-full h-full rounded-full" />
-              ) : avatarUrl ? (
-                <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
-              ) : (
-                initials
-              )}
-            </div>
+            <Avatar
+              src={avatarUrl}
+              alt={displayName}
+              className="w-24 h-24 border-4 border-slate-50 bg-slate-100 text-slate-700 font-bold text-2xl shadow-sm"
+              fallback={
+                isGroup && !avatarUrl ? (
+                  <Users className="w-10 h-10 text-slate-400" />
+                ) : isUserLoading && !avatarUrl ? (
+                  <Skeleton className="w-full h-full rounded-full" />
+                ) : (
+                  initials
+                )
+              }
+            />
             {!isGroup && userId && isOnline(userId) && (
               <span className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-4 border-white rounded-full ring-2 ring-emerald-500/20" />
             )}
@@ -587,17 +591,12 @@ function MemberRow({ member, currentUserId, currentUserRole, conversationId }: M
   return (
     <div className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors group relative">
       <div className="flex items-center space-x-3 min-w-0 pr-2">
-        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-700 overflow-hidden shrink-0">
-          {memberUser?.profilePictureUrl ? (
-            <img
-              src={memberUser.profilePictureUrl}
-              alt={memberName}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            memberInitials
-          )}
-        </div>
+        <Avatar
+          src={memberUser?.profilePictureUrl}
+          alt={memberName}
+          className="w-8 h-8 bg-slate-100 text-slate-700 font-bold text-xs shrink-0"
+          fallback={memberInitials}
+        />
         <div className="min-w-0">
           <p className="text-xs font-semibold text-slate-900 truncate flex items-center gap-1">
             <span>{memberName}</span>

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { Avatar } from '@/shared/ui/avatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUserById, usePresence } from '@/features/users';
 
@@ -44,7 +45,7 @@ export const UserProfileModal = ({
 
   const displayName = user?.displayName || user?.username || fallbackName || 'User';
   const initials = displayName.substring(0, 2).toUpperCase();
-  const avatarUrl = user?.profilePictureUrl || fallbackAvatar;
+  const avatarUrl = fallbackAvatar || user?.profilePictureUrl;
 
   return (
     <AnimatePresence>
@@ -84,19 +85,14 @@ export const UserProfileModal = ({
               {/* Avatar overlapping banner */}
               <div className="relative -mt-14 mb-4 flex items-end justify-between">
                 <div className="relative">
-                  <div className="w-24 h-24 rounded-full border-4 border-white bg-slate-100 text-slate-700 font-bold text-2xl flex items-center justify-center overflow-hidden shadow-md">
-                    {isLoading ? (
-                      <Skeleton className="w-full h-full rounded-full" />
-                    ) : avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt={displayName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      initials
-                    )}
-                  </div>
+                  <Avatar
+                    src={avatarUrl}
+                    alt={displayName}
+                    className="w-24 h-24 border-4 border-white bg-slate-100 text-slate-700 font-bold text-2xl shadow-md"
+                    fallback={
+                      isLoading ? <Skeleton className="w-full h-full rounded-full" /> : initials
+                    }
+                  />
                   {userId && isOnline(userId) && (
                     <span className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-4 border-white rounded-full ring-2 ring-emerald-500/20" />
                   )}

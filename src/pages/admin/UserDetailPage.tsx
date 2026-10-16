@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, type AdminUserStatus } from '@/features/admin';
 import { Button } from '@/shared/ui/button';
 import { UserDetailSkeleton } from '@/shared/ui/skeleton';
+import { Avatar } from '@/shared/ui/avatar';
 import {
   ArrowLeft,
   Mail,
@@ -184,17 +185,12 @@ export const UserDetailPage = () => {
         {/* Left Column: Avatar & Quick Actions */}
         <div className="space-y-6">
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 text-center">
-            <div className="w-24 h-24 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-2xl mx-auto mb-4 overflow-hidden border-2 border-slate-200/80">
-              {user.profilePictureUrl ? (
-                <img
-                  src={user.profilePictureUrl}
-                  alt={displayName}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                initials
-              )}
-            </div>
+            <Avatar
+              src={user.profilePictureUrl}
+              alt={displayName}
+              className="w-24 h-24 bg-slate-100 text-slate-700 font-bold text-2xl mx-auto mb-4 border-2 border-slate-200/80 shadow-xs"
+              fallback={initials}
+            />
 
             <h2 className="text-lg font-bold text-slate-900 mb-0.5">{displayName}</h2>
             <p className="text-xs text-slate-400 font-mono mb-4">@{user.username}</p>

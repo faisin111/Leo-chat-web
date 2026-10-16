@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Settings2, Loader2, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
+import { Avatar } from '@/shared/ui/avatar';
 import { useUpdateConversation } from '@/features/chat';
 
 interface EditGroupModalProps {
@@ -112,20 +113,12 @@ export const EditGroupModal = ({
                   Avatar Image URL (Optional)
                 </label>
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
-                    {avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '';
-                        }}
-                      />
-                    ) : (
-                      <ImageIcon className="w-5 h-5 text-slate-400" />
-                    )}
-                  </div>
+                  <Avatar
+                    src={avatarUrl.trim() || null}
+                    alt="Preview"
+                    className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 shrink-0"
+                    fallback={<ImageIcon className="w-5 h-5 text-slate-400" />}
+                  />
                   <Input
                     value={avatarUrl}
                     onChange={(e) => setAvatarUrl(e.target.value)}

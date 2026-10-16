@@ -3,6 +3,7 @@ import { AnimatedOutlet } from './AnimatedOutlet';
 import { Search, PenSquare, Hash, X, Pin, BellOff, Users } from 'lucide-react';
 import { Input } from '@/shared/ui/input';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { Avatar } from '@/shared/ui/avatar';
 import { useConversations, useConversationsTyping, useTypingStore } from '@/features/chat';
 import { formatDistanceToNow } from 'date-fns';
 import { Link, useLocation } from 'react-router-dom';
@@ -162,7 +163,11 @@ export default function ChatLayout() {
                     type={conv.type}
                     initials={displayName.substring(0, 2).toUpperCase()}
                     name={displayName}
-                    avatarUrl={conv.avatarUrl || conv.targetAvatarUrl}
+                    avatarUrl={
+                      conv.type === 'GROUP'
+                        ? conv.avatarUrl
+                        : conv.targetAvatarUrl || conv.avatarUrl
+                    }
                     message={conv.type === 'GROUP' ? 'Group conversation' : 'Direct message'}
                     time={
                       conv.lastMessageAt
@@ -276,17 +281,14 @@ function ChatItem({
       }`}
     >
       <div className="relative shrink-0 mr-3">
-        <div
-          className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm overflow-hidden ${color}`}
-        >
-          {type === 'GROUP' && !avatarUrl ? (
-            <Users className="w-5 h-5 text-slate-500" />
-          ) : avatarUrl ? (
-            <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
-          ) : (
-            initials
-          )}
-        </div>
+        <Avatar
+          src={avatarUrl}
+          alt={name}
+          className={`w-10 h-10 text-sm font-bold ${color}`}
+          fallback={
+            type === 'GROUP' && !avatarUrl ? <Users className="w-5 h-5 text-slate-500" /> : initials
+          }
+        />
         {isTyping && (
           <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5" title="Typing...">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />

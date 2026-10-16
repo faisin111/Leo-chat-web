@@ -1,6 +1,7 @@
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { Avatar } from '@/shared/ui/avatar';
 import { Search, UserPlus, ArrowLeft, Loader2, MessageSquarePlus, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -107,19 +108,14 @@ export const NewChatPage = () => {
 
                 <div className="flex flex-col items-center text-center mt-4">
                   <div className="relative mb-4">
-                    <div className="w-20 h-20 rounded-full flex items-center justify-center font-bold text-2xl bg-primary/10 text-primary overflow-hidden shadow-sm">
-                      {selectedUser.profilePictureUrl ? (
-                        <img
-                          src={selectedUser.profilePictureUrl}
-                          alt={selectedUser.username}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        (selectedUser.displayName || selectedUser.username)
-                          .substring(0, 2)
-                          .toUpperCase()
-                      )}
-                    </div>
+                    <Avatar
+                      src={selectedUser.profilePictureUrl}
+                      alt={selectedUser.username}
+                      className="w-20 h-20 font-bold text-2xl bg-primary/10 text-primary shadow-sm"
+                      fallback={(selectedUser.displayName || selectedUser.username)
+                        .substring(0, 2)
+                        .toUpperCase()}
+                    />
                     {selectedUser.status === 'ONLINE' && (
                       <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 border-4 border-white rounded-full" />
                     )}
@@ -180,15 +176,12 @@ function UserRow({ name, handle, status, initials, color, onClick, isPending, av
     >
       <div className="flex items-center space-x-4">
         <div className="relative">
-          <div
-            className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm overflow-hidden ${color}`}
-          >
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
-            ) : (
-              initials
-            )}
-          </div>
+          <Avatar
+            src={avatarUrl}
+            alt={name}
+            className={`w-12 h-12 font-bold text-sm ${color}`}
+            fallback={initials}
+          />
           {isOnline && (
             <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full" />
           )}

@@ -9,9 +9,10 @@ import {
   Loader2,
   UserPlus,
   Trash2,
+  ArrowLeft,
 } from 'lucide-react';
 import { Skeleton } from '@/shared/ui/skeleton';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import type { KeyboardEvent } from 'react';
 // eslint-disable-next-line no-restricted-imports
@@ -436,72 +437,88 @@ export const ConversationPage = () => {
           conversationId={conversationId || ''}
         />
         {/* Header */}
-        <header className="h-16 border-b border-slate-100 flex items-center justify-between px-6 shrink-0 bg-white">
-          <button
-            type="button"
-            onClick={() => setIsProfileSidebarOpen((prev) => !prev)}
-            className="flex items-center space-x-3 text-left rounded-2xl p-1.5 -ml-1.5 transition-colors hover:bg-slate-50 cursor-pointer group/header"
-            title="View details"
-          >
-            <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden relative border border-slate-100">
-              {isGroup ? (
-                '#'
-              ) : isTargetUserLoading && !headerAvatar ? (
-                <Skeleton className="w-full h-full rounded-full" />
-              ) : headerAvatar ? (
-                <img src={headerAvatar} alt={headerName} className="w-full h-full object-cover" />
-              ) : (
-                headerInitials
-              )}
-            </div>
-            <div>
-              <div className="flex items-center space-x-1.5">
-                <h2 className="font-semibold text-sm text-slate-900 group-hover/header:text-primary transition-colors">
-                  {isTargetUserLoading && !headerName ? (
-                    <Skeleton className="h-4 w-28 rounded-md" />
-                  ) : (
-                    headerName
-                  )}
-                </h2>
+        <header className="h-16 border-b border-slate-100 flex items-center justify-between px-3 sm:px-6 shrink-0 bg-white">
+          <div className="flex items-center min-w-0 space-x-1 sm:space-x-3">
+            {/* Mobile back to conversation list button */}
+            <Link
+              to="/app"
+              className="md:hidden flex items-center justify-center w-10 h-10 -ml-1 rounded-full text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors shrink-0"
+              aria-label="Back to conversations"
+              title="Back to conversations"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setIsProfileSidebarOpen((prev) => !prev)}
+              className="flex items-center space-x-2.5 sm:space-x-3 text-left rounded-2xl p-1 -ml-1 transition-colors hover:bg-slate-50 cursor-pointer group/header min-w-0"
+              title="View details"
+            >
+              <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden relative border border-slate-100">
+                {isGroup ? (
+                  '#'
+                ) : isTargetUserLoading && !headerAvatar ? (
+                  <Skeleton className="w-full h-full rounded-full" />
+                ) : headerAvatar ? (
+                  <img src={headerAvatar} alt={headerName} className="w-full h-full object-cover" />
+                ) : (
+                  headerInitials
+                )}
               </div>
-              <p className="text-[11px] text-slate-500 font-medium">{headerSubtitle}</p>
-            </div>
-          </button>
-          <div className="flex items-center space-x-2">
+              <div className="min-w-0">
+                <div className="flex items-center space-x-1.5 min-w-0">
+                  <h2 className="font-semibold text-sm text-slate-900 group-hover/header:text-primary transition-colors truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs md:max-w-sm">
+                    {isTargetUserLoading && !headerName ? (
+                      <Skeleton className="h-4 w-28 rounded-md" />
+                    ) : (
+                      headerName
+                    )}
+                  </h2>
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs md:max-w-sm">
+                  {headerSubtitle}
+                </p>
+              </div>
+            </button>
+          </div>
+          <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
             {isGroup && (
               <>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsAddMembersOpen(true)}
-                  className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9"
+                  className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9 min-h-[36px] min-w-[36px]"
                   title="Add members"
                 >
                   <UserPlus className="w-4 h-4" />
                 </Button>
-                <div className="w-px h-4 bg-slate-200 mx-1"></div>
+                <div className="hidden sm:block w-px h-4 bg-slate-200 mx-1"></div>
               </>
             )}
             <Button
               variant="ghost"
               size="icon"
-              className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9"
+              className="hidden sm:inline-flex text-slate-400 hover:text-slate-600 rounded-full h-9 w-9"
+              title="Start call"
             >
               <Phone className="w-4 h-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9"
+              className="hidden sm:inline-flex text-slate-400 hover:text-slate-600 rounded-full h-9 w-9"
+              title="Start video"
             >
               <Video className="w-4 h-4" />
             </Button>
-            <div className="w-px h-4 bg-slate-200 mx-1"></div>
+            <div className="hidden sm:block w-px h-4 bg-slate-200 mx-1"></div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setIsProfileSidebarOpen((prev) => !prev)}
-              className={`text-slate-400 hover:text-slate-600 rounded-full h-9 w-9 cursor-pointer ${
+              className={`text-slate-400 hover:text-slate-600 rounded-full h-9 w-9 min-h-[36px] min-w-[36px] cursor-pointer ${
                 isProfileSidebarOpen ? 'bg-slate-100 text-primary' : ''
               }`}
               title="View details"
@@ -512,7 +529,7 @@ export const ConversationPage = () => {
         </header>
 
         {/* Messages List */}
-        <div className="flex-1 overflow-y-auto p-6 flex flex-col-reverse gap-6 pb-4">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6 flex flex-col-reverse gap-4 sm:gap-6 pb-4">
           {isLoading ? (
             <ChatMessagesSkeleton />
           ) : allMessages.length === 0 ? (
@@ -538,7 +555,7 @@ export const ConversationPage = () => {
                 return (
                   <div
                     key={msg.id}
-                    className={`group flex items-start space-x-3 ${isOwn ? 'flex-row-reverse space-x-reverse' : ''}`}
+                    className={`group flex items-start space-x-2.5 sm:space-x-3 ${isOwn ? 'flex-row-reverse space-x-reverse' : ''}`}
                   >
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-1 ${color}`}
@@ -546,7 +563,7 @@ export const ConversationPage = () => {
                       {initials}
                     </div>
                     <div
-                      className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[70%]`}
+                      className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[85%] sm:max-w-[75%]`}
                     >
                       <div className="flex items-baseline space-x-2 mb-1">
                         <span className="text-xs font-semibold">{name}</span>
@@ -558,7 +575,7 @@ export const ConversationPage = () => {
                             type="button"
                             onClick={() => handleDeleteMessage(msg.id)}
                             disabled={deletingId === msg.id}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer shrink-0"
+                            className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer shrink-0"
                             title="Delete message"
                           >
                             {deletingId === msg.id ? (
@@ -569,7 +586,7 @@ export const ConversationPage = () => {
                           </button>
                         )}
                         <div
-                          className={`px-4 py-2.5 rounded-2xl text-sm ${isOwn ? 'bg-primary text-white rounded-tr-sm' : 'bg-slate-100 text-slate-800 rounded-tl-sm'}`}
+                          className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-sm break-words [overflow-wrap:anywhere] ${isOwn ? 'bg-primary text-white rounded-tr-sm' : 'bg-slate-100 text-slate-800 rounded-tl-sm'}`}
                         >
                           {msg.content}
                         </div>
@@ -598,7 +615,7 @@ export const ConversationPage = () => {
         </div>
 
         {/* Input Area */}
-        <div className="p-4 bg-white border-t border-slate-100">
+        <div className="p-3 sm:p-4 bg-white border-t border-slate-100 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           {/* Typing Indicator */}
           {Object.keys(typingUsers).length > 0 && (
             <div className="flex items-center space-x-2 text-xs text-slate-400 mb-2 px-2">
@@ -624,9 +641,9 @@ export const ConversationPage = () => {
             </div>
           )}
 
-          <div className="flex items-end bg-slate-50 rounded-2xl border border-slate-200 p-1 pl-4 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+          <div className="flex items-end bg-slate-50 rounded-2xl border border-slate-200 p-1 pl-3 sm:pl-4 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
             <textarea
-              className="flex-1 bg-transparent border-none focus:ring-0 resize-none py-3 max-h-32 text-sm focus:outline-none"
+              className="flex-1 bg-transparent border-none focus:ring-0 resize-none py-2.5 sm:py-3 max-h-32 text-base md:text-sm focus:outline-none"
               placeholder="Write a message..."
               rows={1}
               value={content}
@@ -634,36 +651,36 @@ export const ConversationPage = () => {
               onKeyDown={handleKeyDown}
               disabled={sendMessage.isPending}
             />
-            <div className="flex items-center space-x-1 p-2 shrink-0">
+            <div className="flex items-center space-x-1 p-1 sm:p-2 shrink-0">
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-slate-400 hover:text-slate-600 rounded-full h-8 w-8"
+                className="text-slate-400 hover:text-slate-600 rounded-full h-8 w-8 min-h-[36px] min-w-[36px]"
               >
                 <Paperclip className="w-4 h-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-slate-400 hover:text-slate-600 rounded-full h-8 w-8"
+                className="text-slate-400 hover:text-slate-600 rounded-full h-8 w-8 min-h-[36px] min-w-[36px]"
               >
                 <Smile className="w-4 h-4" />
               </Button>
               <Button
                 size="icon"
-                className="rounded-full h-8 w-8 bg-primary text-white hover:bg-primary/90 ml-2 shadow-sm"
+                className="rounded-full h-9 w-9 min-h-[36px] min-w-[36px] bg-primary text-white hover:bg-primary/90 ml-1 sm:ml-2 shadow-sm"
                 onClick={handleSend}
                 disabled={!content.trim() || sendMessage.isPending}
               >
                 {sendMessage.isPending ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <Send className="w-3.5 h-3.5 ml-0.5" />
+                  <Send className="w-4 h-4 ml-0.5" />
                 )}
               </Button>
             </div>
           </div>
-          <p className="text-[10px] text-slate-400 text-center mt-2 font-medium">
+          <p className="hidden sm:block text-[10px] text-slate-400 text-center mt-2 font-medium">
             <strong>Return</strong> to send, <strong>Shift + Return</strong> for new line
           </p>
         </div>
@@ -671,14 +688,24 @@ export const ConversationPage = () => {
 
       {/* Side View Layout Panel for User Details */}
       {isProfileSidebarOpen && (
-        <UserProfileSidebar
-          onClose={() => setIsProfileSidebarOpen(false)}
-          userId={otherUserId}
-          fallbackName={headerName}
-          fallbackUsername={conversation?.targetUsername || usernameMatchedUser?.username}
-          fallbackAvatar={headerAvatar}
-          isGroup={isGroup}
-        />
+        <>
+          {/* Mobile & Tablet Backdrop overlay */}
+          <div
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-30 lg:hidden animate-in fade-in duration-200"
+            onClick={() => setIsProfileSidebarOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="fixed inset-y-0 right-0 z-40 w-full sm:w-80 lg:relative lg:inset-auto lg:w-96 lg:z-auto h-full shrink-0">
+            <UserProfileSidebar
+              onClose={() => setIsProfileSidebarOpen(false)}
+              userId={otherUserId}
+              fallbackName={headerName}
+              fallbackUsername={conversation?.targetUsername || usernameMatchedUser?.username}
+              fallbackAvatar={headerAvatar}
+              isGroup={isGroup}
+            />
+          </div>
+        </>
       )}
     </div>
   );

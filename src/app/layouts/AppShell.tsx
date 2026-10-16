@@ -12,9 +12,9 @@ export default function AppShell() {
   }, []);
 
   return (
-    <div className="flex flex-col-reverse md:flex-row h-[100dvh] bg-background text-foreground overflow-hidden">
+    <div className="flex flex-col md:flex-row h-[100dvh] w-full bg-background text-foreground overflow-hidden">
       <NavigationRail />
-      <main className="flex-1 flex relative overflow-hidden bg-white mb-16 md:mb-0">
+      <main className="flex-1 flex relative overflow-hidden bg-white min-w-0 h-full order-first md:order-last">
         <AnimatedOutlet />
       </main>
     </div>

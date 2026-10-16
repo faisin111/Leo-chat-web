@@ -27,23 +27,30 @@ export function NavigationRail() {
     },
   });
 
+  const isConversationDetail = location.pathname.startsWith('/app/c/');
+
   return (
-    <aside className="w-16 bg-slate-950 flex flex-col items-center py-4 border-r border-slate-900 z-20 shrink-0">
-      {/* App Logo */}
+    <aside
+      className={`${
+        isConversationDetail ? 'hidden md:flex' : 'flex'
+      } w-full md:w-16 h-16 md:h-full bg-slate-950 flex-row md:flex-col items-center justify-around md:justify-between py-2 md:py-4 px-3 md:px-0 border-t md:border-t-0 md:border-r border-slate-900 z-30 shrink-0 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:pb-4 order-last md:order-first`}
+    >
+      {/* App Logo (Desktop only) */}
       <Link
         to="/app"
-        className="w-10 h-10 bg-primary text-primary-foreground rounded-xl flex items-center justify-center mb-8 shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+        className="hidden md:flex w-10 h-10 bg-primary text-primary-foreground rounded-xl items-center justify-center mb-8 shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
       >
         <MessageSquare className="w-5 h-5" fill="currentColor" />
       </Link>
 
-      {/* Top Nav Items */}
-      <nav className="flex-1 flex flex-col items-center gap-4 w-full">
+      {/* Primary Nav Items: horizontal on mobile, vertical column on desktop */}
+      <nav className="flex flex-row md:flex-col items-center justify-around md:justify-start gap-1 md:gap-4 w-full flex-1">
         <NavItem
           to="/app"
           icon={<MessageSquare className="w-5 h-5" />}
           active={location.pathname === '/app' || location.pathname.startsWith('/app/c/')}
           badge={unreadData?.unreadCount}
+          label="Chats"
         />
         <NavItem
           to="/app/people"
@@ -53,38 +60,45 @@ export function NavigationRail() {
             location.pathname === '/app/new' ||
             location.pathname === '/app/new-group'
           }
+          label="People"
         />
         <NavItem
           to="/app/settings"
           icon={<Settings className="w-5 h-5" />}
           active={location.pathname.startsWith('/app/settings')}
+          label="Settings"
         />
         {user?.role === 'ADMIN' && (
           <NavItem
             to="/app/admin"
             icon={<Shield className="w-5 h-5" />}
             active={location.pathname.startsWith('/app/admin')}
+            label="Admin"
           />
         )}
       </nav>
 
-      {/* Bottom Nav Items */}
-      <div className="flex flex-col items-center gap-4 w-full">
+      {/* Bottom Nav Items / Profile */}
+      <div className="flex flex-row md:flex-col items-center gap-2 md:gap-4 shrink-0">
         <button
           onClick={() => logoutMutation.mutate()}
-          className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
+          className="hidden md:flex w-10 h-10 items-center justify-center rounded-xl text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
           title="Log out"
         >
           <LogOut className="w-5 h-5" />
         </button>
 
-        <button className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+        <button
+          className="hidden md:flex w-10 h-10 items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          title="Help"
+        >
           <HelpCircle className="w-5 h-5" />
         </button>
 
         <Link
           to="/app/settings/profile"
           className="w-10 h-10 bg-slate-200 text-slate-800 rounded-full flex items-center justify-center font-bold text-sm shrink-0 hover:ring-2 ring-primary ring-offset-2 ring-offset-slate-950 transition-all"
+          title={user?.displayName || 'Profile'}
         >
           {user?.displayName ? getInitials(user.displayName) : 'U'}
         </Link>
@@ -98,21 +112,30 @@ function NavItem({
   icon,
   active,
   badge,
+  label,
 }: {
   to: string;
   icon: React.ReactNode;
   active: boolean;
   badge?: number;
+  label?: string;
 }) {
   return (
     <Link
       to={to}
-      className={`relative w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 ${
+      title={label}
+      aria-label={label}
+      className={`relative w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-all duration-200 ${
         active ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-white hover:bg-slate-800'
       }`}
     >
+      {/* Desktop active pill (left edge) */}
       {active && (
-        <div className="absolute left-[-16px] top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full" />
+        <div className="hidden md:block absolute left-[-16px] top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full" />
+      )}
+      {/* Mobile active indicator (top edge) */}
+      {active && (
+        <div className="md:hidden absolute -top-1 left-1/2 -translate-x-1/2 w-6 h-1 bg-primary rounded-full" />
       )}
       {icon}
       {!!badge && badge > 0 && (

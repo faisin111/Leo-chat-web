@@ -38,10 +38,13 @@ export const LoginPage = () => {
   const mutation = useMutation({
     mutationFn: async (credentials: LoginFormValues) => {
       const data = await authApi.login(credentials);
+      if (data.accessToken) {
+        useSession.getState().setAccessToken(data.accessToken);
+      }
       let user = data.user;
-      // If backend only returns token, fetch user profile to complete session
+      // If backend only returns token, fetch user profile to complete session using explicit Bearer token
       if (!user) {
-        user = await authApi.getMe();
+        user = await authApi.getMe(data.accessToken);
       }
       return { accessToken: data.accessToken, user };
     },

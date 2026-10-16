@@ -56,7 +56,7 @@ export const UserProfileSidebar = ({
   const avatarUrl = user?.profilePictureUrl || fallbackAvatar;
 
   return (
-    <aside className="w-full sm:w-80 lg:w-96 border-l border-slate-200 bg-white h-full flex flex-col shrink-0 z-30 transition-all duration-300 shadow-sm animate-in slide-in-from-right">
+    <aside className="w-full h-full border-l border-slate-200 bg-white flex flex-col shrink-0 shadow-2xl lg:shadow-none animate-in slide-in-from-right duration-200">
       {/* Top Header with Close Icon */}
       <div className="h-16 px-6 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
         <h3 className="font-semibold text-base text-slate-900">

@@ -16,7 +16,7 @@ export default function AdminLayout() {
   const location = useLocation();
 
   return (
-    <div className="flex flex-col-reverse md:flex-row h-[100dvh] bg-background text-foreground overflow-hidden">
+    <div className="flex flex-col md:flex-row h-[100dvh] w-full bg-background text-foreground overflow-hidden">
       <NavigationRail />
 
       {/* Admin Sidebar */}

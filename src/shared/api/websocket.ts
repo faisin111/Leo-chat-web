@@ -137,21 +137,7 @@ class WebSocketService {
           this.notificationListeners.forEach((listener) => listener(parsedNotif));
         });
 
-        // 4. Global user queue for private messages
-        this.client?.subscribe('/user/queue/messages', (message) => {
-          const parsedMessage = safeParse(message.body);
-          // eslint-disable-next-line no-console
-          console.log('📩 New Private Message on /user/queue/messages:', parsedMessage);
-          this.messageListeners.forEach((listener) => listener(parsedMessage));
-        });
-
-        // 5. Global typing indicator queue
-        this.client?.subscribe('/user/queue/typing', (message) => {
-          const parsedTyping = safeParse(message.body);
-          this.typingListeners.forEach((listener) => listener(parsedTyping));
-        });
-
-        // 6. Re-establish any pending dynamic topic subscriptions
+        // 4. Re-establish any pending dynamic topic subscriptions
         this.topicListeners.forEach((callbacks, destination) => {
           callbacks.forEach((_, callback) => {
             const subscription = this.client?.subscribe(destination, (msg) => {

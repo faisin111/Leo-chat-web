@@ -22,8 +22,8 @@ export function SessionBootstrap({ children }: { children: ReactNode }) {
       try {
         const token = await authSession.refresh();
         const { authApi } = await import('@/features/auth/api/auth-api');
-        const user = await authApi.getMe();
-        
+        const user = await authApi.getMe(token);
+
         if (mounted) {
           useSession.getState().setSession(token, user);
         }

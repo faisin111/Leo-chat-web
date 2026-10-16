@@ -51,11 +51,26 @@ http.interceptors.request.use(async (config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
+  // Check if request has an explicit Bearer token header
+  const authHeader = config.headers.Authorization;
+  const hasBearerToken =
+    typeof authHeader === 'string' &&
+    authHeader.trim().toLowerCase().startsWith('bearer ') &&
+    authHeader.slice(7).trim().length > 0;
+
+  // Bearer token requests automatically skip CSRF in backend.
+  // No /auth/csrf call should be made when a Bearer token is present.
+  if (hasBearerToken) {
+    return config;
+  }
+
   const method = config.method?.toLowerCase();
   const isWriteMethod =
     method === 'post' || method === 'patch' || method === 'put' || method === 'delete';
 
-  if (isWriteMethod && !config.url?.includes('/auth/csrf')) {
+  // Only cookie-only protected writes require CSRF.
+  // Public auth endpoints (/auth/login, /auth/register, /auth/refresh, etc.) do not require CSRF.
+  if (isWriteMethod && !config.url?.includes('/auth/csrf') && !isAuthUrl(config.url)) {
     try {
       const csrf = await getCsrfToken();
       if (csrf) {

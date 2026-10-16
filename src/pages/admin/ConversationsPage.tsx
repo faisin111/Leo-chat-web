@@ -119,7 +119,7 @@ export const ConversationsPage = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 h-10 bg-slate-50/50 border-slate-200 rounded-xl text-sm"
-              placeholder="Search by title, direct key, or ID..."
+              placeholder="Search by title, participant name, username, or ID..."
             />
           </div>
 

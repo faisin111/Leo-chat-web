@@ -5,8 +5,7 @@ import { Input } from '@/shared/ui/input';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { useState, useEffect } from 'react';
 import { useSearchUsers, type UserSearchItem } from '@/features/users';
-// eslint-disable-next-line no-restricted-imports
-import { useCreateGroup } from '@/features/chat/api/use-create-group';
+import { useCreateGroup } from '@/features/chat';
 import { useSession } from '@/features/auth';
 
 export const NewGroupPage = () => {

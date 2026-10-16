@@ -10,6 +10,13 @@ import {
   UserPlus,
   Trash2,
   ArrowLeft,
+  MoreVertical,
+  Pin,
+  Bell,
+  BellOff,
+  Archive,
+  Edit3,
+  Users,
 } from 'lucide-react';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { useParams, Link } from 'react-router-dom';
@@ -20,12 +27,18 @@ import {
   useMessages,
   useDeleteMessage,
   useConversations,
+  useConversationDetails,
+  useConversationMembers,
+  useMuteConversation,
+  usePinConversation,
+  useArchiveConversation,
   useTypingStore,
 } from '@/features/chat';
 import type { Message } from '@/features/chat';
 import { useSession } from '@/features/auth';
 import { format } from 'date-fns';
 import { AddMembersModal } from './components/AddMembersModal';
+import { EditGroupModal } from './components/EditGroupModal';
 import { UserProfileSidebar } from './components/UserProfileSidebar';
 import { useUserById, useSearchUsers } from '@/features/users';
 import { wsService } from '@/shared/api/websocket';
@@ -36,6 +49,8 @@ export const ConversationPage = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
   const [content, setContent] = useState('');
   const [isAddMembersOpen, setIsAddMembersOpen] = useState(false);
+  const [isEditGroupOpen, setIsEditGroupOpen] = useState(false);
+  const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const [isProfileSidebarOpen, setIsProfileSidebarOpen] = useState(false);
   const typingUsersRecord = useTypingStore((s) =>
     conversationId ? s.typingByConversation[conversationId] : undefined,
@@ -52,11 +67,24 @@ export const ConversationPage = () => {
   const currentUser = useSession((s) => s.user);
   const queryClient = useQueryClient();
   const { data: conversationsData } = useConversations();
+  const { data: conversationDetail } = useConversationDetails(conversationId);
+  const { data: members } = useConversationMembers(conversationId);
 
-  const conversation = conversationsData?.pages
-    .flatMap((p) => p.items)
-    .find((c) => c.id === conversationId);
+  const { pin, unpin, isLoading: isPinLoading } = usePinConversation();
+  const { mute, unmute, isLoading: isMuteLoading } = useMuteConversation();
+  const { archive, unarchive, isLoading: isArchiveLoading } = useArchiveConversation();
+
+  const conversation =
+    conversationDetail ||
+    conversationsData?.pages.flatMap((p) => p.items).find((c) => c.id === conversationId);
   const isGroup = conversation?.type === 'GROUP';
+
+  const currentMember = members?.find((m) => m.userId === currentUser?.id);
+  const isPinned = currentMember?.pinnedAt != null;
+  const isMuted =
+    currentMember?.mutedUntil != null && new Date(currentMember.mutedUntil) > new Date();
+  const isArchived = currentMember?.archivedAt != null;
+  const isGroupAdmin = currentMember?.role === 'OWNER' || currentMember?.role === 'ADMIN';
 
   // Clear live messages when changing conversations
   useEffect(() => {
@@ -437,6 +465,13 @@ export const ConversationPage = () => {
           onClose={() => setIsAddMembersOpen(false)}
           conversationId={conversationId || ''}
         />
+        <EditGroupModal
+          isOpen={isEditGroupOpen}
+          onClose={() => setIsEditGroupOpen(false)}
+          conversationId={conversationId || ''}
+          initialTitle={headerName}
+          initialAvatarUrl={headerAvatar}
+        />
         {/* Header */}
         <header className="h-16 border-b border-slate-100 flex items-center justify-between px-3 sm:px-6 shrink-0 bg-white">
           <div className="flex items-center min-w-0 space-x-1 sm:space-x-3">
@@ -457,8 +492,8 @@ export const ConversationPage = () => {
               title="View details"
             >
               <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden relative border border-slate-100">
-                {isGroup ? (
-                  '#'
+                {isGroup && !headerAvatar ? (
+                  <Users className="w-5 h-5 text-slate-500" />
                 ) : isTargetUserLoading && !headerAvatar ? (
                   <Skeleton className="w-full h-full rounded-full" />
                 ) : headerAvatar ? (
@@ -469,11 +504,17 @@ export const ConversationPage = () => {
               </div>
               <div className="min-w-0">
                 <div className="flex items-center space-x-1.5 min-w-0">
-                  <h2 className="font-semibold text-sm text-slate-900 group-hover/header:text-primary transition-colors truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs md:max-w-sm">
+                  <h2 className="font-semibold text-sm text-slate-900 group-hover/header:text-primary transition-colors truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs md:max-w-sm flex items-center gap-1.5">
                     {isTargetUserLoading && !headerName ? (
                       <Skeleton className="h-4 w-28 rounded-md" />
                     ) : (
-                      headerName
+                      <>
+                        <span className="truncate">{headerName}</span>
+                        {isPinned && (
+                          <Pin className="w-3 h-3 text-primary fill-primary/20 shrink-0" />
+                        )}
+                        {isMuted && <BellOff className="w-3 h-3 text-slate-400 shrink-0" />}
+                      </>
                     )}
                   </h2>
                 </div>
@@ -490,7 +531,7 @@ export const ConversationPage = () => {
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsAddMembersOpen(true)}
-                  className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9 min-h-[36px] min-w-[36px]"
+                  className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9 min-h-[36px] min-w-[36px] cursor-pointer"
                   title="Add members"
                 >
                   <UserPlus className="w-4 h-4" />
@@ -501,7 +542,7 @@ export const ConversationPage = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="hidden sm:inline-flex text-slate-400 hover:text-slate-600 rounded-full h-9 w-9"
+              className="hidden sm:inline-flex text-slate-400 hover:text-slate-600 rounded-full h-9 w-9 cursor-pointer"
               title="Start call"
             >
               <Phone className="w-4 h-4" />
@@ -509,12 +550,119 @@ export const ConversationPage = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="hidden sm:inline-flex text-slate-400 hover:text-slate-600 rounded-full h-9 w-9"
+              className="hidden sm:inline-flex text-slate-400 hover:text-slate-600 rounded-full h-9 w-9 cursor-pointer"
               title="Start video"
             >
               <Video className="w-4 h-4" />
             </Button>
             <div className="hidden sm:block w-px h-4 bg-slate-200 mx-1"></div>
+
+            {/* Conversation Actions Menu */}
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsHeaderMenuOpen((prev) => !prev)}
+                className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9 min-h-[36px] min-w-[36px] cursor-pointer"
+                title="Conversation actions"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+
+              {isHeaderMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-30"
+                    onClick={() => setIsHeaderMenuOpen(false)}
+                    aria-hidden="true"
+                  />
+                  <div className="absolute right-0 top-full mt-1.5 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-40 animate-in fade-in zoom-in-95">
+                    <button
+                      type="button"
+                      disabled={isPinLoading}
+                      onClick={() => {
+                        setIsHeaderMenuOpen(false);
+                        if (conversationId) {
+                          if (isPinned) unpin(conversationId);
+                          else pin(conversationId);
+                        }
+                      }}
+                      className="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-medium"
+                    >
+                      <Pin
+                        className={`w-3.5 h-3.5 ${isPinned ? 'fill-primary text-primary' : 'text-slate-400'}`}
+                      />
+                      <span>{isPinned ? 'Unpin Conversation' : 'Pin Conversation'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isMuteLoading}
+                      onClick={() => {
+                        setIsHeaderMenuOpen(false);
+                        if (conversationId) {
+                          if (isMuted) {
+                            unmute(conversationId);
+                          } else {
+                            const eightHours = new Date(
+                              Date.now() + 8 * 60 * 60 * 1000,
+                            ).toISOString();
+                            mute({ id: conversationId, mutedUntil: eightHours });
+                          }
+                        }
+                      }}
+                      className="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-medium"
+                    >
+                      {isMuted ? (
+                        <>
+                          <Bell className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Unmute Notifications</span>
+                        </>
+                      ) : (
+                        <>
+                          <BellOff className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Mute Notifications (8h)</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isArchiveLoading}
+                      onClick={() => {
+                        setIsHeaderMenuOpen(false);
+                        if (conversationId) {
+                          if (isArchived) unarchive(conversationId);
+                          else archive(conversationId);
+                        }
+                      }}
+                      className="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-medium"
+                    >
+                      <Archive className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{isArchived ? 'Unarchive Conversation' : 'Archive Conversation'}</span>
+                    </button>
+
+                    {isGroup && isGroupAdmin && (
+                      <>
+                        <div className="h-px bg-slate-100 my-1" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsHeaderMenuOpen(false);
+                            setIsEditGroupOpen(true);
+                          }}
+                          className="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-medium"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-primary" />
+                          <span>Edit Group</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
             <Button
               variant="ghost"
               size="icon"
@@ -699,11 +847,13 @@ export const ConversationPage = () => {
           <div className="fixed inset-y-0 right-0 z-40 w-full sm:w-80 lg:relative lg:inset-auto lg:w-96 lg:z-auto h-full shrink-0">
             <UserProfileSidebar
               onClose={() => setIsProfileSidebarOpen(false)}
+              conversationId={conversationId}
               userId={otherUserId}
               fallbackName={headerName}
               fallbackUsername={conversation?.targetUsername || usernameMatchedUser?.username}
               fallbackAvatar={headerAvatar}
               isGroup={isGroup}
+              onOpenAddMembers={() => setIsAddMembersOpen(true)}
             />
           </div>
         </>

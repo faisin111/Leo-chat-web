@@ -4,8 +4,7 @@ import { Skeleton } from '@/shared/ui/skeleton';
 import { Search, UserPlus, ArrowLeft, Loader2, MessageSquarePlus, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-// eslint-disable-next-line no-restricted-imports
-import { useStartDirectMessage } from '@/features/chat/api/use-start-direct-message';
+import { useStartDirectMessage } from '@/features/chat';
 import { useSearchUsers, type UserSearchItem } from '@/features/users';
 import { AnimatePresence, motion } from 'framer-motion';
 

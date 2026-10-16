@@ -1,18 +1,46 @@
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { AnimatedOutlet } from './AnimatedOutlet';
-import { Search, PenSquare, Hash } from 'lucide-react';
+import { Search, PenSquare, Hash, X, Pin, BellOff, Users } from 'lucide-react';
 import { Input } from '@/shared/ui/input';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { useConversations, useConversationsTyping, useTypingStore } from '@/features/chat';
 import { formatDistanceToNow } from 'date-fns';
 import { Link, useLocation } from 'react-router-dom';
 
+type FilterType = 'all' | 'unread' | 'groups' | 'archived';
+
 export default function ChatLayout() {
-  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useConversations();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useConversations(debouncedQuery);
   const location = useLocation();
 
-  const conversations = useMemo(() => data?.pages.flatMap((page) => page.items) || [], [data]);
-  const conversationIds = useMemo(() => conversations.map((c) => c.id), [conversations]);
+  const allConversations = useMemo(() => data?.pages.flatMap((page) => page.items) || [], [data]);
+
+  const filteredConversations = useMemo(() => {
+    return allConversations.filter((c) => {
+      if (activeFilter === 'groups') return c.type === 'GROUP';
+      if (activeFilter === 'unread') return c.status === 'UNREAD';
+      if (activeFilter === 'archived') return c.status === 'ARCHIVED';
+      // 'all' includes active conversations by default
+      return c.status !== 'ARCHIVED';
+    });
+  }, [allConversations, activeFilter]);
+
+  const conversationIds = useMemo(
+    () => filteredConversations.map((c) => c.id),
+    [filteredConversations],
+  );
   useConversationsTyping(conversationIds);
 
   const isConversationDetail = location.pathname.startsWith('/app/c/');
@@ -24,44 +52,106 @@ export default function ChatLayout() {
         className={`${isConversationDetail ? 'hidden md:flex' : 'flex'} w-full md:w-[340px] border-r border-slate-200 bg-white flex-col shrink-0`}
       >
         <div className="p-4 flex flex-col h-full">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-5">
             <div>
-              <h2 className="text-xl font-bold">Messages</h2>
-              <p className="text-xs text-green-600 font-medium">● Online</p>
+              <h2 className="text-xl font-bold text-slate-900">Messages</h2>
+              <p className="text-xs text-emerald-600 font-medium">● Online</p>
             </div>
             <Link
               to="/app/new"
-              className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors"
+              className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors shadow-xs"
+              title="New direct message or group"
             >
               <PenSquare className="w-4 h-4" />
             </Link>
           </div>
 
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          {/* Search Bar with Debounce & Clear */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
-              className="pl-9 bg-slate-100/50 border-none rounded-full h-10"
-              placeholder="Search conversations"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9.5 pr-8 bg-slate-100/70 border-none rounded-xl h-10 text-sm focus-visible:ring-2 focus-visible:ring-primary/20"
+              placeholder="Search conversations & users"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
+                title="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
-          <div className="flex items-center space-x-2 mb-6 text-xs font-semibold">
-            <button className="px-4 py-1.5 rounded-full bg-slate-900 text-white">All</button>
-            <button className="px-4 py-1.5 rounded-full text-slate-500 hover:bg-slate-100">
+          {/* Filter Pills */}
+          <div className="flex items-center space-x-1.5 mb-4 text-xs font-semibold overflow-x-auto pb-1 hide-scrollbar">
+            <button
+              onClick={() => setActiveFilter('all')}
+              className={`px-3.5 py-1.5 rounded-full transition-colors cursor-pointer shrink-0 ${
+                activeFilter === 'all'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setActiveFilter('unread')}
+              className={`px-3.5 py-1.5 rounded-full transition-colors cursor-pointer shrink-0 ${
+                activeFilter === 'unread'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
               Unread
             </button>
-            <button className="px-4 py-1.5 rounded-full text-slate-500 hover:bg-slate-100">
+            <button
+              onClick={() => setActiveFilter('groups')}
+              className={`px-3.5 py-1.5 rounded-full transition-colors cursor-pointer shrink-0 ${
+                activeFilter === 'groups'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
               Groups
+            </button>
+            <button
+              onClick={() => setActiveFilter('archived')}
+              className={`px-3.5 py-1.5 rounded-full transition-colors cursor-pointer shrink-0 ${
+                activeFilter === 'archived'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              Archived
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-2 pb-4 space-y-2">
+          {/* Conversations List */}
+          <div className="flex-1 overflow-y-auto pr-1 pb-4 space-y-1.5">
             {isLoading ? (
               <ConversationsListSkeleton />
-            ) : conversations.length === 0 ? (
-              <p className="text-sm text-slate-500 text-center py-4">No conversations found.</p>
+            ) : filteredConversations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-slate-400 text-center px-4">
+                <p className="text-sm font-medium">No conversations found</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  {debouncedQuery
+                    ? `No matches for "${debouncedQuery}"`
+                    : activeFilter === 'archived'
+                      ? 'No archived conversations'
+                      : activeFilter === 'unread'
+                        ? 'All caught up! No unread conversations'
+                        : activeFilter === 'groups'
+                          ? 'No groups yet. Click the edit icon above to create one!'
+                          : 'Start a chat by clicking the pencil button above.'}
+                </p>
+              </div>
             ) : (
-              conversations.map((conv) => {
+              filteredConversations.map((conv) => {
                 const displayName =
                   conv.title || conv.targetDisplayName || conv.targetUsername || 'Unknown User';
 
@@ -81,6 +171,7 @@ export default function ChatLayout() {
                     }
                     active={location.pathname === `/app/c/${conv.id}`}
                     color="bg-slate-100 text-slate-700"
+                    isArchived={conv.status === 'ARCHIVED'}
                   />
                 );
               })
@@ -90,17 +181,30 @@ export default function ChatLayout() {
               <button
                 onClick={() => fetchNextPage()}
                 disabled={isFetchingNextPage}
-                className="w-full py-2.5 text-xs font-semibold text-primary hover:bg-primary/5 rounded-xl transition-colors mt-2 flex items-center justify-center"
+                className="w-full py-2.5 text-xs font-semibold text-primary hover:bg-primary/5 rounded-xl transition-colors mt-2 flex items-center justify-center cursor-pointer"
               >
                 {isFetchingNextPage ? <Skeleton className="h-4 w-20 rounded-md" /> : 'Load more'}
               </button>
             )}
           </div>
 
-          <div className="mt-2 pt-4 border-t border-slate-100">
-            <button className="flex items-center text-xs text-slate-500 hover:text-slate-900 font-medium w-full">
-              <Hash className="w-4 h-4 mr-2" />
-              Archived conversations
+          {/* Bottom Archived Bar */}
+          <div className="mt-auto pt-3 border-t border-slate-100">
+            <button
+              onClick={() => setActiveFilter(activeFilter === 'archived' ? 'all' : 'archived')}
+              className={`flex items-center justify-between text-xs font-medium w-full p-2 rounded-xl transition-colors cursor-pointer ${
+                activeFilter === 'archived'
+                  ? 'bg-slate-100 text-slate-900 font-bold'
+                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <div className="flex items-center">
+                <Hash className="w-4 h-4 mr-2 text-slate-400" />
+                <span>Archived conversations</span>
+              </div>
+              {activeFilter === 'archived' && (
+                <span className="text-[10px] text-primary font-semibold">Active</span>
+              )}
             </button>
           </div>
         </div>
@@ -127,6 +231,9 @@ interface ChatItemProps {
   active?: boolean;
   color?: string;
   avatarUrl?: string | null;
+  isPinned?: boolean;
+  isMuted?: boolean;
+  isArchived?: boolean;
 }
 
 function ChatItem({
@@ -140,6 +247,9 @@ function ChatItem({
   active = false,
   color = 'bg-slate-100 text-slate-700',
   avatarUrl,
+  isPinned,
+  isMuted,
+  isArchived,
 }: ChatItemProps) {
   const typingUsersRecord = useTypingStore((s) => s.typingByConversation[id]);
   const typingUsers = typingUsersRecord ? Object.values(typingUsersRecord) : [];
@@ -161,13 +271,17 @@ function ChatItem({
   return (
     <Link
       to={`/app/c/${id}`}
-      className={`w-full flex items-start text-left p-3 rounded-2xl transition-colors ${active ? 'bg-primary/5' : 'hover:bg-slate-50'}`}
+      className={`w-full flex items-start text-left p-3 rounded-2xl transition-colors ${
+        active ? 'bg-primary/5 shadow-xs' : 'hover:bg-slate-50'
+      }`}
     >
       <div className="relative shrink-0 mr-3">
         <div
           className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm overflow-hidden ${color}`}
         >
-          {avatarUrl ? (
+          {type === 'GROUP' && !avatarUrl ? (
+            <Users className="w-5 h-5 text-slate-500" />
+          ) : avatarUrl ? (
             <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
           ) : (
             initials
@@ -183,9 +297,18 @@ function ChatItem({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
-          <p className="font-semibold text-sm truncate pr-2">{name}</p>
+          <div className="flex items-center space-x-1.5 min-w-0 pr-1">
+            <p className="font-semibold text-sm truncate text-slate-900">{name}</p>
+            {isPinned && <Pin className="w-3 h-3 text-primary shrink-0 fill-primary/20" />}
+            {isMuted && <BellOff className="w-3 h-3 text-slate-400 shrink-0" />}
+            {isArchived && (
+              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 shrink-0">
+                Archived
+              </span>
+            )}
+          </div>
           <span
-            className={`text-[10px] whitespace-nowrap ${
+            className={`text-[10px] whitespace-nowrap shrink-0 ${
               isTyping
                 ? 'text-primary font-bold animate-pulse'
                 : active

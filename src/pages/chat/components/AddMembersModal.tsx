@@ -4,8 +4,7 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { useSearchUsers, type UserSearchItem } from '@/features/users';
-// eslint-disable-next-line no-restricted-imports
-import { useAddGroupMembers } from '@/features/chat/api/use-add-group-members';
+import { useAddGroupMembers } from '@/features/chat';
 import { useSession } from '@/features/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 

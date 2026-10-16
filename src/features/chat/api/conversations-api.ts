@@ -69,10 +69,12 @@ export const conversationsApi = {
   getConversations: async (
     cursor?: string | null,
     limit: number = 50,
+    q?: string,
   ): Promise<ConversationsResponse> => {
     const params = new URLSearchParams();
     if (cursor) params.append('cursor', cursor);
     if (limit) params.append('limit', limit.toString());
+    if (q && q.trim()) params.append('q', q.trim());
 
     const response = await http.get(`/conversations?${params.toString()}`);
     return response.data;

@@ -1,9 +1,9 @@
+import { useMemo } from 'react';
 import { AnimatedOutlet } from './AnimatedOutlet';
 import { Search, PenSquare, Hash } from 'lucide-react';
 import { Input } from '@/shared/ui/input';
 import { Skeleton } from '@/shared/ui/skeleton';
-// eslint-disable-next-line no-restricted-imports
-import { useConversations } from '@/features/chat/api/use-conversations';
+import { useConversations, useConversationsTyping, useTypingStore } from '@/features/chat';
 import { formatDistanceToNow } from 'date-fns';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -11,7 +11,10 @@ export default function ChatLayout() {
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useConversations();
   const location = useLocation();
 
-  const conversations = data?.pages.flatMap((page) => page.items) || [];
+  const conversations = useMemo(() => data?.pages.flatMap((page) => page.items) || [], [data]);
+  const conversationIds = useMemo(() => conversations.map((c) => c.id), [conversations]);
+  useConversationsTyping(conversationIds);
+
   const isConversationDetail = location.pathname.startsWith('/app/c/');
 
   return (
@@ -66,6 +69,7 @@ export default function ChatLayout() {
                   <ChatItem
                     key={conv.id}
                     id={conv.id}
+                    type={conv.type}
                     initials={displayName.substring(0, 2).toUpperCase()}
                     name={displayName}
                     avatarUrl={conv.avatarUrl || conv.targetAvatarUrl}
@@ -114,6 +118,7 @@ export default function ChatLayout() {
 
 interface ChatItemProps {
   id: string;
+  type?: string;
   initials: string;
   name: string;
   message: string;
@@ -126,6 +131,7 @@ interface ChatItemProps {
 
 function ChatItem({
   id,
+  type = 'DIRECT',
   initials,
   name,
   message,
@@ -135,35 +141,80 @@ function ChatItem({
   color = 'bg-slate-100 text-slate-700',
   avatarUrl,
 }: ChatItemProps) {
+  const typingUsersRecord = useTypingStore((s) => s.typingByConversation[id]);
+  const typingUsers = typingUsersRecord ? Object.values(typingUsersRecord) : [];
+  const isTyping = typingUsers.length > 0;
+
+  let typingText = 'typing...';
+  if (type === 'GROUP' && typingUsers.length > 0) {
+    const firstUser = typingUsers[0]?.username || 'Someone';
+    if (typingUsers.length === 1) {
+      typingText = `${firstUser} is typing...`;
+    } else if (typingUsers.length === 2) {
+      const secondUser = typingUsers[1]?.username || 'Someone';
+      typingText = `${firstUser} & ${secondUser} are typing...`;
+    } else {
+      typingText = 'Several people are typing...';
+    }
+  }
+
   return (
     <Link
       to={`/app/c/${id}`}
       className={`w-full flex items-start text-left p-3 rounded-2xl transition-colors ${active ? 'bg-primary/5' : 'hover:bg-slate-50'}`}
     >
-      <div
-        className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 mr-3 overflow-hidden ${color}`}
-      >
-        {avatarUrl ? (
-          <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
-        ) : (
-          initials
+      <div className="relative shrink-0 mr-3">
+        <div
+          className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm overflow-hidden ${color}`}
+        >
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+          ) : (
+            initials
+          )}
+        </div>
+        {isTyping && (
+          <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5" title="Typing...">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-primary border-2 border-white" />
+          </span>
         )}
       </div>
+
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
           <p className="font-semibold text-sm truncate pr-2">{name}</p>
           <span
-            className={`text-[10px] whitespace-nowrap ${active ? 'text-primary font-bold' : 'text-slate-400'}`}
+            className={`text-[10px] whitespace-nowrap ${
+              isTyping
+                ? 'text-primary font-bold animate-pulse'
+                : active
+                  ? 'text-primary font-bold'
+                  : 'text-slate-400'
+            }`}
           >
-            {time}
+            {isTyping ? 'typing...' : time}
           </span>
         </div>
-        <p
-          className={`text-xs truncate ${active ? 'text-slate-700 font-medium' : 'text-slate-500'}`}
-        >
-          {message}
-        </p>
+
+        {isTyping ? (
+          <div className="flex items-center space-x-1.5 text-xs text-primary font-medium truncate">
+            <span className="flex space-x-0.5 items-center shrink-0">
+              <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
+              <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
+              <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" />
+            </span>
+            <span className="truncate italic">{typingText}</span>
+          </div>
+        ) : (
+          <p
+            className={`text-xs truncate ${active ? 'text-slate-700 font-medium' : 'text-slate-500'}`}
+          >
+            {message}
+          </p>
+        )}
       </div>
+
       {badge && (
         <div className="ml-2 w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold shrink-0 mt-3">
           {badge}

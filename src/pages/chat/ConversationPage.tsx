@@ -15,14 +15,14 @@ import { Skeleton } from '@/shared/ui/skeleton';
 import { useParams, Link } from 'react-router-dom';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import type { KeyboardEvent } from 'react';
-// eslint-disable-next-line no-restricted-imports
-import { useSendMessage } from '@/features/chat/api/use-send-message';
-// eslint-disable-next-line no-restricted-imports
-import { useMessages } from '@/features/chat/api/use-messages';
-// eslint-disable-next-line no-restricted-imports
-import { useDeleteMessage } from '@/features/chat/api/use-delete-message';
-// eslint-disable-next-line no-restricted-imports
-import { useConversations } from '@/features/chat/api/use-conversations';
+import {
+  useSendMessage,
+  useMessages,
+  useDeleteMessage,
+  useConversations,
+  useTypingStore,
+} from '@/features/chat';
+import type { Message } from '@/features/chat';
 import { useSession } from '@/features/auth';
 import { format } from 'date-fns';
 import { AddMembersModal } from './components/AddMembersModal';
@@ -34,15 +34,16 @@ import { useSearchUsers } from '@/features/users/api/use-search-users';
 import { wsService } from '@/shared/api/websocket';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-// eslint-disable-next-line no-restricted-imports
-import type { Message } from '@/features/chat/api/conversations-api';
 
 export const ConversationPage = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
   const [content, setContent] = useState('');
   const [isAddMembersOpen, setIsAddMembersOpen] = useState(false);
   const [isProfileSidebarOpen, setIsProfileSidebarOpen] = useState(false);
-  const [typingUsers, setTypingUsers] = useState<Record<string, number>>({});
+  const typingUsersRecord = useTypingStore((s) =>
+    conversationId ? s.typingByConversation[conversationId] : undefined,
+  );
+  const typingUsers = typingUsersRecord || {};
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -85,8 +86,12 @@ export const ConversationPage = () => {
       // INTERCEPT TYPING EVENTS: If backend broadcasts typing on the same topic
       if (msg.type === 'TYPING' || msg.isTyping || msg.action === 'TYPING') {
         const uid = msg.userId || msg.senderId;
-        if (uid && uid !== currentUser?.id) {
-          setTypingUsers((prev) => ({ ...prev, [uid]: Date.now() }));
+        if (uid && uid !== currentUser?.id && conversationId) {
+          useTypingStore.getState().setTyping(conversationId, {
+            userId: uid,
+            username: msg.username,
+            isTyping: true,
+          });
         }
         return; // Stop processing, this is not a text message
       }
@@ -165,13 +170,11 @@ export const ConversationPage = () => {
           return;
         }
 
-        if (msg.isTyping) {
-          setTypingUsers((prev) => ({ ...prev, [uid]: Date.now() }));
-        } else {
-          setTypingUsers((prev) => {
-            const next = { ...prev };
-            delete next[uid];
-            return next;
+        if (conversationId) {
+          useTypingStore.getState().setTyping(conversationId, {
+            userId: uid,
+            username: msg.username,
+            isTyping: !!msg.isTyping,
           });
         }
       },
@@ -212,25 +215,17 @@ export const ConversationPage = () => {
     };
   }, [conversationId, queryClient, currentUser?.id, currentUser?.username]);
 
-  // Auto-clear stale typing indicators after 3.5 seconds
+  // Stop typing indicator on conversation switch or unmount
   useEffect(() => {
-    const interval = setInterval(() => {
-      const now = Date.now();
-      setTypingUsers((prev) => {
-        let changed = false;
-        const next: Record<string, number> = {};
-        for (const [uid, timestamp] of Object.entries(prev)) {
-          if (now - timestamp < 3500) {
-            next[uid] = timestamp;
-          } else {
-            changed = true;
-          }
-        }
-        return changed ? next : prev;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      if (conversationId) {
+        wsService.sendChatTyping(conversationId, false);
+      }
+    };
+  }, [conversationId]);
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -351,6 +346,13 @@ export const ConversationPage = () => {
 
     setLiveMessages((prev) => [optimisticMsg, ...prev]);
     setContent('');
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    if (conversationId) {
+      wsService.sendChatTyping(conversationId, false);
+    }
 
     // 1. Send STOMP frame to /app/chat.send with JSON payload
     const sentViaWs = wsService.sendChatMessage({
@@ -635,7 +637,7 @@ export const ConversationPage = () => {
               </div>
               <span>
                 {Object.keys(typingUsers).length === 1
-                  ? 'Someone is typing...'
+                  ? `${Object.values(typingUsers)[0]?.username || 'Someone'} is typing...`
                   : 'Several people are typing...'}
               </span>
             </div>

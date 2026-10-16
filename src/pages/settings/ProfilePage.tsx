@@ -77,8 +77,11 @@ export const ProfilePage = () => {
       const res = await mediaApi.uploadImage(file);
       await updateProfile.mutateAsync({ profilePictureUrl: res.url });
       toast.success('Profile photo updated successfully');
-    } catch {
-      toast.error('Failed to upload profile photo');
+    } catch (err: unknown) {
+      const errorMsg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Failed to upload profile photo';
+      toast.error(errorMsg);
     } finally {
       setIsUploadingPhoto(false);
       if (fileInputRef.current) {

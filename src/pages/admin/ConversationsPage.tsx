@@ -7,6 +7,7 @@ import {
 } from '@/features/admin';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
+import { ConversationTableSkeleton } from '@/shared/ui/skeleton';
 import {
   MessageSquare,
   Search,
@@ -162,12 +163,7 @@ export const ConversationsPage = () => {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="px-5 py-16 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
-                    Querying conversation metadata...
-                  </td>
-                </tr>
+                <ConversationTableSkeleton rows={6} />
               ) : conversations.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-5 py-12 text-center text-slate-400">

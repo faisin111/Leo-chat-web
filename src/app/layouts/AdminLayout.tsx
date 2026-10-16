@@ -4,6 +4,7 @@ import { AnimatedOutlet } from './AnimatedOutlet';
 import { NavigationRail } from './components/NavigationRail';
 import { useQuery } from '@tanstack/react-query';
 import { adminApi } from '@/features/admin';
+import { Skeleton } from '@/shared/ui/skeleton';
 import {
   LayoutDashboard,
   Users,
@@ -16,7 +17,7 @@ import {
 
 export default function AdminLayout() {
   const location = useLocation();
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: adminApi.getStatsOverview,
   });
@@ -50,14 +51,26 @@ export default function AdminLayout() {
               icon={<Users className="w-4 h-4" />}
               label="Users"
               active={location.pathname.startsWith('/app/admin/users')}
-              badge={stats?.totalUsers != null ? String(stats.totalUsers) : undefined}
+              badge={
+                statsLoading ? (
+                  <Skeleton className="h-3 w-5 rounded-full bg-slate-700/80" />
+                ) : stats?.totalUsers != null ? (
+                  String(stats.totalUsers)
+                ) : undefined
+              }
             />
             <AdminNavItem
               to="/app/admin/reports"
               icon={<Flag className="w-4 h-4" />}
               label="Moderation"
               active={location.pathname.startsWith('/app/admin/reports')}
-              badge={stats?.totalReports != null ? String(stats.totalReports) : undefined}
+              badge={
+                statsLoading ? (
+                  <Skeleton className="h-3 w-5 rounded-full bg-slate-700/80" />
+                ) : stats?.totalReports != null ? (
+                  String(stats.totalReports)
+                ) : undefined
+              }
               badgeColor="bg-red-500"
             />
             <AdminNavItem
@@ -66,7 +79,11 @@ export default function AdminLayout() {
               label="Conversations"
               active={location.pathname.startsWith('/app/admin/conversations')}
               badge={
-                stats?.totalConversations != null ? String(stats.totalConversations) : undefined
+                statsLoading ? (
+                  <Skeleton className="h-3 w-5 rounded-full bg-slate-700/80" />
+                ) : stats?.totalConversations != null ? (
+                  String(stats.totalConversations)
+                ) : undefined
               }
             />
             <AdminNavItem
@@ -110,7 +127,7 @@ interface AdminNavItemProps {
   icon: ReactNode;
   label: string;
   active: boolean;
-  badge?: string;
+  badge?: ReactNode;
   badgeColor?: string;
 }
 
@@ -137,7 +154,7 @@ function AdminNavItem({
       </div>
       {badge && (
         <span
-          className={`hidden md:inline-block ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full text-white ${badgeColor}`}
+          className={`hidden md:inline-flex items-center justify-center ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full text-white ${badgeColor}`}
         >
           {badge}
         </span>

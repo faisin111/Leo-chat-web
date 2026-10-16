@@ -160,3 +160,24 @@ Before completing any task that introduces or modifies UI, every AI agent MUST v
   - `env(safe-area-inset-*)` applied to fixed bars and edges.
 - [ ] **Dark & Light Mode**:
   - Correct contrast, borders, and colors preserved across all responsive breakpoints.
+
+---
+
+## 5. SKELETON LOADING & SHIMMER RULE (Mandatory Across All Views)
+
+Every view, component, table, card, or modal that performs API calls or data fetching **MUST** render an animated skeleton shimmer placeholder matching the exact layout of the target data.
+
+### 5.1 Non-Negotiable Standards
+
+1. **Never Show Raw Spinners or Blank Screens for Data Lists**:
+   - **FORBIDDEN**: Rendering a lonely `<Loader2 className="animate-spin" />` in the middle of a blank page or a solitary table row reading `"Loading..."`.
+   - **FORBIDDEN**: Displaying placeholder text like `"..."` or `"Loading..."` inside KPI metric cards, badges, or profile fields.
+   - **MANDATORY**: Render structured `<Skeleton />` components with the `.shimmer` gradient and animation (defined in `@/shared/ui/skeleton` and `globals.css`).
+2. **Match the Real Layout Geometry**:
+   - **Tables** (e.g. Admin Users, Reports, Conversations, Audit Logs): Render 4–6 skeleton `<tr>` rows with realistic column widths (avatar circle, text bar, badge pill, button box).
+   - **Cards & Dashboards** (e.g. KPI metrics, overview cards): Render shimmering title bars, large value blocks, and subtitle lines.
+   - **Chat Message Threads**: Render realistic alternating left/right chat bubble skeletons with avatar circles and timestamp placeholders.
+   - **Profile & Detail Views**: Render skeleton avatar, header bar, action buttons, and segmented info blocks.
+   - **Sidebar Items**: Render multiple avatar + dual-line text item skeletons.
+3. **Responsive Shimmer**:
+   - Skeletons must adhere to the same responsive rules (`100dvh`, flexible widths, safe-area insets, dark mode classes) as their fully loaded counterparts.

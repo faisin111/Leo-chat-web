@@ -3,17 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { adminApi, type AdminAuditLogItem } from '@/features/admin';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
-import {
-  Search,
-  Download,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-  User,
-  Code,
-  X,
-  FileText,
-} from 'lucide-react';
+import { AuditLogTableSkeleton } from '@/shared/ui/skeleton';
+import { Search, Download, ChevronLeft, ChevronRight, User, Code, X, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -174,12 +165,7 @@ export const AuditLogsPage = () => {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="px-5 py-16 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
-                    Querying immutable audit ledger...
-                  </td>
-                </tr>
+                <AuditLogTableSkeleton rows={6} />
               ) : logs.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-5 py-12 text-center text-slate-400">

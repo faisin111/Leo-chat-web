@@ -90,9 +90,9 @@ export default function ChatLayout() {
               <button
                 onClick={() => fetchNextPage()}
                 disabled={isFetchingNextPage}
-                className="w-full py-3 text-xs font-semibold text-primary hover:bg-primary/5 rounded-xl transition-colors mt-2"
+                className="w-full py-2.5 text-xs font-semibold text-primary hover:bg-primary/5 rounded-xl transition-colors mt-2 flex items-center justify-center"
               >
-                {isFetchingNextPage ? 'Loading...' : 'Load more'}
+                {isFetchingNextPage ? <Skeleton className="h-4 w-20 rounded-md" /> : 'Load more'}
               </button>
             )}
           </div>

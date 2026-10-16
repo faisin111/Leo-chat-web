@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/features/admin';
 import { Button } from '@/shared/ui/button';
+import { ReportDetailSkeleton } from '@/shared/ui/skeleton';
 import {
   ArrowLeft,
   Flag,
@@ -61,11 +62,7 @@ export const ReportDetailPage = () => {
   });
 
   if (isLoading) {
-    return (
-      <div className="flex-1 flex items-center justify-center p-8 bg-slate-50/60 h-full">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <ReportDetailSkeleton />;
   }
 
   if (isError || !report) {

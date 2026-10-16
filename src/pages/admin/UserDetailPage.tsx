@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, type AdminUserStatus } from '@/features/admin';
 import { Button } from '@/shared/ui/button';
+import { UserDetailSkeleton } from '@/shared/ui/skeleton';
 import {
   ArrowLeft,
   Mail,
@@ -97,11 +98,7 @@ export const UserDetailPage = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex-1 flex items-center justify-center p-8 bg-slate-50/60 h-full">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <UserDetailSkeleton />;
   }
 
   if (isError || !user) {

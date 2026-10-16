@@ -118,7 +118,11 @@ export const PeoplePage = () => {
 
             <div className="flex items-center justify-between mb-4">
               <span className="text-xs font-semibold text-slate-500">
-                {isLoading ? 'Searching...' : `${users?.length || 0} people found`}
+                {isLoading ? (
+                  <Skeleton className="h-3.5 w-28 rounded-md inline-block" />
+                ) : (
+                  `${users?.length || 0} people found`
+                )}
               </span>
             </div>
 

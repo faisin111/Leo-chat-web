@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, type AdminReportItem } from '@/features/admin';
 import { Button } from '@/shared/ui/button';
+import { ReportTableSkeleton } from '@/shared/ui/skeleton';
 import {
   Flag,
   CheckCircle2,
@@ -146,12 +147,7 @@ export const ReportsPage = () => {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="px-5 py-16 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
-                    Fetching moderation reports...
-                  </td>
-                </tr>
+                <ReportTableSkeleton rows={6} />
               ) : reports.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-5 py-16 text-center">

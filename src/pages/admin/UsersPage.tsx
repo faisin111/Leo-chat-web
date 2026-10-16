@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, type AdminUserItem, type AdminUserStatus } from '@/features/admin';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
+import { UserTableSkeleton } from '@/shared/ui/skeleton';
 import {
   Search,
   Loader2,
@@ -169,12 +170,7 @@ export const UsersPage = () => {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="px-5 py-16 text-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
-                    Fetching user accounts...
-                  </td>
-                </tr>
+                <UserTableSkeleton rows={6} />
               ) : users.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-5 py-12 text-center text-slate-400">

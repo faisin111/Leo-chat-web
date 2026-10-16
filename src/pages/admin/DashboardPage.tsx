@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/features/admin';
 import { Button } from '@/shared/ui/button';
+import { Skeleton } from '@/shared/ui/skeleton';
 import {
   Users,
   MessageSquare,
@@ -35,12 +36,12 @@ export const DashboardPage = () => {
     queryFn: adminApi.getStatsOverview,
   });
 
-  const { data: recentReports } = useQuery({
+  const { data: recentReports, isLoading: reportsLoading } = useQuery({
     queryKey: ['admin-reports-preview'],
     queryFn: () => adminApi.getReports(),
   });
 
-  const { data: recentLogs } = useQuery({
+  const { data: recentLogs, isLoading: logsLoading } = useQuery({
     queryKey: ['admin-logs-preview'],
     queryFn: () => adminApi.getAuditLogs(),
   });
@@ -154,7 +155,11 @@ export const DashboardPage = () => {
           </div>
           <div className="flex items-baseline justify-between">
             <div className="text-2xl sm:text-3xl font-bold text-slate-900">
-              {statsLoading ? '...' : (stats?.totalUsers ?? 0).toLocaleString()}
+              {statsLoading ? (
+                <Skeleton className="h-8 w-20" />
+              ) : (
+                (stats?.totalUsers ?? 0).toLocaleString()
+              )}
             </div>
             <span className="text-xs font-medium text-emerald-600 flex items-center">
               <TrendingUp className="w-3.5 h-3.5 mr-0.5" />
@@ -178,7 +183,11 @@ export const DashboardPage = () => {
           </div>
           <div className="flex items-baseline justify-between">
             <div className="text-2xl sm:text-3xl font-bold text-slate-900">
-              {statsLoading ? '...' : (stats?.totalConversations ?? 0).toLocaleString()}
+              {statsLoading ? (
+                <Skeleton className="h-8 w-20" />
+              ) : (
+                (stats?.totalConversations ?? 0).toLocaleString()
+              )}
             </div>
             <span className="text-xs font-medium text-slate-400">Direct & Groups</span>
           </div>
@@ -209,7 +218,11 @@ export const DashboardPage = () => {
                 (stats?.totalReports ?? 0) > 0 ? 'text-red-600' : 'text-slate-900'
               }`}
             >
-              {statsLoading ? '...' : (stats?.totalReports ?? 0).toLocaleString()}
+              {statsLoading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                (stats?.totalReports ?? 0).toLocaleString()
+              )}
             </div>
             {(stats?.totalReports ?? 0) > 0 ? (
               <span className="text-xs font-semibold px-2 py-0.5 bg-red-100 text-red-700 rounded-full">
@@ -469,7 +482,23 @@ export const DashboardPage = () => {
           </div>
 
           <div className="space-y-3">
-            {recentReports?.items && recentReports.items.length > 0 ? (
+            {reportsLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-3 rounded-xl border border-slate-100"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      <Skeleton className="h-3.5 w-32" />
+                      <Skeleton className="h-2.5 w-48" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-4 w-16 rounded-full shrink-0 ml-2" />
+                </div>
+              ))
+            ) : recentReports?.items && recentReports.items.length > 0 ? (
               recentReports.items.slice(0, 4).map((report) => (
                 <Link
                   key={report.id}
@@ -519,7 +548,23 @@ export const DashboardPage = () => {
           </div>
 
           <div className="space-y-3">
-            {recentLogs?.items && recentLogs.items.length > 0 ? (
+            {logsLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      <Skeleton className="h-3.5 w-28" />
+                      <Skeleton className="h-2.5 w-40" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-3 w-16 shrink-0 ml-2" />
+                </div>
+              ))
+            ) : recentLogs?.items && recentLogs.items.length > 0 ? (
               recentLogs.items.slice(0, 4).map((log) => (
                 <div
                   key={log.id}

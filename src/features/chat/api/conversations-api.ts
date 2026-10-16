@@ -49,6 +49,7 @@ export type Message = {
   createdAt: string;
   editedAt: string | null;
   deletedAt: string | null;
+  reactions?: Record<string, string[]>; // emoji -> array of userIds
 };
 
 export type SendMessageRequest = {
@@ -162,11 +163,13 @@ export const conversationsApi = {
     beforeSeq?: string | null,
     limit: number = 50,
     afterSeq?: string | null,
+    q?: string,
   ): Promise<MessagesResponse> => {
     const params = new URLSearchParams();
     if (beforeSeq) params.append('beforeSeq', beforeSeq);
     if (afterSeq) params.append('afterSeq', afterSeq);
     if (limit) params.append('limit', limit.toString());
+    if (q && q.trim()) params.append('q', q.trim());
 
     const response = await http.get(
       `/conversations/${conversationId}/messages?${params.toString()}`,

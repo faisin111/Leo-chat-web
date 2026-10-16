@@ -17,7 +17,16 @@ import {
   Archive,
   Edit3,
   Users,
+  Search,
+  CornerUpLeft,
+  Pencil,
+  Check,
+  CheckCheck,
+  X,
+  FileText,
+  ExternalLink,
 } from 'lucide-react';
+import { Input } from '@/shared/ui/input';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { useParams, Link } from 'react-router-dom';
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -26,6 +35,8 @@ import {
   useSendMessage,
   useMessages,
   useDeleteMessage,
+  useEditMessage,
+  useMessageReactions,
   useConversations,
   useConversationDetails,
   useConversationMembers,
@@ -34,24 +45,47 @@ import {
   useArchiveConversation,
   useTypingStore,
 } from '@/features/chat';
-import type { Message } from '@/features/chat';
+import type { Message, MessageType } from '@/features/chat';
 import { useSession } from '@/features/auth';
 import { format } from 'date-fns';
 import { AddMembersModal } from './components/AddMembersModal';
 import { EditGroupModal } from './components/EditGroupModal';
+import { AttachmentModal } from './components/AttachmentModal';
 import { UserProfileSidebar } from './components/UserProfileSidebar';
 import { useUserById, useSearchUsers } from '@/features/users';
 import { wsService } from '@/shared/api/websocket';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
+const QUICK_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+
 export const ConversationPage = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
   const [content, setContent] = useState('');
   const [isAddMembersOpen, setIsAddMembersOpen] = useState(false);
   const [isEditGroupOpen, setIsEditGroupOpen] = useState(false);
+  const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const [isProfileSidebarOpen, setIsProfileSidebarOpen] = useState(false);
+
+  // In-chat search state
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [messageSearchQuery, setMessageSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  // Reply and Edit state
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState('');
+
+  // Image preview modal state
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+
+  // Local reaction state: messageId -> emoji -> userIds[]
+  const [reactionsState, setReactionsState] = useState<Record<string, Record<string, string[]>>>(
+    {},
+  );
+
   const typingUsersRecord = useTypingStore((s) =>
     conversationId ? s.typingByConversation[conversationId] : undefined,
   );
@@ -59,11 +93,24 @@ export const ConversationPage = () => {
   const [liveMessages, setLiveMessages] = useState<Message[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // In-chat search debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(messageSearchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [messageSearchQuery]);
+
   const sendMessage = useSendMessage(conversationId || '');
   const deleteMessage = useDeleteMessage(conversationId || '');
+  const editMessage = useEditMessage(conversationId || '');
+  const { addReaction, removeReaction } = useMessageReactions(conversationId || '');
+
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useMessages(
     conversationId || '',
+    debouncedSearchQuery,
   );
+
   const currentUser = useSession((s) => s.user);
   const queryClient = useQueryClient();
   const { data: conversationsData } = useConversations();
@@ -86,16 +133,22 @@ export const ConversationPage = () => {
   const isArchived = currentMember?.archivedAt != null;
   const isGroupAdmin = currentMember?.role === 'OWNER' || currentMember?.role === 'ADMIN';
 
-  // Clear live messages when changing conversations
+  // Target member for read receipts in direct messages
+  const targetMember = members?.find((m) => m.userId !== currentUser?.id);
+
+  // Clear live messages & reset state when changing conversations
   useEffect(() => {
     setLiveMessages([]);
     setIsProfileSidebarOpen(false);
+    setReplyingTo(null);
+    setEditingMessageId(null);
+    setIsSearchOpen(false);
+    setMessageSearchQuery('');
   }, [conversationId]);
 
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleIncomingMessage = (rawMsg: any) => {
-      // Handle potential payload wrapping from different backend STOMP configurations
       const rawObj = rawMsg.payload || rawMsg;
       let msg = rawObj;
       if (typeof rawObj === 'string') {
@@ -108,7 +161,7 @@ export const ConversationPage = () => {
 
       if (!msg) return;
 
-      // INTERCEPT TYPING EVENTS: If backend broadcasts typing on the same topic
+      // Intercept typing events
       if (msg.type === 'TYPING' || msg.isTyping || msg.action === 'TYPING') {
         const uid = msg.userId || msg.senderId;
         if (uid && uid !== currentUser?.id && conversationId) {
@@ -118,7 +171,7 @@ export const ConversationPage = () => {
             isTyping: true,
           });
         }
-        return; // Stop processing, this is not a text message
+        return;
       }
 
       const targetId = msg.conversationId || msg.groupId || msg.chatId;
@@ -144,7 +197,6 @@ export const ConversationPage = () => {
           seq: typeof msg.seq === 'number' && msg.seq < 1000000000 ? msg.seq : 0,
         };
 
-        // Instantly show the message on screen via local state
         setLiveMessages((prev) => {
           const index = prev.findIndex(
             (m) =>
@@ -153,7 +205,6 @@ export const ConversationPage = () => {
                 m.clientMessageId === normalizedMsg.clientMessageId),
           );
           if (index !== -1) {
-            // Upgrade optimistic message with real server id and seq
             const next = [...prev];
             next[index] = normalizedMsg;
             return next;
@@ -162,24 +213,18 @@ export const ConversationPage = () => {
         });
       }
 
-      // Always update the sidebar list
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      // Keep React Query cache loosely in sync
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-      // Update global unread badge
       queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
     };
 
-    // 1. Explicitly subscribe to this specific conversation's topic
     const cleanupMessages = wsService.subscribe(
       `/topic/conversations.${conversationId}`,
       handleIncomingMessage,
     );
 
-    // 2. Also listen for direct messages arriving on user queue
     const cleanupUserQueue = wsService.addMessageListener(handleIncomingMessage);
 
-    // 3. Explicit typing indicator topic
     const cleanupTypingSub = wsService.subscribe(
       `/topic/conversations.${conversationId}.typing`,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -187,7 +232,6 @@ export const ConversationPage = () => {
         const msg = rawMsg.payload || rawMsg;
         const uid = msg.userId || msg.senderId || 'typing';
 
-        // Ignore typing events from oneself
         if (
           uid === currentUser?.id ||
           (currentUser?.username && msg.username === currentUser.username)
@@ -205,7 +249,6 @@ export const ConversationPage = () => {
       },
     );
 
-    // 4. Listen for delivery / save acks on /user/queue/acks
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cleanupAcks = wsService.addAckListener((ack: any) => {
       const ackConvId = ack?.conversationId || ack?.chatId;
@@ -224,7 +267,6 @@ export const ConversationPage = () => {
       });
     });
 
-    // 6. Listen for notifications on /user/queue/notifications
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cleanupNotifications = wsService.addNotificationListener((notif: any) => {
       if (notif?.message) {
@@ -257,38 +299,35 @@ export const ConversationPage = () => {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Combine live and historical messages, deduplicating carefully
-  const historicalMessages = data?.pages.flatMap((p) => p.items) || [];
-  const allMessagesMap = new Map<string, Message>();
+  const historicalMessages = useMemo(() => data?.pages.flatMap((p) => p.items) || [], [data]);
+  const allMessagesMap = useMemo(() => {
+    const map = new Map<string, Message>();
+    historicalMessages.forEach((m) => {
+      const key = m.clientMessageId || m.id || Math.random().toString();
+      map.set(key, m);
+    });
+    liveMessages.forEach((m) => {
+      const key = m.clientMessageId || m.id || Math.random().toString();
+      const isDuplicateFallback = Array.from(map.values()).some(
+        (existing) =>
+          existing.senderId === m.senderId &&
+          existing.content === m.content &&
+          Math.abs(new Date(existing.createdAt).getTime() - new Date(m.createdAt).getTime()) < 5000,
+      );
+      if (!map.has(key) && !isDuplicateFallback) {
+        map.set(key, m);
+      }
+    });
+    return map;
+  }, [historicalMessages, liveMessages]);
 
-  // 1. Add historical messages first (these are real DB messages and should take precedence)
-  historicalMessages.forEach((m) => {
-    // ALWAYS prioritize clientMessageId for deduplication if it exists!
-    const key = m.clientMessageId || m.id || Math.random().toString();
-    allMessagesMap.set(key, m);
-  });
-
-  // 2. Add live messages only if they aren't already represented by a historical DB message
-  liveMessages.forEach((m) => {
-    const key = m.clientMessageId || m.id || Math.random().toString();
-    // Also do a fallback check for exact content + sender just in case backend drops clientMessageId
-    const isDuplicateFallback = Array.from(allMessagesMap.values()).some(
-      (existing) =>
-        existing.senderId === m.senderId &&
-        existing.content === m.content &&
-        Math.abs(new Date(existing.createdAt).getTime() - new Date(m.createdAt).getTime()) < 5000,
-    );
-
-    if (!allMessagesMap.has(key) && !isDuplicateFallback) {
-      allMessagesMap.set(key, m);
-    }
-  });
-
-  // Sort descending by date so the newest is at the start of the array (bottom of the flex-col-reverse container)
-  const allMessages = Array.from(allMessagesMap.values()).sort((a, b) => {
-    const timeA = a.createdAt ? new Date(a.createdAt).getTime() : Date.now();
-    const timeB = b.createdAt ? new Date(b.createdAt).getTime() : Date.now();
-    return timeB - timeA;
-  });
+  const allMessages = useMemo(() => {
+    return Array.from(allMessagesMap.values()).sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : Date.now();
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : Date.now();
+      return timeB - timeA;
+    });
+  }, [allMessagesMap]);
 
   // Derive other user's ID for 1-on-1 direct conversation
   const directKeyUserId = useMemo(() => {
@@ -337,7 +376,7 @@ export const ConversationPage = () => {
   const isUserTyping = otherUserId && typingUsers[otherUserId];
 
   const headerSubtitle = isGroup
-    ? 'Group Conversation'
+    ? `${members?.length || 0} members`
     : isUserTyping
       ? 'typing...'
       : targetUserProfile?.username
@@ -346,17 +385,13 @@ export const ConversationPage = () => {
           ? `@${conversation.targetUsername}`
           : 'Click to view profile';
 
+  // Sending text message
   const handleSend = () => {
     if (!content.trim() || !conversationId) return;
 
     const optimisticId = crypto.randomUUID();
-    const payload = {
-      content: content.trim(),
-      type: 'TEXT',
-      clientMessageId: optimisticId,
-    };
+    const replyId = replyingTo?.id || null;
 
-    // Optimistically push to UI instantly!
     const optimisticMsg: Message = {
       id: optimisticId,
       conversationId,
@@ -365,7 +400,7 @@ export const ConversationPage = () => {
       clientMessageId: optimisticId,
       type: 'TEXT',
       content: content.trim(),
-      replyToId: null,
+      replyToId: replyId,
       createdAt: new Date().toISOString(),
       editedAt: null,
       deletedAt: null,
@@ -373,6 +408,7 @@ export const ConversationPage = () => {
 
     setLiveMessages((prev) => [optimisticMsg, ...prev]);
     setContent('');
+    setReplyingTo(null);
 
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
@@ -381,17 +417,114 @@ export const ConversationPage = () => {
       wsService.sendChatTyping(conversationId, false);
     }
 
-    // 1. Send STOMP frame to /app/chat.send with JSON payload
     const sentViaWs = wsService.sendChatMessage({
       conversationId,
       clientMessageId: optimisticId,
       content: content.trim(),
       type: 'TEXT',
+      replyToId: replyId,
     });
 
-    // 2. Fallback to REST API if WebSocket is not yet connected
     if (!sentViaWs) {
-      sendMessage.mutate(payload);
+      sendMessage.mutate({
+        content: content.trim(),
+        type: 'TEXT',
+        clientMessageId: optimisticId,
+        replyToId: replyId,
+      });
+    }
+  };
+
+  // Sending image or file attachment
+  const handleSendAttachment = (type: MessageType, url: string, caption?: string) => {
+    if (!conversationId) return;
+    const optimisticId = crypto.randomUUID();
+    const finalContent = caption ? `${url}\n${caption}` : url;
+    const replyId = replyingTo?.id || null;
+
+    const optimisticMsg: Message = {
+      id: optimisticId,
+      conversationId,
+      senderId: currentUser?.id || '',
+      seq: 0,
+      clientMessageId: optimisticId,
+      type,
+      content: finalContent,
+      replyToId: replyId,
+      createdAt: new Date().toISOString(),
+      editedAt: null,
+      deletedAt: null,
+    };
+
+    setLiveMessages((prev) => [optimisticMsg, ...prev]);
+    setReplyingTo(null);
+
+    const sentViaWs = wsService.sendChatMessage({
+      conversationId,
+      clientMessageId: optimisticId,
+      content: finalContent,
+      type,
+      replyToId: replyId,
+    });
+
+    if (!sentViaWs) {
+      sendMessage.mutate({
+        content: finalContent,
+        type,
+        clientMessageId: optimisticId,
+        replyToId: replyId,
+      });
+    }
+  };
+
+  // Save edited message
+  const handleSaveEdit = (messageId: string) => {
+    if (!editingContent.trim() || !conversationId) return;
+
+    editMessage.mutate(
+      {
+        messageId,
+        content: editingContent.trim(),
+        conversationId,
+      },
+      {
+        onSuccess: (updated) => {
+          setEditingMessageId(null);
+          setEditingContent('');
+          setLiveMessages((prev) =>
+            prev.map((m) =>
+              m.id === messageId
+                ? { ...m, content: updated.content, editedAt: updated.editedAt }
+                : m,
+            ),
+          );
+        },
+      },
+    );
+  };
+
+  // Reactions toggle
+  const handleToggleReaction = (messageId: string, emoji: string) => {
+    if (!currentUser?.id || !conversationId) return;
+    const currentReactions = reactionsState[messageId] || {};
+    const userIds = currentReactions[emoji] || [];
+    const hasReacted = userIds.includes(currentUser.id);
+
+    if (hasReacted) {
+      removeReaction({ messageId, emoji, conversationId });
+      setReactionsState((prev) => {
+        const msgR = { ...(prev[messageId] || {}) };
+        msgR[emoji] = (msgR[emoji] || []).filter((id) => id !== currentUser.id);
+        if (msgR[emoji].length === 0) delete msgR[emoji];
+        return { ...prev, [messageId]: msgR };
+      });
+    } else {
+      addReaction({ messageId, emoji, conversationId });
+      setReactionsState((prev) => {
+        const msgR = { ...(prev[messageId] || {}) };
+        msgR[emoji] = [...(msgR[emoji] || []), currentUser.id];
+        return { ...prev, [messageId]: msgR };
+      });
     }
   };
 
@@ -472,10 +605,16 @@ export const ConversationPage = () => {
           initialTitle={headerName}
           initialAvatarUrl={headerAvatar}
         />
+        <AttachmentModal
+          isOpen={isAttachmentModalOpen}
+          onClose={() => setIsAttachmentModalOpen(false)}
+          onSendAttachment={handleSendAttachment}
+          isSending={sendMessage.isPending}
+        />
+
         {/* Header */}
         <header className="h-16 border-b border-slate-100 flex items-center justify-between px-3 sm:px-6 shrink-0 bg-white">
           <div className="flex items-center min-w-0 space-x-1 sm:space-x-3">
-            {/* Mobile back to conversation list button */}
             <Link
               to="/app"
               className="md:hidden flex items-center justify-center w-10 h-10 -ml-1 rounded-full text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors shrink-0"
@@ -539,6 +678,20 @@ export const ConversationPage = () => {
                 <div className="hidden sm:block w-px h-4 bg-slate-200 mx-1"></div>
               </>
             )}
+
+            {/* In-Chat Search Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSearchOpen((prev) => !prev)}
+              className={`rounded-full h-9 w-9 min-h-[36px] min-w-[36px] cursor-pointer ${
+                isSearchOpen ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-slate-600'
+              }`}
+              title="Search messages"
+            >
+              <Search className="w-4 h-4" />
+            </Button>
+
             <Button
               variant="ghost"
               size="icon"
@@ -677,20 +830,62 @@ export const ConversationPage = () => {
           </div>
         </header>
 
+        {/* In-Chat Message Search Bar */}
+        {isSearchOpen && (
+          <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2.5 animate-in slide-in-from-top-2 duration-150 shrink-0">
+            <Search className="w-4 h-4 text-slate-400 shrink-0" />
+            <Input
+              value={messageSearchQuery}
+              onChange={(e) => setMessageSearchQuery(e.target.value)}
+              placeholder="Search in conversation..."
+              className="h-9 bg-white border-slate-200 text-xs rounded-xl flex-1"
+            />
+            {messageSearchQuery && (
+              <button
+                type="button"
+                onClick={() => setMessageSearchQuery('')}
+                className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                title="Clear query"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setIsSearchOpen(false);
+                setMessageSearchQuery('');
+              }}
+              className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-2 py-1 rounded-lg cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
+        )}
+
         {/* Messages List */}
         <div className="flex-1 overflow-y-auto p-3 sm:p-6 flex flex-col-reverse gap-4 sm:gap-6 pb-4">
           {isLoading ? (
             <ChatMessagesSkeleton />
           ) : allMessages.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
-              <p className="text-sm">No messages yet.</p>
-              <p className="text-xs">Send a message to start the conversation!</p>
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 py-12">
+              <p className="text-sm font-medium">
+                {debouncedSearchQuery ? 'No matching messages found.' : 'No messages yet.'}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                {debouncedSearchQuery
+                  ? 'Try searching with different keywords.'
+                  : 'Send a message to start the conversation!'}
+              </p>
             </div>
           ) : (
             <>
               {allMessages.map((msg) => {
                 const isOwn = msg.senderId === currentUser?.id;
-                // Very simple initials generation for now
+                const isDeleted = msg.deletedAt != null;
+                const isEdited = msg.editedAt != null;
+                const isEditingThis = editingMessageId === msg.id;
+
                 const initials = isOwn ? (currentUser?.displayName?.[0] || 'U').toUpperCase() : 'U';
                 const name = isOwn
                   ? currentUser?.displayName || 'You'
@@ -701,51 +896,265 @@ export const ConversationPage = () => {
                   ? format(new Date(), 'h:mm a')
                   : format(msgDate, 'h:mm a');
 
+                const parentReplyMsg = msg.replyToId
+                  ? allMessagesMap.get(msg.replyToId)
+                  : undefined;
+
+                // Determine read receipt status for own message
+                const isRead =
+                  typeof msg.seq === 'number' &&
+                  targetMember?.lastReadSeq != null &&
+                  msg.seq <= targetMember.lastReadSeq;
+
+                const msgReactions = reactionsState[msg.id] || {};
+
                 return (
                   <div
                     key={msg.id}
-                    className={`group flex items-start space-x-2.5 sm:space-x-3 ${isOwn ? 'flex-row-reverse space-x-reverse' : ''}`}
+                    className={`group flex items-start space-x-2.5 sm:space-x-3 ${
+                      isOwn ? 'flex-row-reverse space-x-reverse' : ''
+                    } relative`}
                   >
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-1 ${color}`}
                     >
                       {initials}
                     </div>
+
                     <div
                       className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[85%] sm:max-w-[75%]`}
                     >
+                      {/* Name and time header */}
                       <div className="flex items-baseline space-x-2 mb-1">
-                        <span className="text-xs font-semibold">{name}</span>
+                        <span className="text-xs font-semibold text-slate-900">{name}</span>
                         <span className="text-[10px] text-slate-400">{time}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        {isOwn && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteMessage(msg.id)}
-                            disabled={deletingId === msg.id}
-                            className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer shrink-0"
-                            title="Delete message"
-                          >
-                            {deletingId === msg.id ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500" />
-                            ) : (
-                              <Trash2 className="w-3.5 h-3.5" />
-                            )}
-                          </button>
+                        {isEdited && !isDeleted && (
+                          <span className="text-[9px] text-slate-400 italic">(edited)</span>
                         )}
+                      </div>
+
+                      {/* Main Message Bubble & Action Bar */}
+                      <div className="relative group/bubble flex items-center gap-1.5">
+                        {/* Hover Actions Toolbar */}
+                        {!isDeleted && (
+                          <div
+                            className={`opacity-0 group-hover/bubble:opacity-100 transition-opacity absolute -top-8 ${
+                              isOwn ? 'right-0' : 'left-0'
+                            } bg-white shadow-md border border-slate-200 rounded-full px-2 py-0.5 flex items-center space-x-1 z-20`}
+                          >
+                            {/* Quick Reactions */}
+                            {QUICK_REACTION_EMOJIS.slice(0, 4).map((emoji) => (
+                              <button
+                                key={emoji}
+                                type="button"
+                                onClick={() => handleToggleReaction(msg.id, emoji)}
+                                className="hover:scale-125 transition-transform text-xs p-1 cursor-pointer"
+                                title={`React ${emoji}`}
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+
+                            <div className="w-px h-3 bg-slate-200 mx-0.5" />
+
+                            {/* Reply button */}
+                            <button
+                              type="button"
+                              onClick={() => setReplyingTo(msg)}
+                              className="p-1 text-slate-400 hover:text-primary transition-colors cursor-pointer"
+                              title="Reply"
+                            >
+                              <CornerUpLeft className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Edit button (own messages only) */}
+                            {isOwn && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingMessageId(msg.id);
+                                  setEditingContent(msg.content);
+                                }}
+                                className="p-1 text-slate-400 hover:text-primary transition-colors cursor-pointer"
+                                title="Edit message"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+
+                            {/* Delete button (own or admin) */}
+                            {(isOwn || isGroupAdmin) && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteMessage(msg.id)}
+                                disabled={deletingId === msg.id}
+                                className="p-1 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                                title="Delete message"
+                              >
+                                {deletingId === msg.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500" />
+                                ) : (
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Bubble Content */}
                         <div
-                          className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-sm break-words [overflow-wrap:anywhere] ${isOwn ? 'bg-primary text-white rounded-tr-sm' : 'bg-slate-100 text-slate-800 rounded-tl-sm'}`}
+                          className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-sm break-words [overflow-wrap:anywhere] shadow-xs ${
+                            isOwn
+                              ? 'bg-primary text-white rounded-tr-sm'
+                              : 'bg-slate-100 text-slate-800 rounded-tl-sm'
+                          }`}
                         >
-                          {msg.content}
+                          {/* Replied Parent Message Quote */}
+                          {parentReplyMsg && !isDeleted && (
+                            <div
+                              className={`text-[11px] mb-2 p-1.5 pl-2.5 rounded-lg border-l-2 max-w-full truncate ${
+                                isOwn
+                                  ? 'bg-black/10 text-white/90 border-white/60'
+                                  : 'bg-slate-200/70 text-slate-700 border-primary'
+                              }`}
+                            >
+                              <span className="font-semibold block truncate">
+                                {parentReplyMsg.senderId === currentUser?.id ? 'You' : 'Reply'}
+                              </span>
+                              <span className="truncate block opacity-90">
+                                {parentReplyMsg.content}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Message Body */}
+                          {isDeleted ? (
+                            <span className="italic opacity-60 text-xs">
+                              This message was deleted
+                            </span>
+                          ) : isEditingThis ? (
+                            /* Inline Edit Mode */
+                            <div className="space-y-2 py-1">
+                              <textarea
+                                value={editingContent}
+                                onChange={(e) => setEditingContent(e.target.value)}
+                                className="w-full bg-white text-slate-900 rounded-xl p-2 text-xs border border-slate-300 focus:outline-none resize-none"
+                                rows={2}
+                              />
+                              <div className="flex justify-end space-x-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingMessageId(null)}
+                                  className="text-[11px] px-2 py-1 rounded-md bg-white/20 hover:bg-white/30 text-white font-medium cursor-pointer"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveEdit(msg.id)}
+                                  disabled={editMessage.isPending}
+                                  className="text-[11px] px-2.5 py-1 rounded-md bg-white text-primary font-bold hover:bg-slate-100 cursor-pointer shadow-xs"
+                                >
+                                  {editMessage.isPending ? 'Saving...' : 'Save'}
+                                </button>
+                              </div>
+                            </div>
+                          ) : msg.type === 'IMAGE' ? (
+                            /* Image Attachment Message */
+                            <div className="space-y-1">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPreviewImageUrl(msg.content.split('\n')[0] || null)
+                                }
+                                className="block p-0 bg-transparent border-none cursor-pointer rounded-xl overflow-hidden hover:opacity-95 transition-opacity"
+                                title="Click to view full image"
+                              >
+                                <img
+                                  src={msg.content.split('\n')[0]}
+                                  alt="Shared attachment"
+                                  className="max-w-xs sm:max-w-sm rounded-xl object-cover max-h-60"
+                                />
+                              </button>
+                              {msg.content.includes('\n') && (
+                                <p className="text-xs pt-1">
+                                  {msg.content.substring(msg.content.indexOf('\n') + 1)}
+                                </p>
+                              )}
+                            </div>
+                          ) : msg.type === 'FILE' ? (
+                            /* Document / File Message */
+                            <a
+                              href={msg.content}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={`flex items-center space-x-2.5 p-2 rounded-xl transition-colors ${
+                                isOwn
+                                  ? 'bg-white/10 hover:bg-white/20'
+                                  : 'bg-white hover:bg-slate-50'
+                              }`}
+                            >
+                              <FileText className="w-6 h-6 text-primary shrink-0" />
+                              <div className="min-w-0 pr-2">
+                                <span className="text-xs font-semibold block truncate max-w-[160px]">
+                                  {msg.content.split('/').pop() || 'Attachment'}
+                                </span>
+                                <span className="text-[10px] opacity-75">
+                                  Click to view document
+                                </span>
+                              </div>
+                              <ExternalLink className="w-3.5 h-3.5 opacity-60 shrink-0" />
+                            </a>
+                          ) : (
+                            /* Standard Text Message */
+                            msg.content
+                          )}
+
+                          {/* Own Read Status Icon */}
+                          {isOwn && !isDeleted && (
+                            <span
+                              className="inline-flex items-center ml-2 float-right mt-1 opacity-80"
+                              title={isRead ? 'Read' : 'Delivered'}
+                            >
+                              {isRead ? (
+                                <CheckCheck className="w-3 h-3 text-white" />
+                              ) : (
+                                <Check className="w-3 h-3 text-white/70" />
+                              )}
+                            </span>
+                          )}
                         </div>
                       </div>
+
+                      {/* Reactions Pill Display */}
+                      {Object.keys(msgReactions).length > 0 && !isDeleted && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {Object.entries(msgReactions).map(([emoji, userIds]) => {
+                            const hasUserReacted =
+                              currentUser?.id && userIds.includes(currentUser.id);
+                            return (
+                              <button
+                                key={emoji}
+                                type="button"
+                                onClick={() => handleToggleReaction(msg.id, emoji)}
+                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
+                                  hasUserReacted
+                                    ? 'bg-primary/10 border-primary/30 text-primary'
+                                    : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+                                }`}
+                              >
+                                <span className="mr-1">{emoji}</span>
+                                <span className="text-[10px]">{userIds.length}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
               })}
 
-              {/* Load more is now at the END of the DOM, which appears at the visually TOP due to flex-col-reverse */}
               {hasNextPage && (
                 <div className="text-center pt-4">
                   <Button
@@ -765,6 +1174,29 @@ export const ConversationPage = () => {
 
         {/* Input Area */}
         <div className="p-3 sm:p-4 bg-white border-t border-slate-100 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+          {/* Replying Banner */}
+          {replyingTo && (
+            <div className="flex items-center justify-between bg-primary/5 border border-primary/20 px-3.5 py-1.5 rounded-xl mb-2 animate-in slide-in-from-bottom-2">
+              <div className="flex items-center space-x-2 min-w-0 pr-2">
+                <CornerUpLeft className="w-3.5 h-3.5 text-primary shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold text-primary truncate">
+                    Replying to {replyingTo.senderId === currentUser?.id ? 'yourself' : 'message'}
+                  </p>
+                  <p className="text-xs text-slate-600 truncate">{replyingTo.content}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReplyingTo(null)}
+                className="text-slate-400 hover:text-slate-700 p-0.5 rounded-full cursor-pointer"
+                title="Cancel reply"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* Typing Indicator */}
           {Object.keys(typingUsers).length > 0 && (
             <div className="flex items-center space-x-2 text-xs text-slate-400 mb-2 px-2">
@@ -790,6 +1222,7 @@ export const ConversationPage = () => {
             </div>
           )}
 
+          {/* Input Box */}
           <div className="flex items-end bg-slate-50 rounded-2xl border border-slate-200 p-1 pl-3 sm:pl-4 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
             <textarea
               className="flex-1 bg-transparent border-none focus:ring-0 resize-none py-2.5 sm:py-3 max-h-32 text-base md:text-sm focus:outline-none"
@@ -802,22 +1235,30 @@ export const ConversationPage = () => {
             />
             <div className="flex items-center space-x-1 p-1 sm:p-2 shrink-0">
               <Button
+                type="button"
                 variant="ghost"
                 size="icon"
-                className="text-slate-400 hover:text-slate-600 rounded-full h-8 w-8 min-h-[36px] min-w-[36px]"
+                onClick={() => setIsAttachmentModalOpen(true)}
+                className="text-slate-400 hover:text-slate-600 rounded-full h-8 w-8 min-h-[36px] min-w-[36px] cursor-pointer"
+                title="Attach image or file"
               >
                 <Paperclip className="w-4 h-4" />
               </Button>
               <Button
+                type="button"
                 variant="ghost"
                 size="icon"
-                className="text-slate-400 hover:text-slate-600 rounded-full h-8 w-8 min-h-[36px] min-w-[36px]"
+                onClick={() => {
+                  setContent((prev) => `${prev} 😊`);
+                }}
+                className="text-slate-400 hover:text-slate-600 rounded-full h-8 w-8 min-h-[36px] min-w-[36px] cursor-pointer"
+                title="Add emoji"
               >
                 <Smile className="w-4 h-4" />
               </Button>
               <Button
                 size="icon"
-                className="rounded-full h-9 w-9 min-h-[36px] min-w-[36px] bg-primary text-white hover:bg-primary/90 ml-1 sm:ml-2 shadow-sm"
+                className="rounded-full h-9 w-9 min-h-[36px] min-w-[36px] bg-primary text-white hover:bg-primary/90 ml-1 sm:ml-2 shadow-sm cursor-pointer"
                 onClick={handleSend}
                 disabled={!content.trim() || sendMessage.isPending}
               >
@@ -838,7 +1279,6 @@ export const ConversationPage = () => {
       {/* Side View Layout Panel for User Details */}
       {isProfileSidebarOpen && (
         <>
-          {/* Mobile & Tablet Backdrop overlay */}
           <div
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-30 lg:hidden animate-in fade-in duration-200"
             onClick={() => setIsProfileSidebarOpen(false)}
@@ -858,6 +1298,37 @@ export const ConversationPage = () => {
           </div>
         </>
       )}
+
+      {/* Image Preview Lightbox Modal */}
+      {previewImageUrl && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in"
+        >
+          <button
+            type="button"
+            className="fixed inset-0 w-full h-full bg-transparent cursor-default border-none p-0"
+            onClick={() => setPreviewImageUrl(null)}
+            aria-label="Close image preview overlay"
+          />
+          <div className="relative max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl z-10">
+            <button
+              type="button"
+              onClick={() => setPreviewImageUrl(null)}
+              className="absolute top-3 right-3 text-white/80 hover:text-white bg-black/40 hover:bg-black/60 p-2 rounded-full cursor-pointer z-10"
+              title="Close image preview"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <img
+              src={previewImageUrl}
+              alt="Full preview"
+              className="w-full h-full object-contain max-h-[85vh] rounded-2xl"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -865,7 +1336,6 @@ export const ConversationPage = () => {
 function ChatMessagesSkeleton() {
   return (
     <div className="flex flex-col-reverse gap-6 w-full py-2">
-      {/* 1. Recent own message (at visual bottom) */}
       <div className="flex items-start flex-row-reverse space-x-reverse space-x-3 max-w-[75%] self-end">
         <Skeleton className="w-8 h-8 rounded-full shrink-0 mt-1" />
         <div className="flex flex-col items-end space-y-1.5">
@@ -877,7 +1347,6 @@ function ChatMessagesSkeleton() {
         </div>
       </div>
 
-      {/* 2. Other user message */}
       <div className="flex items-start space-x-3 max-w-[75%]">
         <Skeleton className="w-8 h-8 rounded-full shrink-0 mt-1" />
         <div className="flex flex-col items-start space-y-1.5">
@@ -889,7 +1358,6 @@ function ChatMessagesSkeleton() {
         </div>
       </div>
 
-      {/* 3. Own message */}
       <div className="flex items-start flex-row-reverse space-x-reverse space-x-3 max-w-[75%] self-end">
         <Skeleton className="w-8 h-8 rounded-full shrink-0 mt-1" />
         <div className="flex flex-col items-end space-y-1.5">
@@ -901,7 +1369,6 @@ function ChatMessagesSkeleton() {
         </div>
       </div>
 
-      {/* 4. Other user short message */}
       <div className="flex items-start space-x-3 max-w-[75%]">
         <Skeleton className="w-8 h-8 rounded-full shrink-0 mt-1" />
         <div className="flex flex-col items-start space-y-1.5">
@@ -913,7 +1380,6 @@ function ChatMessagesSkeleton() {
         </div>
       </div>
 
-      {/* 5. Other user longer message */}
       <div className="flex items-start space-x-3 max-w-[75%]">
         <Skeleton className="w-8 h-8 rounded-full shrink-0 mt-1" />
         <div className="flex flex-col items-start space-y-1.5">

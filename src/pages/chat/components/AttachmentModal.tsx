@@ -52,6 +52,12 @@ const getDocumentBadgeColor = (filename: string): { bg: string; text: string } =
     case 'rar':
     case '7z':
       return { bg: 'bg-amber-100 border-amber-200', text: 'text-amber-700' };
+    case 'mp3':
+    case 'wav':
+    case 'ogg':
+    case 'm4a':
+    case 'webm':
+      return { bg: 'bg-violet-100 border-violet-200', text: 'text-violet-700' };
     default:
       return { bg: 'bg-indigo-100 border-indigo-200', text: 'text-indigo-700' };
   }
@@ -266,7 +272,7 @@ export const AttachmentModal = ({
                 accept={
                   activeTab === 'IMAGE'
                     ? 'image/jpeg,image/png,image/webp,image/gif,image/avif'
-                    : '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.json,application/*,text/*'
+                    : '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.json,.mp3,.wav,.ogg,.m4a,.webm,application/*,audio/*,text/*'
                 }
                 onChange={handleInputChange}
               />

@@ -35,7 +35,7 @@ export type ConversationsResponse = {
   nextCursor: string | null;
 };
 
-export type MessageType = 'TEXT' | 'IMAGE' | 'FILE' | 'SYSTEM' | string;
+export type MessageType = 'TEXT' | 'IMAGE' | 'FILE' | 'VOICE' | 'SYSTEM' | string;
 
 export type MessageReactionUser = {
   id: string;

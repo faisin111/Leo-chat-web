@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
@@ -23,7 +23,14 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { formatApiError } from '@/shared/api/api-error';
-import { authApi, registerSchema, type RegisterFormValues } from '@/features/auth';
+import {
+  authApi,
+  registerSchema,
+  type RegisterFormValues,
+  authSession,
+  useSession,
+  type CurrentUser,
+} from '@/features/auth';
 
 const getPasswordStrength = (pass: string) => {
   let score = 0;
@@ -45,6 +52,7 @@ const strengthConfig = [
 export const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const {
     register,
@@ -68,10 +76,40 @@ export const RegisterPage = () => {
   const strengthInfo = strengthConfig[password.length === 0 ? 0 : strength];
 
   const mutation = useMutation({
-    mutationFn: authApi.register,
-    onSuccess: () => {
-      toast.success('Account created! Please sign in.', { duration: 4000 });
-      navigate('/login', { replace: true });
+    mutationFn: async (formData: RegisterFormValues) => {
+      const data = await authApi.register(formData);
+      if (data.accessToken) {
+        useSession.getState().setAccessToken(data.accessToken);
+      }
+      let user = data.user as CurrentUser | undefined;
+      // Fetch full user profile using the returned Bearer token if not directly embedded
+      if (!user && data.accessToken) {
+        try {
+          user = (await authApi.getMe(data.accessToken)) as CurrentUser;
+        } catch {
+          user = {
+            id: data.id,
+            username: data.username,
+            displayName: data.displayName || formData.displayName || formData.username,
+            email: formData.email,
+            role: data.role || 'USER',
+            isEmailVerified: false,
+          };
+        }
+      }
+      return { accessToken: data.accessToken, user };
+    },
+    onSuccess: (data) => {
+      authSession.markActive();
+      if (data.user) {
+        useSession.getState().setSession(data.accessToken, data.user as CurrentUser);
+      }
+
+      toast.success('Welcome to LeoChat! Your account is ready.', { duration: 3000 });
+
+      const from =
+        (location.state as { from?: { pathname: string } } | null)?.from?.pathname || '/app';
+      navigate(from, { replace: true });
     },
     onError: (error) => {
       toast.error(formatApiError(error, 'Registration failed. Please try again.'));

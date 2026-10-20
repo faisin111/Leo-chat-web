@@ -2,6 +2,7 @@ export { useSession, isAdminRole } from './store/session.store';
 export { authSession } from './lib/auth-session';
 export type { CurrentUser } from './store/session.store';
 export { authApi } from './api/auth-api';
+export type { TokenResponse, RegisterResponse } from './api/auth-api';
 export {
   registerSchema,
   loginSchema,

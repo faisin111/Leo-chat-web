@@ -14,13 +14,26 @@ export type TokenResponse = {
   user?: unknown;
 };
 
+export type RegisterResponse = {
+  id: string;
+  username: string;
+  displayName: string;
+  role: string;
+  accessToken: string;
+  tokenType: string;
+  refreshToken?: string;
+  expiresIn?: number;
+  refreshExpiresIn?: number;
+  user?: unknown;
+};
+
 export const authApi = {
   getCsrf: async () => {
     const response = await http.get<{ headerName: string; token: string }>('/auth/csrf');
     return response.data;
   },
 
-  register: async (data: RegisterFormValues) => {
+  register: async (data: RegisterFormValues): Promise<RegisterResponse> => {
     // Strip UI-only `terms` field and any undefined optional fields
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { terms: _terms, displayName, ...required } = data;
@@ -31,7 +44,7 @@ export const authApi = {
       payload.displayName = displayName.trim();
     }
 
-    const response = await http.post('/auth/register', payload);
+    const response = await http.post<RegisterResponse>('/auth/register', payload);
     clearCsrfToken();
     return response.data;
   },

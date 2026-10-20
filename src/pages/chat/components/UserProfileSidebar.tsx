@@ -43,6 +43,8 @@ import {
 import { useSession } from '@/features/auth';
 import { EditGroupModal } from './EditGroupModal';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { useCallStore } from '@/features/calls';
 
 interface UserProfileSidebarProps {
   onClose: () => void;
@@ -248,14 +250,42 @@ export const UserProfileSidebar = ({
         <div className="grid grid-cols-4 gap-1.5 pt-3 pb-3 border-y border-slate-100">
           <button
             type="button"
+            onClick={() => {
+              if (isGroup) {
+                toast.info('Calling is currently supported for direct 1-on-1 conversations');
+                return;
+              }
+              if (!conversationId || !targetId) {
+                toast.error('Unable to initiate call: user not found');
+                return;
+              }
+              useCallStore
+                .getState()
+                .startCall(conversationId, targetId, displayName, avatarUrl, false);
+            }}
             className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-slate-50 text-slate-600 hover:text-primary transition-colors text-xs font-medium space-y-1 cursor-pointer"
+            title="Start voice call"
           >
             <PhoneCall className="w-4 h-4 text-slate-500" />
             <span className="text-[11px]">Audio</span>
           </button>
           <button
             type="button"
+            onClick={() => {
+              if (isGroup) {
+                toast.info('Calling is currently supported for direct 1-on-1 conversations');
+                return;
+              }
+              if (!conversationId || !targetId) {
+                toast.error('Unable to initiate call: user not found');
+                return;
+              }
+              useCallStore
+                .getState()
+                .startCall(conversationId, targetId, displayName, avatarUrl, true);
+            }}
             className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-slate-50 text-slate-600 hover:text-primary transition-colors text-xs font-medium space-y-1 cursor-pointer"
+            title="Start video call"
           >
             <Video className="w-4 h-4 text-slate-500" />
             <span className="text-[11px]">Video</span>

@@ -34,6 +34,32 @@ export type SendChatMessagePayload = {
   replyToId?: string | null;
 };
 
+export type CallSignalAction = 'OFFER' | 'ANSWER' | 'ICE_CANDIDATE' | 'REJECT' | 'BUSY' | 'END';
+
+export type CallSignalRequest = {
+  conversationId: string;
+  callId: string;
+  targetUserId: string;
+  action: CallSignalAction;
+  sdp?: string;
+  candidate?: string;
+  sdpMid?: string | null;
+  sdpMLineIndex?: number | null;
+};
+
+export type CallSignalEvent = {
+  conversationId: string;
+  callId: string;
+  fromUserId: string;
+  fromUsername: string;
+  targetUserId: string;
+  action: CallSignalAction;
+  sdp?: string;
+  candidate?: string;
+  sdpMid?: string | null;
+  sdpMLineIndex?: number | null;
+};
+
 export type WsError = {
   code:
     'FORBIDDEN' | 'NOT_FOUND' | 'BUSINESS_RULE' | 'VALIDATION_ERROR' | 'INTERNAL_ERROR' | string;
@@ -65,6 +91,7 @@ class WebSocketService {
   private errorListeners = new Set<(err: WsError) => void>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private notificationListeners = new Set<(notif: any) => void>();
+  private callSignalListeners = new Set<(signal: CallSignalEvent) => void>();
 
   // Track dynamic topic subscriptions
   // destination -> Map<callback, StompSubscription>
@@ -137,7 +164,15 @@ class WebSocketService {
           this.notificationListeners.forEach((listener) => listener(parsedNotif));
         });
 
-        // 4. Re-establish any pending dynamic topic subscriptions
+        // 4. Private WebRTC call signaling
+        this.client?.subscribe('/user/queue/calls', (message) => {
+          const parsedSignal: CallSignalEvent = safeParse(message.body);
+          // eslint-disable-next-line no-console
+          console.log('📞 Received call signal:', parsedSignal);
+          this.callSignalListeners.forEach((listener) => listener(parsedSignal));
+        });
+
+        // 5. Re-establish any pending dynamic topic subscriptions
         this.topicListeners.forEach((callbacks, destination) => {
           callbacks.forEach((_, callback) => {
             const subscription = this.client?.subscribe(destination, (msg) => {
@@ -222,6 +257,17 @@ class WebSocketService {
   addTypingListener(listener: (msg: any) => void) {
     this.typingListeners.add(listener);
     return () => this.typingListeners.delete(listener);
+  }
+
+  // Listeners for WebRTC call signaling
+  addCallSignalListener(listener: (signal: CallSignalEvent) => void) {
+    this.callSignalListeners.add(listener);
+    return () => this.callSignalListeners.delete(listener);
+  }
+
+  // Send WebRTC call signal to /app/call.signal
+  sendCallSignal(payload: CallSignalRequest) {
+    return this.publish('/app/call.signal', payload);
   }
 
   // Subscribe to specific topics (like /topic/conversations.{id})

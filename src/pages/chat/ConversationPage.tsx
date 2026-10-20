@@ -65,6 +65,7 @@ import { useUserById, useSearchUsers } from '@/features/users';
 import { wsService } from '@/shared/api/websocket';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useCallStore } from '@/features/calls';
 
 const QUICK_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
@@ -436,6 +437,21 @@ export const ConversationPage = () => {
         : conversation?.targetUsername
           ? `@${conversation.targetUsername}`
           : 'Click to view profile';
+
+  // Initiate WebRTC Call
+  const handleStartCall = (isVideo: boolean) => {
+    if (isGroup) {
+      toast.info('Calling is currently supported for direct 1-on-1 conversations');
+      return;
+    }
+    if (!conversationId || !otherUserId) {
+      toast.error('Unable to initiate call: participant not found');
+      return;
+    }
+    useCallStore
+      .getState()
+      .startCall(conversationId, otherUserId, headerName, headerAvatar, isVideo);
+  };
 
   // Sending text message
   const handleSend = () => {
@@ -929,16 +945,18 @@ export const ConversationPage = () => {
             <Button
               variant="ghost"
               size="icon"
+              onClick={() => handleStartCall(false)}
               className="hidden sm:inline-flex text-slate-400 hover:text-slate-600 rounded-full h-9 w-9 cursor-pointer"
-              title="Start call"
+              title="Start voice call"
             >
               <Phone className="w-4 h-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
+              onClick={() => handleStartCall(true)}
               className="hidden sm:inline-flex text-slate-400 hover:text-slate-600 rounded-full h-9 w-9 cursor-pointer"
-              title="Start video"
+              title="Start video call"
             >
               <Video className="w-4 h-4" />
             </Button>

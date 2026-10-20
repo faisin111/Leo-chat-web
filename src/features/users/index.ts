@@ -5,6 +5,7 @@ export type {
   PresenceItem,
   ProfileUpdateBody,
   SessionItem,
+  UserSessionResponse,
 } from './api/users-api';
 export { useMe } from './api/use-me';
 export { useUserById } from './api/use-user-by-id';

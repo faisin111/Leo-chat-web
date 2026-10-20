@@ -16,8 +16,18 @@ export type SessionItem = {
   sessionId: string;
   createdAt: string;
   lastUsedAt: string | null;
-  deviceInfo: string;
+  expiresAt?: string;
+  logoutAt?: string | null;
+  userAgent?: string | null;
+  ipAddress?: string | null;
+  deviceName?: string | null;
+  platform?: string | null;
+  appVersion?: string | null;
+  active?: boolean;
+  deviceInfo?: string;
 };
+
+export type UserSessionResponse = SessionItem;
 
 export type UserProfile = {
   id: string;

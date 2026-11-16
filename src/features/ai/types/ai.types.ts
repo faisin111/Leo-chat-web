@@ -38,6 +38,7 @@ export interface AiMessage {
 
 export interface AiSession {
   id: string;
+  conversationId?: string;
   title: string;
   createdAt: string;
   updatedAt: string;

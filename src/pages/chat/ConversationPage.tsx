@@ -61,6 +61,7 @@ import { UserProfileSidebar } from './components/UserProfileSidebar';
 import { VoiceMessagePlayer } from './components/VoiceMessagePlayer';
 import { VoiceRecorderBar } from './components/VoiceRecorderBar';
 import { mediaApi, useMediaDownloadUrl } from '@/features/media';
+import { AiRotatingIcon, useAiChat } from '@/features/ai';
 import { showApiError } from '@/shared/api/api-error';
 import { useUserById, useSearchUsers } from '@/features/users';
 import { wsService } from '@/shared/api/websocket';
@@ -243,6 +244,7 @@ export const ConversationPage = () => {
   const sendMessage = useSendMessage(conversationId || '');
   const deleteMessage = useDeleteMessage(conversationId || '');
   const editMessage = useEditMessage(conversationId || '');
+  const aiChat = useAiChat(conversationId || '');
   const { addReaction, removeReaction } = useMessageReactions(conversationId || '');
 
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useMessages(
@@ -576,7 +578,29 @@ export const ConversationPage = () => {
 
   // Sending text message
   const handleSend = () => {
-    if (!content.trim() || !conversationId) return;
+    const trimmed = content.trim();
+    if (!trimmed || !conversationId) return;
+
+    // Check for /ai prompt shortcut to chat directly with Gemini assistant
+    if (trimmed.toLowerCase().startsWith('/ai')) {
+      const aiPrompt = trimmed.replace(/^\/ai\s*/i, '').trim();
+      if (!aiPrompt) {
+        toast.info('Please enter a question or instruction after /ai');
+        return;
+      }
+      setContent('');
+      setReplyingTo(null);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      if (conversationId) {
+        wsService.sendChatTyping(conversationId, false);
+      }
+      const clientMessageId = `ai-prompt-${Date.now()}`;
+      aiChat.mutate({ prompt: aiPrompt, clientMessageId });
+      toast.info('Asking Leo AI...');
+      return;
+    }
 
     const optimisticId = crypto.randomUUID();
     const replyId = replyingTo?.id || null;
@@ -588,7 +612,7 @@ export const ConversationPage = () => {
       seq: 0,
       clientMessageId: optimisticId,
       type: 'TEXT',
-      content: content.trim(),
+      content: trimmed,
       replyToId: replyId,
       createdAt: new Date().toISOString(),
       editedAt: null,
@@ -609,14 +633,14 @@ export const ConversationPage = () => {
     const sentViaWs = wsService.sendChatMessage({
       conversationId,
       clientMessageId: optimisticId,
-      content: content.trim(),
+      content: trimmed,
       type: 'TEXT',
       replyToId: replyId,
     });
 
     if (!sentViaWs) {
       sendMessage.mutate({
-        content: content.trim(),
+        content: trimmed,
         type: 'TEXT',
         clientMessageId: optimisticId,
         replyToId: replyId,
@@ -1310,8 +1334,9 @@ export const ConversationPage = () => {
           ) : (
             <>
               {allMessages.map((msg) => {
-                const isOwn = msg.senderId === currentUser?.id;
-                const isDeleted = !!msg.deleted || msg.deletedAt != null;
+                const isAi = !!msg.aiGenerated;
+                const isOwn = !isAi && msg.senderId === currentUser?.id;
+                const isDeleted = !isAi && (!!msg.deleted || msg.deletedAt != null);
                 const isEdited = msg.editedAt != null;
                 const isEditingThis = editingMessageId === msg.id;
 
@@ -1321,17 +1346,19 @@ export const ConversationPage = () => {
                     ? conversation?.targetAvatarUrl || targetUserProfile?.profilePictureUrl
                     : undefined;
 
-                const senderName = isOwn
-                  ? currentUser?.displayName || currentUser?.username || 'You'
-                  : msg.senderDisplayName ||
-                    msg.senderUsername ||
-                    (!isGroup
-                      ? conversation?.targetDisplayName ||
-                        conversation?.targetUsername ||
-                        targetUserProfile?.displayName ||
-                        targetUserProfile?.username
-                      : undefined) ||
-                    `User ${msg.senderId.substring(0, 6)}`;
+                const senderName = isAi
+                  ? 'Leo AI'
+                  : isOwn
+                    ? currentUser?.displayName || currentUser?.username || 'You'
+                    : msg.senderDisplayName ||
+                      msg.senderUsername ||
+                      (!isGroup
+                        ? conversation?.targetDisplayName ||
+                          conversation?.targetUsername ||
+                          targetUserProfile?.displayName ||
+                          targetUserProfile?.username
+                        : undefined) ||
+                      (msg.senderId ? `User ${msg.senderId.substring(0, 6)}` : 'Leo AI');
 
                 const senderInitials = (senderName || 'U').substring(0, 2).toUpperCase();
                 const color = isOwn ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-700';
@@ -1401,29 +1428,49 @@ export const ConversationPage = () => {
                       isOwn ? 'flex-row-reverse space-x-reverse' : ''
                     } relative`}
                   >
-                    <Avatar
-                      src={senderAvatar}
-                      alt={senderName}
-                      className={`w-8 h-8 font-bold text-xs shrink-0 mt-1 ${color}`}
-                      fallback={senderInitials}
-                    />
+                    {isAi ? (
+                      <div className="w-8 h-8 rounded-full bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 flex items-center justify-center shrink-0 mt-1 shadow-sm border border-zinc-200 dark:border-zinc-800">
+                        <AiRotatingIcon size="sm" />
+                      </div>
+                    ) : (
+                      <Avatar
+                        src={senderAvatar}
+                        alt={senderName}
+                        className={`w-8 h-8 font-bold text-xs shrink-0 mt-1 ${color}`}
+                        fallback={senderInitials}
+                      />
+                    )}
 
                     <div
                       className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[85%] sm:max-w-[75%]`}
                     >
                       {/* Name and time header */}
-                      <div className="flex items-baseline space-x-2 mb-1">
-                        <span className="text-xs font-semibold text-slate-900">{senderName}</span>
-                        <span className="text-[10px] text-slate-400">{time}</span>
+                      <div className="flex items-center space-x-2 mb-1">
+                        {isAi ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1">
+                              <AiRotatingIcon size="sm" />
+                              Leo AI
+                            </span>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-primary/10 text-primary border border-primary/20 font-mono font-bold uppercase tracking-wider">
+                              Gemini
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs font-semibold text-foreground">
+                            {senderName}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-muted-foreground">{time}</span>
                         {isEdited && !isDeleted && (
-                          <span className="text-[9px] text-slate-400 italic">(edited)</span>
+                          <span className="text-[9px] text-muted-foreground italic">(edited)</span>
                         )}
                       </div>
 
                       {/* Main Message Bubble & Action Bar */}
                       <div className="relative group/bubble flex items-center gap-1.5">
                         {/* Hover Actions Toolbar */}
-                        {!isDeleted && (
+                        {!isDeleted && !isAi && (
                           <div
                             className={`opacity-0 group-hover/bubble:opacity-100 transition-opacity absolute -top-8 ${
                               isOwn ? 'right-0' : 'left-0'
@@ -1491,9 +1538,11 @@ export const ConversationPage = () => {
                         {/* Bubble Content */}
                         <div
                           className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-sm break-words [overflow-wrap:anywhere] shadow-xs transition-all ${
-                            isOwn
-                              ? 'bg-gradient-to-br from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground shadow-md shadow-primary/20 rounded-tr-xs'
-                              : 'bg-muted text-foreground border border-border/60 rounded-tl-xs'
+                            isAi
+                              ? 'bg-card text-card-foreground border border-primary/30 shadow-md shadow-primary/5 rounded-tl-xs'
+                              : isOwn
+                                ? 'bg-gradient-to-br from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground shadow-md shadow-primary/20 rounded-tr-xs'
+                                : 'bg-muted text-foreground border border-border/60 rounded-tl-xs'
                           }`}
                         >
                           {/* Replied Parent Message Quote */}
@@ -1835,15 +1884,38 @@ export const ConversationPage = () => {
                   <Smile className="w-4 h-4" />
                 </Button>
 
+                {/* Ask Leo AI quick trigger */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    const trimmed = content.trim();
+                    if (!trimmed) {
+                      setContent('/ai ');
+                    } else if (!trimmed.toLowerCase().startsWith('/ai')) {
+                      setContent((prev) => `/ai ${prev.trim()}`);
+                    }
+                  }}
+                  className={`rounded-full h-8 w-8 min-h-[36px] min-w-[36px] cursor-pointer transition-colors ${
+                    content.trim().toLowerCase().startsWith('/ai')
+                      ? 'text-primary bg-primary/15 hover:bg-primary/20 ring-1 ring-primary/40'
+                      : 'text-muted-foreground hover:text-primary hover:bg-muted'
+                  }`}
+                  title="Ask Leo AI (/ai)"
+                >
+                  <AiRotatingIcon size="sm" />
+                </Button>
+
                 {content.trim().length > 0 ? (
                   <Button
                     size="icon"
                     className="rounded-full h-9 w-9 min-h-[36px] min-w-[36px] bg-gradient-to-r from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground hover:brightness-105 ml-1 sm:ml-2 shadow-md shadow-primary/25 cursor-pointer active:scale-95 transition-all"
                     onClick={handleSend}
-                    disabled={sendMessage.isPending}
+                    disabled={sendMessage.isPending || aiChat.isPending}
                     title="Send message"
                   >
-                    {sendMessage.isPending ? (
+                    {sendMessage.isPending || aiChat.isPending ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <Send className="w-4 h-4 ml-0.5" />

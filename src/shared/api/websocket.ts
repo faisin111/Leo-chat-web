@@ -38,6 +38,12 @@ export type SendChatMessagePayload = {
   sizeBytes?: number | null;
 };
 
+export type SendAiChatPayload = {
+  conversationId: string;
+  prompt: string;
+  clientMessageId?: string;
+};
+
 export type CallSignalAction =
   'OFFER' | 'ANSWER' | 'ICE_CANDIDATE' | 'REJECT' | 'BUSY' | 'END' | 'DELIVERED' | 'UNAVAILABLE';
 
@@ -354,6 +360,15 @@ class WebSocketService {
     return this.publish('/app/chat.typing', {
       conversationId,
       isTyping,
+    });
+  }
+
+  // Send AI chat prompt over STOMP to /app/ai.chat
+  sendAiChat(payload: SendAiChatPayload) {
+    return this.publish('/app/ai.chat', {
+      conversationId: payload.conversationId,
+      prompt: payload.prompt,
+      clientMessageId: payload.clientMessageId || `ai-prompt-${Date.now()}`,
     });
   }
 }

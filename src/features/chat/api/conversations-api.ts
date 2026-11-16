@@ -69,7 +69,8 @@ export type MessageAttachment = {
 export type Message = {
   id: string;
   conversationId: string;
-  senderId: string;
+  senderId?: string | null;
+  aiGenerated?: boolean;
   senderUsername?: string | null;
   senderDisplayName?: string | null;
   seq: number;

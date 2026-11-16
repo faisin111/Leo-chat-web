@@ -4,7 +4,19 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { MessageSquare, Loader2, Eye, EyeOff } from 'lucide-react';
+import {
+  MessageSquare,
+  Loader2,
+  Eye,
+  EyeOff,
+  Sun,
+  Moon,
+  ShieldCheck,
+  Sparkles,
+  Lock,
+  ArrowRight,
+} from 'lucide-react';
+import { useTheme } from 'next-themes';
 
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -22,6 +34,7 @@ export const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { resolvedTheme, setTheme } = useTheme();
 
   const {
     register,
@@ -72,155 +85,220 @@ export const LoginPage = () => {
     mutation.mutate(data);
   };
 
+  const toggleTheme = () => {
+    const nextTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+  };
+
   return (
-    <div className="flex w-full flex-1 flex-col lg:flex-row h-full min-h-screen">
-      {/* Left side - Visuals */}
-      <div className="hidden lg:flex flex-col justify-between w-1/2 bg-slate-900 border-r border-border p-12 relative overflow-hidden text-white">
-        {/* Background gradient/image placeholder */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/20 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2"></div>
+    <div className="flex w-full flex-1 flex-col lg:flex-row min-h-screen bg-background text-foreground transition-colors duration-200">
+      {/* ── Left Side - Brand Showcase ── */}
+      <div className="hidden lg:flex flex-col justify-between w-full lg:w-[48%] bg-gradient-to-br from-slate-950 via-slate-900 to-[hsl(var(--primary)/0.22)] dark:from-black dark:via-slate-950 dark:to-[hsl(var(--primary)/0.18)] border-r border-border/40 p-12 lg:p-16 relative overflow-hidden text-white shrink-0">
+        {/* Ambient lighting blooms */}
+        <div className="absolute top-0 right-0 w-[480px] h-[480px] bg-primary/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[420px] h-[420px] bg-[hsl(var(--primary-gradient-to,var(--primary)))]/15 rounded-full blur-[140px] translate-y-1/3 -translate-x-1/3 pointer-events-none" />
 
-        <div className="relative z-10 flex items-center space-x-2 font-bold text-xl text-primary-foreground">
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-            <MessageSquare className="w-4 h-4" fill="currentColor" />
-          </div>
-          <span>LeoChat</span>
+        {/* Brand Header */}
+        <div className="relative z-10 flex items-center space-x-3">
+          <Link to="/" className="flex items-center space-x-3 group" title="Return to LeoChat Home">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/30 group-hover:scale-105 transition-transform">
+              <MessageSquare className="w-5 h-5" fill="currentColor" />
+            </div>
+            <span className="font-extrabold text-2xl tracking-tight bg-gradient-to-r from-white via-white to-white/80 bg-clip-text text-transparent">
+              LeoChat
+            </span>
+          </Link>
         </div>
 
-        <div className="relative z-10 max-w-md mt-24">
-          <div className="w-12 h-12 bg-white/10 text-primary-foreground flex items-center justify-center rounded-xl mb-6 text-2xl font-serif">
-            &quot;
+        {/* Quote / Testimonial Box */}
+        <div className="relative z-10 my-auto py-10 max-w-lg">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-white/90 backdrop-blur-md border border-white/15 mb-6">
+            <Sparkles className="w-3.5 h-3.5 text-primary" />
+            Next-Gen Team Messenger
           </div>
-          <h2 className="text-3xl font-bold mb-6 leading-tight text-white">
-            &quot;LeoChat keeps our decisions close to the work—and our conversations genuinely
-            focused.&quot;
-          </h2>
-          <div>
-            <p className="font-bold text-white">Maya Chen</p>
-            <p className="text-white/60 text-sm">Head of Design, Northstar Studio</p>
+
+          <blockquote className="text-2xl lg:text-3xl font-bold leading-snug tracking-tight mb-8 text-white/95">
+            &ldquo;LeoChat keeps our decisions close to the work — zero clutter, real momentum, and
+            instant sync across all our devices.&rdquo;
+          </blockquote>
+
+          <div className="flex items-center gap-3.5 p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shadow-xl">
+            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-amber-400 text-white font-bold flex items-center justify-center text-sm shadow-md ring-2 ring-white/20 shrink-0">
+              MC
+            </div>
+            <div>
+              <p className="font-bold text-sm text-white">Maya Chen</p>
+              <p className="text-white/60 text-xs">Head of Product Design, Northstar Studio</p>
+            </div>
           </div>
         </div>
 
-        <div className="relative z-10 text-xs text-white/60 mt-24">
-          Private by design • Synced everywhere
+        {/* Bottom Trust Indicators */}
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 text-xs text-white/60 pt-6 border-t border-white/10">
+          <span className="flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            End-to-end encrypted
+          </span>
+          <span>•</span>
+          <span>Ultra-low latency STOMP</span>
+          <span>•</span>
+          <span>Zero ad tracking</span>
         </div>
       </div>
 
-      {/* Right side - Form */}
-      <div className="flex-1 flex flex-col justify-center items-center p-8 lg:p-12 relative">
-        <div className="absolute top-8 right-8 text-sm">
-          <span className="text-muted-foreground mr-2">New to LeoChat?</span>
-          <Button variant="outline" asChild>
-            <Link to="/register">Create account</Link>
-          </Button>
-        </div>
-
-        <div className="w-full max-w-[400px]">
-          <div className="lg:hidden flex items-center space-x-2 font-bold text-xl text-primary mb-12">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+      {/* ── Right Side - Form ── */}
+      <div className="flex-1 flex flex-col justify-between p-6 sm:p-10 lg:p-16 relative bg-background">
+        {/* Top bar with Theme Switcher & Signup Link */}
+        <div className="flex items-center justify-between w-full mb-8 lg:mb-0">
+          {/* Mobile Brand Logo */}
+          <Link to="/" className="lg:hidden flex items-center space-x-2.5 font-bold text-xl">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground flex items-center justify-center shadow-md shadow-primary/25">
               <MessageSquare className="w-4 h-4" fill="currentColor" />
             </div>
-            <span>LeoChat</span>
-          </div>
+            <span className="text-foreground tracking-tight font-extrabold">LeoChat</span>
+          </Link>
 
-          <h1 className="text-3xl font-bold mb-2">Welcome back</h1>
-          <p className="text-muted-foreground mb-8">Sign in to continue your conversations.</p>
+          <div className="flex items-center gap-3 ml-auto text-sm">
+            {/* Quick Theme Toggle */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="w-9 h-9 rounded-xl border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+              title={`Switch to ${resolvedTheme === 'dark' ? 'Light' : 'Dark'} mode`}
+              aria-label="Toggle theme"
+            >
+              {resolvedTheme === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-indigo-500" />
+              )}
+            </button>
+
+            <span className="hidden sm:inline text-muted-foreground">New to LeoChat?</span>
+            <Button variant="outline" size="sm" asChild className="rounded-xl">
+              <Link to="/register">Create account</Link>
+            </Button>
+          </div>
+        </div>
+
+        {/* Center Form Card */}
+        <div className="w-full max-w-[420px] mx-auto my-auto py-8">
+          <div className="mb-8">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20 mb-3">
+              <Lock className="w-3 h-3" /> Secure Access
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2">
+              Welcome back
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Sign in to continue your conversations and active channels.
+            </p>
+          </div>
 
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username" className="text-xs font-semibold text-foreground">
+                Username
+              </Label>
               <Input
                 id="username"
                 type="text"
                 placeholder="john_doe"
-                className="h-12"
+                className="h-11 rounded-xl bg-card border-border text-foreground transition-all"
                 autoComplete="username"
                 {...register('username')}
               />
-              {errors.username && <p className="text-xs text-red-500">{errors.username.message}</p>}
+              {errors.username && (
+                <p className="text-xs text-destructive font-medium">{errors.username.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-xs font-semibold text-foreground">
+                  Password
+                </Label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
-                  className="h-12 pr-10"
+                  className="h-11 pr-10 rounded-xl bg-card border-border text-foreground transition-all"
                   autoComplete="current-password"
                   {...register('password')}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                 </button>
               </div>
-              {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
+              {errors.password && (
+                <p className="text-xs text-destructive font-medium">{errors.password.message}</p>
+              )}
             </div>
 
-            <div className="flex items-center justify-between mt-4">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="remember"
-                  className="rounded border-input text-primary focus:ring-primary h-4 w-4"
-                />
-                <Label htmlFor="remember" className="font-normal cursor-pointer text-sm">
-                  Remember me
-                </Label>
-              </div>
-              <Link
-                to="/forgot-password"
-                className="text-sm font-medium text-primary hover:underline"
+            <div className="flex items-center space-x-2 pt-1">
+              <input
+                type="checkbox"
+                id="remember"
+                className="rounded border-border text-primary focus:ring-primary h-4 w-4 bg-card"
+              />
+              <Label
+                htmlFor="remember"
+                className="font-normal cursor-pointer text-xs text-muted-foreground"
               >
-                Forgot password?
-              </Link>
+                Keep me signed in on this device
+              </Label>
             </div>
 
-            <Button className="w-full h-12 mt-6" type="submit" disabled={mutation.isPending}>
+            <Button
+              variant="gradient"
+              className="w-full h-11 mt-4 rounded-xl font-semibold shadow-md shadow-primary/20"
+              type="submit"
+              disabled={mutation.isPending}
+            >
               {mutation.isPending ? (
-                <span className="flex items-center gap-2">
+                <span className="flex items-center justify-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Signing in...
                 </span>
               ) : (
-                'Sign in'
+                <span className="flex items-center justify-center gap-2">
+                  Sign in <ArrowRight className="w-4 h-4" />
+                </span>
               )}
             </Button>
           </form>
 
-          <div className="mt-8 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                clipRule="evenodd"
-              />
-            </svg>
-            Your session is encrypted and protected.
+          {/* Encryption Assurance */}
+          <div className="mt-8 flex items-center justify-center gap-2 text-xs text-muted-foreground bg-muted/40 border border-border/60 py-2.5 px-4 rounded-xl">
+            <Lock className="w-3.5 h-3.5 text-primary shrink-0" />
+            <span>Encrypted via TLS 1.3 with JWT authentication</span>
           </div>
+        </div>
 
-          <div className="mt-12 text-center text-xs text-muted-foreground space-x-4">
-            <a href="/" className="hover:text-foreground">
-              Privacy
-            </a>
-            <a href="/" className="hover:text-foreground">
-              Terms
-            </a>
-            <a href="/" className="hover:text-foreground">
-              Help center
-            </a>
-          </div>
+        {/* Footer */}
+        <div className="text-center text-xs text-muted-foreground space-x-6 pt-6 border-t border-border/40">
+          <Link to="/" className="hover:text-foreground transition-colors">
+            Privacy Policy
+          </Link>
+          <Link to="/" className="hover:text-foreground transition-colors">
+            Terms of Service
+          </Link>
+          <Link to="/" className="hover:text-foreground transition-colors">
+            Help Center
+          </Link>
         </div>
       </div>
     </div>

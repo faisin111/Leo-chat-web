@@ -17,7 +17,12 @@ import {
   Lock,
   Eye,
   EyeOff,
+  Sun,
+  Moon,
+  Sparkles,
+  ArrowRight,
 } from 'lucide-react';
+import { useTheme } from 'next-themes';
 
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -43,16 +48,17 @@ const getPasswordStrength = (pass: string) => {
 
 const strengthConfig = [
   { label: '', color: 'bg-border' },
-  { label: 'Weak — needs uppercase, lowercase, number & @#$%^&+=!', color: 'bg-red-500' },
-  { label: 'Fair — keep going', color: 'bg-orange-500' },
+  { label: 'Weak — needs uppercase, lowercase, number & symbol', color: 'bg-destructive' },
+  { label: 'Fair — keep going', color: 'bg-amber-500' },
   { label: 'Good — almost there', color: 'bg-yellow-500' },
-  { label: 'Strong — great password!', color: 'bg-green-500' },
+  { label: 'Strong — excellent password', color: 'bg-emerald-500' },
 ];
 
 export const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { resolvedTheme, setTheme } = useTheme();
 
   const {
     register,
@@ -120,113 +126,159 @@ export const RegisterPage = () => {
 
   const isDisabled = !terms || mutation.isPending;
 
+  const toggleTheme = () => {
+    const nextTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+  };
+
   return (
-    <div className="flex w-full flex-1 flex-col lg:flex-row h-full min-h-screen">
+    <div className="flex w-full flex-1 flex-col lg:flex-row min-h-screen bg-background text-foreground transition-colors duration-200">
       {/* ── Left: Form ── */}
-      <div className="flex-1 flex flex-col p-8 lg:p-12 overflow-y-auto">
-        <div className="flex items-center justify-between w-full mb-10 lg:mb-16">
-          <div className="flex items-center space-x-2 font-bold text-xl text-primary">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+      <div className="flex-1 flex flex-col p-6 sm:p-10 lg:p-14 overflow-y-auto">
+        {/* Top Navbar */}
+        <div className="flex items-center justify-between w-full mb-8 lg:mb-12">
+          <Link to="/" className="flex items-center space-x-2.5 font-bold text-xl group">
+            <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground flex items-center justify-center shadow-md shadow-primary/25 group-hover:scale-105 transition-transform">
               <MessageSquare className="w-4 h-4" fill="currentColor" />
             </div>
-            <span>LeoChat</span>
-          </div>
-          <div className="text-sm hidden sm:flex items-center gap-3">
-            <span className="text-muted-foreground">Already have an account?</span>
-            <Button variant="outline" asChild>
+            <span className="font-extrabold tracking-tight text-foreground text-xl">LeoChat</span>
+          </Link>
+
+          <div className="flex items-center gap-3 text-sm">
+            {/* Theme Toggle */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="w-9 h-9 rounded-xl border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+              title={`Switch to ${resolvedTheme === 'dark' ? 'Light' : 'Dark'} mode`}
+              aria-label="Toggle theme"
+            >
+              {resolvedTheme === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-indigo-500" />
+              )}
+            </button>
+
+            <span className="hidden sm:inline text-muted-foreground">Already registered?</span>
+            <Button variant="outline" size="sm" asChild className="rounded-xl">
               <Link to="/login">Sign in</Link>
             </Button>
           </div>
         </div>
 
-        <div className="w-full max-w-[440px] mx-auto flex-1">
-          <h1 className="text-3xl font-bold mb-1">Create your account</h1>
-          <p className="text-muted-foreground mb-8">Join LeoChat — it only takes a minute.</p>
+        {/* Center Form Container */}
+        <div className="w-full max-w-[440px] mx-auto my-auto py-4">
+          <div className="mb-6">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20 mb-3">
+              <Sparkles className="w-3 h-3" /> Get started in seconds
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2">
+              Create your account
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Join LeoChat — real-time messaging built for focus and momentum.
+            </p>
+          </div>
 
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
             {/* Username */}
-            <div className="space-y-1">
-              <Label htmlFor="username">Username</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="username" className="text-xs font-semibold text-foreground">
+                Username
+              </Label>
               <div className="relative">
-                <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <AtSign className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="username"
-                  placeholder="john_doe  (letters, numbers, . _ -)"
-                  className="h-12 pl-9"
+                  placeholder="john_doe (letters, numbers, . _ -)"
+                  className="h-11 pl-10 rounded-xl bg-card border-border text-foreground transition-all"
                   autoComplete="username"
                   {...register('username')}
                 />
               </div>
-              {errors.username && <p className="text-xs text-red-500">{errors.username.message}</p>}
+              {errors.username && (
+                <p className="text-xs text-destructive font-medium">{errors.username.message}</p>
+              )}
             </div>
 
             {/* Display Name */}
-            <div className="space-y-1">
-              <Label htmlFor="displayName">Display name</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="displayName" className="text-xs font-semibold text-foreground">
+                Display name
+              </Label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="displayName"
                   placeholder="John Doe"
-                  className="h-12 pl-9"
+                  className="h-11 pl-10 rounded-xl bg-card border-border text-foreground transition-all"
                   autoComplete="name"
                   {...register('displayName')}
                 />
               </div>
               {errors.displayName && (
-                <p className="text-xs text-red-500">{errors.displayName.message}</p>
+                <p className="text-xs text-destructive font-medium">{errors.displayName.message}</p>
               )}
             </div>
 
             {/* Email */}
-            <div className="space-y-1">
-              <Label htmlFor="email">Email address</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-xs font-semibold text-foreground">
+                Email address
+              </Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="john@example.com"
-                  className="h-12 pl-9"
+                  className="h-11 pl-10 rounded-xl bg-card border-border text-foreground transition-all"
                   autoComplete="email"
                   {...register('email')}
                 />
               </div>
-              {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+              {errors.email && (
+                <p className="text-xs text-destructive font-medium">{errors.email.message}</p>
+              )}
             </div>
 
             {/* Password + strength meter */}
-            <div className="space-y-1">
-              <Label htmlFor="password">Password</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-xs font-semibold text-foreground">
+                Password
+              </Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Min 8 chars • Aa • 1 • @#$%^&+=!"
-                  className="h-12 pl-9 pr-10"
+                  className="h-11 pl-10 pr-10 rounded-xl bg-card border-border text-foreground transition-all"
                   autoComplete="new-password"
                   {...register('password')}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                 </button>
               </div>
-              {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
+              {errors.password && (
+                <p className="text-xs text-destructive font-medium">{errors.password.message}</p>
+              )}
 
               {/* Animated strength bar */}
-              <div className="flex gap-1 pt-1">
+              <div className="flex gap-1 pt-1.5">
                 {[1, 2, 3, 4].map((level) => (
-                  <div key={level} className="h-1.5 flex-1 bg-border rounded-full overflow-hidden">
+                  <div key={level} className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ease-out ${
+                      className={`h-full rounded-full transition-all duration-300 ease-out ${
                         password.length > 0 && strength >= level
-                          ? (strengthConfig[strength]?.color ?? 'bg-border')
+                          ? (strengthConfig[strength]?.color ?? 'bg-muted')
                           : 'bg-transparent'
                       }`}
                       style={{ width: password.length > 0 && strength >= level ? '100%' : '0%' }}
@@ -236,11 +288,11 @@ export const RegisterPage = () => {
               </div>
               {password.length > 0 && strengthInfo && (
                 <p
-                  className={`text-xs font-medium transition-colors duration-300 ${
-                    strength === 4
-                      ? 'text-green-600'
+                  className={`text-[11px] font-medium transition-colors duration-200 ${
+                    strength >= 4
+                      ? 'text-emerald-500'
                       : strength === 3
-                        ? 'text-yellow-600'
+                        ? 'text-yellow-500'
                         : 'text-muted-foreground'
                   }`}
                 >
@@ -251,128 +303,136 @@ export const RegisterPage = () => {
 
             {/* Terms */}
             <div className="pt-2 space-y-1">
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-2.5">
                 <input
                   id="terms"
                   type="checkbox"
-                  className="mt-0.5 h-4 w-4 rounded border-input text-primary focus:ring-primary shrink-0"
+                  className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary shrink-0 bg-card"
                   {...register('terms')}
                 />
                 <Label
                   htmlFor="terms"
-                  className="font-normal cursor-pointer text-sm text-muted-foreground leading-relaxed"
+                  className="font-normal cursor-pointer text-xs text-muted-foreground leading-relaxed"
                 >
                   I agree to LeoChat&apos;s{' '}
-                  <Link to="/" className="text-primary underline underline-offset-2">
+                  <Link to="/" className="text-primary hover:underline underline-offset-2">
                     Terms of Service
                   </Link>{' '}
                   and{' '}
-                  <Link to="/" className="text-primary underline underline-offset-2">
+                  <Link to="/" className="text-primary hover:underline underline-offset-2">
                     Privacy Policy
                   </Link>
-                  , and confirm I&apos;m at least 16 years old.
+                  , and confirm I am at least 16 years old.
                 </Label>
               </div>
-              {errors.terms && <p className="text-xs text-red-500 pl-7">{errors.terms.message}</p>}
+              {errors.terms && (
+                <p className="text-xs text-destructive pl-6 font-medium">{errors.terms.message}</p>
+              )}
             </div>
 
             {/* Submit */}
             <Button
-              className={`w-full h-12 mt-2 font-semibold text-base transition-all duration-500 ${
+              variant="gradient"
+              className={`w-full h-11 mt-3 rounded-xl font-semibold shadow-md shadow-primary/20 transition-all ${
                 isDisabled ? 'opacity-50 cursor-not-allowed' : 'opacity-100'
               }`}
               type="submit"
               disabled={isDisabled}
             >
               {mutation.isPending ? (
-                <span className="flex items-center gap-2">
+                <span className="flex items-center justify-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Creating account…
                 </span>
               ) : (
-                'Create account'
+                <span className="flex items-center justify-center gap-2">
+                  Create account <ArrowRight className="w-4 h-4" />
+                </span>
               )}
             </Button>
           </form>
+        </div>
 
-          <div className="mt-10 text-center text-xs text-muted-foreground space-x-4">
-            <Link to="/" className="hover:text-foreground">
-              Privacy
-            </Link>
-            <Link to="/" className="hover:text-foreground">
-              Terms
-            </Link>
-            <Link to="/" className="hover:text-foreground">
-              Help
-            </Link>
-          </div>
+        {/* Footer */}
+        <div className="mt-auto text-center text-xs text-muted-foreground space-x-6 pt-6 border-t border-border/40">
+          <Link to="/" className="hover:text-foreground transition-colors">
+            Privacy Policy
+          </Link>
+          <Link to="/" className="hover:text-foreground transition-colors">
+            Terms of Service
+          </Link>
+          <Link to="/" className="hover:text-foreground transition-colors">
+            Help Center
+          </Link>
         </div>
       </div>
 
-      {/* ── Right: Feature panel ── */}
-      <div className="hidden lg:flex flex-col justify-center w-[45%] bg-slate-900 text-white p-12 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/4" />
+      {/* ── Right: Feature Showcase Panel ── */}
+      <div className="hidden lg:flex flex-col justify-center w-[46%] bg-gradient-to-br from-slate-950 via-slate-900 to-[hsl(var(--primary)/0.25)] dark:from-black dark:via-slate-950 dark:to-[hsl(var(--primary)/0.18)] text-white p-12 lg:p-16 relative overflow-hidden border-l border-border/40 shrink-0">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[460px] h-[460px] bg-[hsl(var(--primary-gradient-to,var(--primary)))]/15 rounded-full blur-[140px] translate-y-1/3 -translate-x-1/4 pointer-events-none" />
 
         <div className="relative z-10 max-w-md mx-auto">
-          <div className="inline-block px-2 py-1 bg-white/10 rounded text-[10px] font-bold uppercase tracking-widest mb-6">
-            Built for momentum
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-xs font-semibold uppercase tracking-wider mb-6 border border-white/15 backdrop-blur-md">
+            <Sparkles className="w-3.5 h-3.5 text-primary" /> Built for momentum
           </div>
-          <h2 className="text-4xl font-bold mb-10 leading-tight">
+          <h2 className="text-3xl lg:text-4xl font-extrabold mb-8 leading-tight tracking-tight text-white/95">
             One workspace. Every conversation in context.
           </h2>
 
-          <div className="space-y-4">
+          <div className="space-y-3.5">
             {[
               {
-                icon: <Zap className="w-5 h-5" />,
+                icon: <Zap className="w-5 h-5 text-amber-300" />,
                 title: 'Real-time by default',
-                desc: 'Messages, presence and typing updates arrive instantly.',
+                desc: 'Messages, presence states, and typing indicators arrive instantly.',
               },
               {
-                icon: <Users className="w-5 h-5" />,
-                title: 'Groups that stay clear',
-                desc: 'Keep roles, people and decisions easy to understand.',
+                icon: <Users className="w-5 h-5 text-primary" />,
+                title: 'Clear group channels',
+                desc: 'Organize teammates with roles, member limits, and instant search.',
               },
               {
-                icon: <Shield className="w-5 h-5" />,
-                title: 'Privacy you can see',
-                desc: 'Private content remains private—even from platform admins.',
+                icon: <Shield className="w-5 h-5 text-emerald-400" />,
+                title: 'Private & protected',
+                desc: 'Private direct messages remain confidential and strictly encrypted.',
               },
               {
-                icon: <RefreshCcw className="w-5 h-5" />,
-                title: 'Always in sync',
-                desc: 'Pick up any conversation from any signed-in device.',
+                icon: <RefreshCcw className="w-5 h-5 text-sky-400" />,
+                title: 'Seamless multi-device sync',
+                desc: 'Pick up any conversation across laptop, tablet, or phone.',
               },
             ].map(({ icon, title, desc }) => (
               <div
                 key={title}
-                className="bg-white/5 border border-white/10 rounded-xl p-4 flex gap-4 backdrop-blur-sm"
+                className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-start gap-4 backdrop-blur-md hover:bg-white/10 transition-colors"
               >
-                <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10">
                   {icon}
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-0.5">{title}</h3>
-                  <p className="text-sm text-white/60">{desc}</p>
+                  <h3 className="font-semibold text-sm mb-0.5 text-white">{title}</h3>
+                  <p className="text-xs text-white/70 leading-relaxed">{desc}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="mt-10 flex items-center gap-3">
+          <div className="mt-8 flex items-center gap-3 pt-6 border-t border-white/10">
             <div className="flex -space-x-2">
-              <div className="w-8 h-8 rounded-full bg-purple-500 border-2 border-slate-900 flex items-center justify-center text-[10px] font-bold">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 border-2 border-slate-900 flex items-center justify-center text-[10px] font-bold">
                 MC
               </div>
-              <div className="w-8 h-8 rounded-full bg-emerald-500 border-2 border-slate-900 flex items-center justify-center text-[10px] font-bold">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 border-2 border-slate-900 flex items-center justify-center text-[10px] font-bold">
                 JL
               </div>
-              <div className="w-8 h-8 rounded-full bg-amber-500 border-2 border-slate-900 flex items-center justify-center text-[10px] font-bold">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 border-2 border-slate-900 flex items-center justify-center text-[10px] font-bold">
                 NK
               </div>
             </div>
-            <span className="text-sm text-white/60 font-medium">Join 12,000+ focused teams</span>
+            <span className="text-xs text-white/70 font-medium">
+              Joined by thousands of focused teams
+            </span>
           </div>
         </div>
       </div>

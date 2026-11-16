@@ -13,7 +13,7 @@ import {
   AlertTriangle,
   ShieldAlert,
 } from 'lucide-react';
-import { useState, useRef, type ChangeEvent } from 'react';
+import { useState, useRef, useEffect, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -41,6 +41,8 @@ export const ProfilePage = () => {
   const getInitials = (name: string) => name.substring(0, 2).toUpperCase();
   const [isEditing, setIsEditing] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
+  const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
   const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
   const [deactivateConfirmText, setDeactivateConfirmText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,6 +50,14 @@ export const ProfilePage = () => {
   const deactivateAccount = useDeactivateAccount();
   const resendVerification = useResendVerification();
   const isAdmin = isAdminRole(user?.role);
+
+  useEffect(() => {
+    return () => {
+      if (previewPhotoUrl) {
+        URL.revokeObjectURL(previewPhotoUrl);
+      }
+    };
+  }, [previewPhotoUrl]);
 
   const {
     register,
@@ -65,20 +75,46 @@ export const ProfilePage = () => {
     },
   });
 
-  const onSubmit = (data: ProfileFormOutput) => {
-    updateProfile.mutate(data, {
-      onSuccess: () => {
+  const onSubmit = async (data: ProfileFormOutput) => {
+    if (pendingPhotoFile) {
+      setIsUploadingPhoto(true);
+      try {
+        const res = await mediaApi.uploadImage(pendingPhotoFile);
+        if (previewPhotoUrl) {
+          URL.revokeObjectURL(previewPhotoUrl);
+        }
+        setPendingPhotoFile(null);
+        setPreviewPhotoUrl(null);
+        await updateProfile.mutateAsync({
+          ...data,
+          profilePictureUrl: res.url,
+        });
         setIsEditing(false);
-      },
-    });
+      } catch (err: unknown) {
+        showApiError(err, 'Failed to upload profile photo');
+      } finally {
+        setIsUploadingPhoto(false);
+      }
+    } else {
+      updateProfile.mutate(data, {
+        onSuccess: () => {
+          setIsEditing(false);
+        },
+      });
+    }
   };
 
   const handleCancel = () => {
+    if (previewPhotoUrl) {
+      URL.revokeObjectURL(previewPhotoUrl);
+    }
+    setPendingPhotoFile(null);
+    setPreviewPhotoUrl(null);
     reset(); // Revert back to default values
     setIsEditing(false);
   };
 
-  const handlePhotoSelected = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoSelected = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -87,18 +123,17 @@ export const ProfilePage = () => {
       return;
     }
 
-    setIsUploadingPhoto(true);
-    try {
-      const res = await mediaApi.uploadImage(file);
-      await updateProfile.mutateAsync({ profilePictureUrl: res.url });
-      toast.success('Profile photo updated successfully');
-    } catch (err: unknown) {
-      showApiError(err, 'Failed to upload profile photo');
-    } finally {
-      setIsUploadingPhoto(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+    if (previewPhotoUrl) {
+      URL.revokeObjectURL(previewPhotoUrl);
+    }
+
+    const localUrl = URL.createObjectURL(file);
+    setPendingPhotoFile(file);
+    setPreviewPhotoUrl(localUrl);
+    toast.info('New photo preview selected. Click "Save changes" to upload and apply.');
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -119,7 +154,7 @@ export const ProfilePage = () => {
               <Button
                 variant="outline"
                 onClick={handleCancel}
-                disabled={updateProfile.isPending}
+                disabled={updateProfile.isPending || isUploadingPhoto}
                 className="rounded-xl"
               >
                 <X className="w-4 h-4 mr-2" /> Cancel
@@ -127,11 +162,19 @@ export const ProfilePage = () => {
               <Button
                 variant="gradient"
                 onClick={handleSubmit(onSubmit)}
-                disabled={!isDirty || updateProfile.isPending}
+                disabled={
+                  (!isDirty && !pendingPhotoFile) || updateProfile.isPending || isUploadingPhoto
+                }
                 className="rounded-xl"
               >
-                {updateProfile.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Save changes
+                {(updateProfile.isPending || isUploadingPhoto) && (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                )}
+                {isUploadingPhoto
+                  ? 'Uploading photo...'
+                  : updateProfile.isPending
+                    ? 'Saving...'
+                    : 'Save changes'}
               </Button>
             </>
           ) : (
@@ -157,12 +200,20 @@ export const ProfilePage = () => {
             </div>
 
             <div className="flex items-center space-x-4 mb-6">
-              <Avatar
-                src={user?.profilePictureUrl}
-                alt={user?.displayName || 'User'}
-                className="w-16 h-16 bg-primary/10 text-primary font-bold text-xl shrink-0"
-                fallback={user?.displayName ? getInitials(user.displayName) : 'U'}
-              />
+              <div className="relative">
+                <Avatar
+                  src={previewPhotoUrl || user?.profilePictureUrl}
+                  alt={user?.displayName || 'User'}
+                  className="w-16 h-16 bg-primary/10 text-primary font-bold text-xl shrink-0 border-2 border-border shadow-xs"
+                  fallback={user?.displayName ? getInitials(user.displayName) : 'U'}
+                />
+                {pendingPhotoFile && (
+                  <span
+                    className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-primary rounded-full ring-2 ring-background animate-pulse"
+                    title="Unsaved preview"
+                  />
+                )}
+              </div>
               <div>
                 <input
                   type="file"
@@ -179,16 +230,19 @@ export const ProfilePage = () => {
                   disabled={!isEditing || isUploadingPhoto}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  {isUploadingPhoto ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Upload className="w-4 h-4 mr-2" />
-                  )}
-                  {isUploadingPhoto ? 'Uploading...' : 'Upload new photo'}
+                  <Upload className="w-4 h-4 mr-2" />
+                  {pendingPhotoFile ? 'Change selected photo' : 'Choose new photo'}
                 </Button>
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider">
-                  JPEG, PNG, WEBP, GIF, AVIF - 10 MB max
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    JPEG, PNG, WEBP, GIF, AVIF - 10 MB max
+                  </p>
+                  {pendingPhotoFile && (
+                    <span className="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                      Preview only (unsaved)
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 

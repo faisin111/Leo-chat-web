@@ -1,223 +1,407 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
-import { MessageSquare, CheckCircle2, Shield, Zap, Users, RefreshCcw } from 'lucide-react';
+import {
+  MessageSquare,
+  CheckCircle2,
+  Shield,
+  Zap,
+  Users,
+  RefreshCcw,
+  Sparkles,
+  ArrowRight,
+  Sun,
+  Moon,
+  Lock,
+  Headphones,
+  CheckCheck,
+} from 'lucide-react';
+import { useTheme } from 'next-themes';
 
 export const LandingPage = () => {
+  const { resolvedTheme, setTheme } = useTheme();
+
+  const toggleTheme = () => {
+    const nextTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+  };
+
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 lg:px-12 py-4 max-w-7xl w-full mx-auto">
-        <div className="flex items-center space-x-2 font-bold text-xl text-primary">
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-            <MessageSquare className="w-4 h-4" fill="currentColor" />
-          </div>
-          <span>LeoChat</span>
-        </div>
-        <nav className="hidden md:flex space-x-8 text-sm font-medium text-muted-foreground">
-          <a href="#features" className="hover:text-foreground transition-colors">
-            Features
-          </a>
-          <a href="#security" className="hover:text-foreground transition-colors">
-            Security
-          </a>
-          <a href="#teams" className="hover:text-foreground transition-colors">
-            For Teams
-          </a>
-        </nav>
-        <div className="flex items-center space-x-4">
-          <Link to="/login" className="text-sm font-medium hover:text-primary transition-colors">
-            Log in
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans transition-colors duration-200">
+      {/* ── Sticky Glassmorphic Header ── */}
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/60 px-6 lg:px-12 py-3.5 transition-colors">
+        <div className="max-w-7xl w-full mx-auto flex items-center justify-between">
+          <Link to="/" className="flex items-center space-x-2.5 font-bold text-xl group">
+            <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/25 group-hover:scale-105 transition-transform">
+              <MessageSquare className="w-5 h-5" fill="currentColor" />
+            </div>
+            <span className="font-extrabold text-xl tracking-tight text-foreground">LeoChat</span>
           </Link>
-          <Button asChild>
-            <Link to="/register">Start chatting</Link>
-          </Button>
+
+          <nav className="hidden md:flex space-x-8 text-sm font-medium text-muted-foreground">
+            <a href="#features" className="hover:text-foreground transition-colors">
+              Features
+            </a>
+            <a href="#security" className="hover:text-foreground transition-colors">
+              Security & Privacy
+            </a>
+            <a href="#preview" className="hover:text-foreground transition-colors">
+              Live Preview
+            </a>
+          </nav>
+
+          <div className="flex items-center space-x-3">
+            {/* Theme Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="w-9 h-9 rounded-xl border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+              title={`Switch to ${resolvedTheme === 'dark' ? 'Light' : 'Dark'} mode`}
+              aria-label="Toggle theme"
+            >
+              {resolvedTheme === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-indigo-500" />
+              )}
+            </button>
+
+            <Link
+              to="/login"
+              className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors px-2"
+            >
+              Sign in
+            </Link>
+            <Button
+              variant="gradient"
+              size="sm"
+              asChild
+              className="rounded-xl font-semibold shadow-sm shadow-primary/20"
+            >
+              <Link to="/register">
+                Start chatting <ArrowRight className="w-4 h-4 ml-1.5" />
+              </Link>
+            </Button>
+          </div>
         </div>
       </header>
 
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="relative px-6 lg:px-12 py-20 lg:py-32 max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-12 overflow-hidden">
+        {/* ── Hero Section ── */}
+        <section className="relative px-6 lg:px-12 pt-16 pb-24 lg:pt-24 lg:pb-32 max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-14 overflow-hidden">
+          {/* Ambient Lighting Orbs */}
+          <div className="absolute top-10 left-1/4 w-[500px] h-[500px] bg-primary/15 rounded-full blur-[140px] pointer-events-none -z-10" />
+          <div className="absolute bottom-10 right-10 w-[450px] h-[450px] bg-[hsl(var(--primary-gradient-to,var(--primary)))]/10 rounded-full blur-[150px] pointer-events-none -z-10" />
+
+          {/* Left Text Column */}
           <div className="flex-1 text-center lg:text-left z-10">
-            <div className="inline-block px-3 py-1 bg-accent text-accent-foreground rounded-full text-xs font-bold uppercase tracking-wider mb-6">
-              Real-Time. Private. Yours.
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 mb-6 shadow-xs">
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
+              Real-Time • Encrypted • High Performance
             </div>
-            <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1]">
-              The calm place for conversations that move work forward.
+
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-[1.08] text-foreground">
+              The calm place for conversations that{' '}
+              <span className="bg-gradient-to-r from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] bg-clip-text text-transparent">
+                move work forward.
+              </span>
             </h1>
-            <p className="text-lg lg:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto lg:mx-0">
-              LeoChat brings direct messages, focused groups, presence, replies and files into one
-              secure workspace—instantly synced on every device.
+
+            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+              LeoChat combines ultra-fast direct messages, focused group channels, live presence,
+              voice notes, and encrypted files into one modern workspace — synced instantly on all
+              your devices.
             </p>
+
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 mb-8">
-              <Button size="lg" className="w-full sm:w-auto text-base" asChild>
-                <Link to="/register">Create your account</Link>
+              <Button
+                size="lg"
+                variant="gradient"
+                className="w-full sm:w-auto text-base rounded-xl h-12 px-8 font-semibold shadow-md shadow-primary/25"
+                asChild
+              >
+                <Link to="/register">
+                  Create your free account <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
               </Button>
-              <Button size="lg" variant="outline" className="w-full sm:w-auto text-base">
-                See how it works
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full sm:w-auto text-base rounded-xl h-12 px-6"
+                asChild
+              >
+                <Link to="/login">Sign in with existing account</Link>
               </Button>
             </div>
-            <div className="flex items-center justify-center lg:justify-start gap-6 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-green-500" /> No credit card
+
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 text-xs sm:text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5 font-medium">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> Free forever tier
               </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-green-500" /> Secure authentication
+              <span className="flex items-center gap-1.5 font-medium">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> TLS 1.3 encryption
               </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-green-500" /> Ready in 2 minutes
+              <span className="flex items-center gap-1.5 font-medium">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> Ready in 30 seconds
               </span>
             </div>
           </div>
-          <div className="flex-1 w-full max-w-2xl relative z-10 lg:translate-x-12">
-            <div className="bg-card border border-border shadow-2xl rounded-2xl p-4 lg:p-6 w-full transform rotate-1 hover:rotate-0 transition-transform duration-500">
-              {/* Mockup UI */}
-              <div className="flex border-b border-border pb-4 mb-4 items-center justify-between">
-                <div className="font-bold">Design Systems</div>
-                <div className="flex space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-400"></div>
+
+          {/* Right Live UI Mockup Preview */}
+          <div id="preview" className="flex-1 w-full max-w-xl relative z-10 lg:translate-x-6">
+            <div className="bg-card/90 backdrop-blur-xl border border-border shadow-2xl rounded-3xl p-5 sm:p-6 w-full relative transition-all duration-500 hover:shadow-primary/10">
+              {/* Window Header */}
+              <div className="flex items-center justify-between pb-4 mb-4 border-b border-border/80">
+                <div className="flex items-center space-x-3">
+                  <div className="relative">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground flex items-center justify-center font-bold text-sm shadow-sm">
+                      DS
+                    </div>
+                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-card rounded-full" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-foreground">Design Systems Core</h3>
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> 8
+                      active now
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-1.5">
+                  <div className="w-3 h-3 rounded-full bg-rose-500/80" />
+                  <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+                  <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
                 </div>
               </div>
-              <div className="space-y-4">
-                <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-orange-200 text-orange-700 flex items-center justify-center font-bold text-xs">
+
+              {/* Chat Messages Mockup */}
+              <div className="space-y-4 py-2">
+                {/* Incoming message */}
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-600 dark:text-orange-400 font-bold text-xs flex items-center justify-center shrink-0">
                     MC
                   </div>
-                  <div>
+                  <div className="max-w-[80%] space-y-1">
                     <div className="flex items-baseline gap-2">
-                      <span className="font-bold text-sm">Maya Chen</span>
-                      <span className="text-xs text-muted-foreground">10:42</span>
+                      <span className="font-semibold text-xs text-foreground">Maya Chen</span>
+                      <span className="text-[10px] text-muted-foreground">10:42 AM</span>
                     </div>
-                    <div className="text-sm text-foreground">
-                      The new handoff flow is ready. I kept the focus states quiet and consistent.
+                    <div className="bg-muted p-3 rounded-2xl rounded-tl-sm text-xs text-foreground leading-relaxed shadow-2xs">
+                      The new dark theme and gradient tokens look incredible. All micro-interactions
+                      feel tactile and responsive! ✨
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-green-200 text-green-700 flex items-center justify-center font-bold text-xs">
+
+                {/* Voice note incoming snippet */}
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-600 dark:text-purple-400 font-bold text-xs flex items-center justify-center shrink-0">
                     AR
                   </div>
-                  <div>
+                  <div className="max-w-[80%] space-y-1">
                     <div className="flex items-baseline gap-2">
-                      <span className="font-bold text-sm">Alex Rivera</span>
-                      <span className="text-xs text-muted-foreground">10:42</span>
+                      <span className="font-semibold text-xs text-foreground">Alex Rivera</span>
+                      <span className="text-[10px] text-muted-foreground">10:43 AM</span>
                     </div>
-                    <div className="text-sm text-foreground">
-                      Great. Let&apos;s ship the review build before stand-up.
+                    <div className="bg-muted p-2.5 rounded-2xl rounded-tl-sm flex items-center gap-3 text-xs shadow-2xs">
+                      <div className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
+                        <Headphones className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="w-1 h-3 bg-primary rounded-full animate-pulse" />
+                        <span className="w-1 h-5 bg-primary rounded-full" />
+                        <span className="w-1 h-2 bg-primary/60 rounded-full" />
+                        <span className="w-1 h-4 bg-primary rounded-full" />
+                        <span className="w-1 h-2 bg-primary/40 rounded-full" />
+                      </div>
+                      <span className="text-[11px] font-mono text-muted-foreground">0:18</span>
                     </div>
+                  </div>
+                </div>
+
+                {/* Outgoing message with gradient flare */}
+                <div className="flex flex-col items-end space-y-1">
+                  <div className="max-w-[85%] bg-gradient-to-r from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground p-3 rounded-2xl rounded-tr-sm text-xs leading-relaxed shadow-md shadow-primary/20">
+                    Shipped the live build to production! Everyone can try the themes now. 🚀
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground pr-1">
+                    <span>10:44 AM</span>
+                    <CheckCheck className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                </div>
+
+                {/* Typing indicator */}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground pl-11 pt-1">
+                  <span className="font-medium text-[11px]">Naveen is typing</span>
+                  <div className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" />
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Background Blob */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-tr from-primary/10 to-accent rounded-full blur-3xl -z-10"></div>
-          </div>
-        </section>
-
-        {/* Feature Banner */}
-        <section className="bg-secondary py-12 px-6 lg:px-12 border-y border-border">
-          <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-8">
-            <div className="flex items-center gap-3 text-sm font-semibold">
-              <Zap className="text-primary w-5 h-5" /> Instant delivery
-            </div>
-            <div className="flex items-center gap-3 text-sm font-semibold">
-              <Shield className="text-primary w-5 h-5" /> Secure by default
-            </div>
-            <div className="flex items-center gap-3 text-sm font-semibold">
-              <Users className="text-primary w-5 h-5" /> Built for groups
-            </div>
-            <div className="flex items-center gap-3 text-sm font-semibold">
-              <RefreshCcw className="text-primary w-5 h-5" /> Synced everywhere
+              {/* Input Dock Mockup */}
+              <div className="mt-4 pt-3 border-t border-border flex items-center gap-2">
+                <div className="flex-1 bg-background border border-border rounded-xl px-3 py-2 text-xs text-muted-foreground">
+                  Reply to Design Systems Core...
+                </div>
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground flex items-center justify-center shadow-xs">
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Features details */}
+        {/* ── Feature Highlights Strip ── */}
+        <section className="bg-card/60 backdrop-blur-md py-10 px-6 lg:px-12 border-y border-border">
+          <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center md:text-left">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+                <Zap className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-foreground">Instant Delivery</h4>
+                <p className="text-xs text-muted-foreground">Sub-50ms WebSocket sync</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-foreground">Strict Privacy</h4>
+                <p className="text-xs text-muted-foreground">End-to-end encrypted</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0 border border-purple-500/20">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-foreground">Group Channels</h4>
+                <p className="text-xs text-muted-foreground">Role management & tools</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-500 flex items-center justify-center shrink-0 border border-sky-500/20">
+                <RefreshCcw className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-foreground">Multi-Device</h4>
+                <p className="text-xs text-muted-foreground">Always in seamless sync</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Feature Cards Section ── */}
         <section id="features" className="py-24 px-6 lg:px-12 max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="inline-block px-3 py-1 bg-accent text-accent-foreground rounded-full text-xs font-bold uppercase tracking-wider mb-4">
-              Everything in flow
+          <div className="text-center mb-16 max-w-2xl mx-auto">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 mb-4">
+              <Sparkles className="w-3.5 h-3.5" /> Engineered for Speed
             </div>
-            <h2 className="text-4xl font-bold mb-4">Messaging that stays out of your way.</h2>
-            <p className="text-muted-foreground text-lg">
-              Fast enough for a live decision, structured enough to find it again next week.
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground mb-4">
+              Messaging that stays completely out of your way.
+            </h2>
+            <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
+              Fast enough for instant team decisions, organized enough to find conversations weeks
+              later.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-card border border-border p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6">
+          <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+            <div className="bg-card border border-border p-8 rounded-3xl shadow-xs hover:border-primary/40 hover:shadow-lg transition-all duration-300 group">
+              <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform border border-primary/20">
                 <Zap className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-bold mb-3">Real-time messaging</h3>
+              <h3 className="text-xl font-bold mb-3 text-foreground">Real-Time Messaging</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Replies, reactions, typing cues, delivery states and ordered history keep every
-                exchange clear.
+                Replies, rich reactions, typing cues, voice messages, delivery states, and ordered
+                history keep every conversation clear and context-rich.
               </p>
             </div>
-            <div className="bg-card border border-border p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6">
+
+            <div className="bg-card border border-border p-8 rounded-3xl shadow-xs hover:border-primary/40 hover:shadow-lg transition-all duration-300 group">
+              <div className="w-12 h-12 bg-purple-500/10 text-purple-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform border border-purple-500/20">
                 <Users className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-bold mb-3">Groups with focus</h3>
+              <h3 className="text-xl font-bold mb-3 text-foreground">Focused Group Channels</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Create groups, assign OWNER, ADMIN and MEMBER roles, and keep context where it
-                belongs.
+                Create team rooms, assign OWNER, ADMIN, and MEMBER roles, and manage permissions
+                with ease to keep decisions structured and transparent.
               </p>
             </div>
-            <div className="bg-card border border-border p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6">
+
+            <div className="bg-card border border-border p-8 rounded-3xl shadow-xs hover:border-primary/40 hover:shadow-lg transition-all duration-300 group">
+              <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform border border-emerald-500/20">
                 <RefreshCcw className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-bold mb-3">Seamless sync</h3>
+              <h3 className="text-xl font-bold mb-3 text-foreground">Seamless Synchronicity</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Continue exactly where you left off across desktop and mobile, with presence that
-                stays current.
+                Pick up any conversation right where you left off on desktop or phone, with live
+                presence tracking and zero lost context.
               </p>
             </div>
           </div>
         </section>
 
-        {/* Security / CTA */}
-        <section id="security" className="py-24 px-6 lg:px-12 bg-secondary border-t border-border">
-          <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
+        {/* ── Security & Privacy Section ── */}
+        <section id="security" className="py-20 px-6 lg:px-12 bg-card/40 border-t border-border">
+          <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
             <div className="flex-1">
-              <div className="inline-block px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
-                Secure Authentication
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-xs font-semibold uppercase tracking-wider mb-4 border border-emerald-500/20">
+                <Lock className="w-3.5 h-3.5" /> Privacy First Architecture
               </div>
-              <h2 className="text-4xl font-bold mb-6">
-                Trust your workspace, from sign-in to sign-out.
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground mb-6">
+                Trust your workspace from sign-in to sign-out.
               </h2>
-              <p className="text-muted-foreground text-lg mb-8">
-                Review active sessions, manage devices, block unwanted contact and control exactly
-                which notifications reach you. Privacy is a product rule, not an afterthought.
+              <p className="text-muted-foreground text-sm sm:text-base mb-8 leading-relaxed">
+                Review active device sessions, revoke access in one click, block unsolicited
+                contacts, and maintain total control over your notifications. Private conversations
+                stay private.
               </p>
-              <Button variant="outline" size="lg" className="gap-2">
-                Explore security <Shield className="w-4 h-4" />
+              <Button
+                variant="outline"
+                size="lg"
+                className="rounded-xl gap-2 font-semibold"
+                asChild
+              >
+                <Link to="/register">
+                  Explore security features <Shield className="w-4 h-4 text-primary" />
+                </Link>
               </Button>
             </div>
-            <div className="flex-1 w-full bg-card border border-border p-8 lg:p-12 rounded-3xl shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-bl-full -z-0"></div>
+
+            <div className="flex-1 w-full bg-card border border-border p-8 lg:p-10 rounded-3xl shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-bl-full pointer-events-none -z-0" />
               <div className="relative z-10">
-                <div className="w-12 h-12 bg-primary text-primary-foreground rounded-xl flex items-center justify-center mb-6">
+                <div className="w-12 h-12 bg-primary/15 text-primary rounded-2xl flex items-center justify-center mb-6 border border-primary/20">
                   <Shield className="w-6 h-6" />
                 </div>
-                <h3 className="text-2xl font-bold mb-4">Privacy is a product rule.</h3>
-                <p className="text-sm text-muted-foreground mb-6">
-                  Private messages stay private. Platform administration can inspect metadata—not
-                  conversation bodies—except content explicitly submitted in a moderation report.
+                <h3 className="text-2xl font-bold mb-3 text-foreground">
+                  Privacy is a fundamental rule.
+                </h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-6 leading-relaxed">
+                  Direct message contents are private. Platform administrators can inspect aggregate
+                  health metadata — never conversation text or attachments.
                 </p>
-                <ul className="space-y-3 text-sm font-medium">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-primary" /> Secure session management
+                <ul className="space-y-3.5 text-xs sm:text-sm font-medium">
+                  <li className="flex items-center gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>Real-time active session and device management</span>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-primary" /> Blocked-user controls
+                  <li className="flex items-center gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>Granular user blocking and spam prevention controls</span>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-primary" /> Auditable ownership safeguards
+                  <li className="flex items-center gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>Auditable ownership transfers and administrator safeguards</span>
                   </li>
                 </ul>
               </div>
@@ -225,102 +409,117 @@ export const LandingPage = () => {
           </div>
         </section>
 
-        {/* Bottom CTA */}
-        <section className="py-24 px-6 lg:px-12 max-w-5xl mx-auto">
-          <div className="bg-primary text-primary-foreground rounded-3xl p-12 text-center shadow-xl relative overflow-hidden">
-            <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-2xl"></div>
-            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-black/10 rounded-full blur-2xl"></div>
+        {/* ── Bottom Call To Action ── */}
+        <section className="py-20 px-6 lg:px-12 max-w-5xl mx-auto">
+          <div className="bg-gradient-to-r from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground rounded-3xl p-10 sm:p-14 text-center shadow-2xl relative overflow-hidden">
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/15 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-black/20 rounded-full blur-2xl pointer-events-none" />
 
-            <div className="relative z-10">
-              <h2 className="text-4xl lg:text-5xl font-bold mb-6">
+            <div className="relative z-10 max-w-2xl mx-auto">
+              <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight mb-4">
                 Start a better conversation today.
               </h2>
-              <p className="text-primary-foreground/80 text-lg mb-10 max-w-2xl mx-auto">
-                Create your LeoChat account and bring your people together in minutes.
+              <p className="text-primary-foreground/90 text-sm sm:text-base mb-8 leading-relaxed">
+                Create your LeoChat account in seconds and experience fast, beautiful team
+                messaging.
               </p>
-              <Button size="lg" variant="secondary" className="text-lg px-8" asChild>
-                <Link to="/register">Sign up free</Link>
+              <Button
+                size="lg"
+                variant="secondary"
+                className="text-base font-bold px-8 h-12 rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all"
+                asChild
+              >
+                <Link to="/register">Sign up free — no credit card needed</Link>
               </Button>
             </div>
           </div>
         </section>
       </main>
 
-      {/* Footer */}
+      {/* ── Footer ── */}
       <footer className="bg-card border-t border-border py-12 px-6 lg:px-12 text-sm">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
           <div>
-            <div className="flex items-center space-x-2 font-bold text-lg text-primary mb-4">
-              <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs">
-                <MessageSquare className="w-3 h-3" fill="currentColor" />
+            <div className="flex items-center space-x-2.5 font-bold text-lg text-foreground mb-3">
+              <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] flex items-center justify-center text-primary-foreground text-xs shadow-sm">
+                <MessageSquare className="w-3.5 h-3.5" fill="currentColor" />
               </div>
-              <span>LeoChat</span>
+              <span className="tracking-tight font-extrabold">LeoChat</span>
             </div>
-            <p className="text-muted-foreground max-w-xs">
-              Clearer conversations, wherever work happens.
+            <p className="text-muted-foreground text-xs max-w-xs leading-relaxed">
+              Clear, modern, and calibrated conversations wherever work happens.
             </p>
-            <p className="text-muted-foreground mt-4">
-              &copy; {new Date().getFullYear()} LeoChat, Inc.
+            <p className="text-muted-foreground text-xs mt-3">
+              &copy; {new Date().getFullYear()} LeoChat, Inc. All rights reserved.
             </p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-12">
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-10 text-xs">
             <div>
-              <h4 className="font-bold mb-4">Product</h4>
+              <h4 className="font-bold text-foreground mb-3 uppercase tracking-wider text-[11px]">
+                Product
+              </h4>
               <ul className="space-y-2 text-muted-foreground">
                 <li>
-                  <a href="/" className="hover:text-primary">
+                  <a href="#features" className="hover:text-foreground transition-colors">
                     Features
                   </a>
                 </li>
                 <li>
-                  <a href="/" className="hover:text-primary">
+                  <a href="#security" className="hover:text-foreground transition-colors">
                     Security
                   </a>
                 </li>
                 <li>
-                  <a href="/" className="hover:text-primary">
-                    Download
-                  </a>
+                  <Link to="/app" className="hover:text-foreground transition-colors">
+                    Web App
+                  </Link>
                 </li>
               </ul>
             </div>
+
             <div>
-              <h4 className="font-bold mb-4">Company</h4>
+              <h4 className="font-bold text-foreground mb-3 uppercase tracking-wider text-[11px]">
+                Account
+              </h4>
               <ul className="space-y-2 text-muted-foreground">
                 <li>
-                  <a href="/" className="hover:text-primary">
-                    About
-                  </a>
+                  <Link to="/login" className="hover:text-foreground transition-colors">
+                    Sign in
+                  </Link>
                 </li>
                 <li>
-                  <a href="/" className="hover:text-primary">
-                    Careers
-                  </a>
+                  <Link to="/register" className="hover:text-foreground transition-colors">
+                    Create account
+                  </Link>
                 </li>
                 <li>
-                  <a href="/" className="hover:text-primary">
-                    Contact
-                  </a>
+                  <Link to="/forgot-password" className="hover:text-foreground transition-colors">
+                    Reset password
+                  </Link>
                 </li>
               </ul>
             </div>
+
             <div>
-              <h4 className="font-bold mb-4">Legal</h4>
+              <h4 className="font-bold text-foreground mb-3 uppercase tracking-wider text-[11px]">
+                Legal
+              </h4>
               <ul className="space-y-2 text-muted-foreground">
                 <li>
-                  <a href="/" className="hover:text-primary">
-                    Privacy
-                  </a>
+                  <Link to="/" className="hover:text-foreground transition-colors">
+                    Privacy Policy
+                  </Link>
                 </li>
                 <li>
-                  <a href="/" className="hover:text-primary">
-                    Terms
-                  </a>
+                  <Link to="/" className="hover:text-foreground transition-colors">
+                    Terms of Service
+                  </Link>
                 </li>
                 <li>
-                  <a href="/" className="hover:text-primary">
-                    Status
-                  </a>
+                  <Link to="/" className="hover:text-foreground transition-colors">
+                    Compliance
+                  </Link>
                 </li>
               </ul>
             </div>

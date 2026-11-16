@@ -8,6 +8,11 @@ describe('useAiStore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    vi.spyOn(conversationsApi, 'getMessages').mockResolvedValue({
+      items: [],
+      hasMore: false,
+      nextCursor: null,
+    });
   });
 
   it('creates a new session and sets it as active', () => {
@@ -18,23 +23,15 @@ describe('useAiStore', () => {
     expect(session?.modelId).toBe('leo-fast');
   });
 
-  it('sends prompt via aiApi.chat and updates messages', async () => {
-    vi.spyOn(conversationsApi, 'createGroupMessage').mockResolvedValueOnce({
-      id: 'backend-conv-id',
-      type: 'GROUP',
-      title: 'Leo AI Session',
-      avatarUrl: null,
-      directKey: null,
-      createdBy: 'user-id',
-      lastSeq: 1,
-      lastMessageAt: null,
-      createdAt: new Date().toISOString(),
-      status: 'ACTIVE',
-    });
+  it('sends prompt via aiApi.chat directly with session UUID and updates messages', async () => {
+    const createGroupSpy = vi.spyOn(conversationsApi, 'createGroupMessage');
+
+    const sessionId = useAiStore.getState().createNewSession();
+    useAiStore.getState().selectSession(sessionId);
 
     const mockAiMessage: Message = {
       id: 'ai-resp-id',
-      conversationId: 'backend-conv-id',
+      conversationId: sessionId,
       senderId: null,
       aiGenerated: true,
       seq: 2,
@@ -47,12 +44,18 @@ describe('useAiStore', () => {
       deletedAt: null,
     };
 
-    vi.spyOn(aiApi, 'chat').mockResolvedValueOnce(mockAiMessage);
-
-    const sessionId = useAiStore.getState().createNewSession();
-    useAiStore.getState().selectSession(sessionId);
+    const chatSpy = vi.spyOn(aiApi, 'chat').mockResolvedValueOnce(mockAiMessage);
 
     await useAiStore.getState().sendMessage('Explain React 19');
+
+    // ensureAiConversation on the backend handles conversation initialization;
+    // client should not make extra createGroupMessage calls
+    expect(createGroupSpy).not.toHaveBeenCalled();
+    expect(chatSpy).toHaveBeenCalledWith({
+      conversationId: sessionId,
+      prompt: 'Explain React 19',
+      clientMessageId: expect.any(String),
+    });
 
     const session = useAiStore.getState().sessions.find((s) => s.id === sessionId);
     expect(session?.messages).toHaveLength(2);

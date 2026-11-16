@@ -7,31 +7,47 @@ import { toast } from 'sonner';
 const STORAGE_KEY = 'leochat_ai_sessions_v2';
 const ACTIVE_KEY = 'leochat_ai_active_session_v2';
 
-const createDefaultSession = (): AiSession => ({
-  id: 'welcome-session',
-  title: 'Welcome to LeoChat AI',
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  modelId: 'leo-ultra',
-  isPinned: true,
-  messages: [
-    {
-      id: 'welcome-msg',
-      role: 'assistant',
-      modelId: 'leo-ultra',
-      createdAt: new Date().toISOString(),
-      content:
-        'Hello! I am **Leo AI**, your intelligent assistant powered by Gemini. You can ask me questions, discuss ideas, generate code, or ask for summaries of your chat discussions.\n\nHow can I help you today?',
-    },
-  ],
-});
+const isValidUuid = (id?: string | null): id is string => {
+  if (!id) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+};
+
+const createDefaultSession = (): AiSession => {
+  const convId = crypto.randomUUID();
+  return {
+    id: 'welcome-session',
+    conversationId: convId,
+    title: 'Welcome to LeoChat AI',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    modelId: 'leo-ultra',
+    isPinned: true,
+    messages: [
+      {
+        id: 'welcome-msg',
+        role: 'assistant',
+        modelId: 'leo-ultra',
+        createdAt: new Date().toISOString(),
+        content:
+          'Hello! I am **Leo AI**, your intelligent assistant powered by Gemini. You can ask me questions, discuss ideas, generate code, or ask for summaries of your chat discussions.\n\nHow can I help you today?',
+      },
+    ],
+  };
+};
 
 const loadInitialSessions = (): AiSession[] => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((session: AiSession) => ({
+          ...session,
+          conversationId: isValidUuid(session.conversationId)
+            ? session.conversationId
+            : crypto.randomUUID(),
+        }));
+      }
     }
   } catch {
     // Ignore storage parse errors
@@ -97,10 +113,11 @@ export const useAiStore = create<AiState>((set, get) => ({
   isSidebarOpen: true,
 
   createNewSession: (modelId) => {
-    const newId = `session-${Date.now()}`;
+    const newId = crypto.randomUUID();
     const targetModel = modelId || get().selectedModelId;
     const newSession: AiSession = {
       id: newId,
+      conversationId: newId,
       title: 'New Conversation',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -124,9 +141,10 @@ export const useAiStore = create<AiState>((set, get) => ({
     persistState(get().sessions, id);
 
     const session = get().sessions.find((s) => s.id === id);
-    if (session && session.conversationId && session.messages.length === 0) {
+    const convId = session?.conversationId;
+    if (session && isValidUuid(convId) && session.messages.length === 0) {
       try {
-        const history = await conversationsApi.getMessages(session.conversationId);
+        const history = await conversationsApi.getMessages(convId);
         if (history.items && history.items.length > 0) {
           const sorted = [...history.items].sort(
             (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
@@ -217,21 +235,9 @@ export const useAiStore = create<AiState>((set, get) => ({
     }
 
     const session = get().sessions.find((s) => s.id === activeSessionId);
-    let convId = session?.conversationId;
-
-    // Ensure session is linked to a backend conversation so Gemini can maintain context
-    if (!convId) {
-      try {
-        const conv = await conversationsApi.createGroupMessage({
-          title: trimmed.slice(0, 36) || 'Leo AI Session',
-          memberIds: [],
-        });
-        convId = conv.id;
-      } catch (err) {
-        console.warn('Could not create dedicated group for AI, using local fallback:', err);
-        convId = crypto.randomUUID();
-      }
-    }
+    const convId: string = isValidUuid(session?.conversationId)
+      ? session.conversationId
+      : crypto.randomUUID();
 
     const clientMsgId = `ai-user-${Date.now()}`;
     const userMessage: AiMessage = {
@@ -341,7 +347,8 @@ export const useAiStore = create<AiState>((set, get) => ({
     if (!activeSessionId) return;
 
     const session = sessions.find((s) => s.id === activeSessionId);
-    if (!session || !session.conversationId) return;
+    const convId = session?.conversationId;
+    if (!session || !isValidUuid(convId)) return;
 
     // Find the user message before this assistant message
     const msgIndex = session.messages.findIndex((m) => m.id === messageId);
@@ -356,7 +363,7 @@ export const useAiStore = create<AiState>((set, get) => ({
 
     try {
       const aiResponse = await aiApi.chat({
-        conversationId: session.conversationId,
+        conversationId: convId,
         prompt: userMessage.content,
       });
 

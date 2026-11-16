@@ -1,14 +1,30 @@
-import { useRef, useEffect } from 'react';
-import { PanelLeftOpen, Sparkles, Trash2, Share2, Plus, Brain, Globe } from 'lucide-react';
+import { useRef, useEffect, useState } from 'react';
+import {
+  PanelLeft,
+  Trash2,
+  Share2,
+  Plus,
+  ChevronDown,
+  Brain,
+  Globe,
+  Code,
+  Zap,
+} from 'lucide-react';
 import { useAiStore } from '../store/ai.store';
-import { getModelById } from '../lib/ai-models';
+import { AI_MODELS, getModelById } from '../lib/ai-models';
+import type { AiModelId } from '../types/ai.types';
 import { AiEmptyState } from './AiEmptyState';
 import { AiMessageItem } from './AiMessageItem';
 import { AiComposer } from './AiComposer';
 import { AiGeneratingIndicator } from './AiGeneratingIndicator';
+import { AiRotatingIcon } from './AiRotatingIcon';
 import { toast } from 'sonner';
 
-export const AiChatArea = () => {
+interface AiChatAreaProps {
+  onOpenMobileSidebar?: () => void;
+}
+
+export const AiChatArea = ({ onOpenMobileSidebar }: AiChatAreaProps) => {
   const {
     sessions,
     activeSessionId,
@@ -19,9 +35,11 @@ export const AiChatArea = () => {
     isWebSearchEnabled,
     toggleSidebar,
     createNewSession,
+    setModel,
     clearActiveSessionMessages,
   } = useAiStore();
 
+  const [isHeaderModelOpen, setIsHeaderModelOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
@@ -38,71 +56,135 @@ export const AiChatArea = () => {
     toast.success('Conversation link copied to clipboard');
   };
 
-  return (
-    <div className="flex-1 flex flex-col h-full bg-slate-950 text-white relative overflow-hidden min-w-0">
-      {/* Dynamic Background Atmosphere */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/4 left-1/3 w-80 h-80 bg-violet-600/10 rounded-full blur-[100px]" />
-      </div>
+  const getModelIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'brain':
+        return <Brain className="w-4 h-4 text-zinc-900 dark:text-zinc-100" />;
+      case 'code':
+        return <Code className="w-4 h-4 text-zinc-900 dark:text-zinc-100" />;
+      case 'zap':
+        return <Zap className="w-4 h-4 text-zinc-900 dark:text-zinc-100" />;
+      case 'sparkles':
+      default:
+        return <AiRotatingIcon size="sm" />;
+    }
+  };
 
-      {/* Top Header Bar */}
-      <header className="h-14 sm:h-16 border-b border-slate-900/80 px-4 flex items-center justify-between z-20 bg-slate-950/80 backdrop-blur-xl shrink-0">
-        <div className="flex items-center gap-2.5 min-w-0">
+  return (
+    <div className="flex-1 flex flex-col h-full bg-white dark:bg-[#000000] text-zinc-900 dark:text-zinc-100 relative overflow-hidden min-w-0 transition-colors">
+      {/* Top Header Bar (ChatGPT & Gemini Style) */}
+      <header className="h-14 border-b border-zinc-200/80 dark:border-zinc-800/80 px-3 sm:px-5 flex items-center justify-between z-20 bg-white/80 dark:bg-black/80 backdrop-blur-xl shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          {/* Mobile Sidebar Hamburger Toggle */}
+          <button
+            type="button"
+            onClick={onOpenMobileSidebar}
+            className="md:hidden p-2 rounded-xl text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
+            title="Open navigation menu"
+          >
+            <PanelLeft className="w-4 h-4" />
+          </button>
+
+          {/* Desktop Sidebar Toggle Button */}
           {!isSidebarOpen && (
             <button
               type="button"
               onClick={toggleSidebar}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors cursor-pointer mr-1"
+              className="hidden md:flex p-2 rounded-xl text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
               title="Open sidebar"
             >
-              <PanelLeftOpen className="w-4 h-4" />
+              <PanelLeft className="w-4 h-4" />
             </button>
           )}
 
-          <div className="min-w-0">
-            <h2 className="text-xs sm:text-sm font-bold text-white truncate max-w-[200px] sm:max-w-md">
-              {activeSession ? activeSession.title : 'New AI Session'}
-            </h2>
-            <div className="flex items-center gap-2 pt-0.5">
-              <span className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
-                <Sparkles className="w-2.5 h-2.5 text-primary" />
-                <span>{selectedModel.name}</span>
+          {/* ChatGPT Style Model Selector Dropdown in Header */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsHeaderModelOpen((prev) => !prev)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 text-xs sm:text-sm font-semibold text-zinc-900 dark:text-white transition-colors cursor-pointer"
+            >
+              <span>{selectedModel.name}</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-zinc-400 transition-transform ${
+                  isHeaderModelOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+
+            {/* Model Dropdown Menu */}
+            {isHeaderModelOpen && (
+              <div className="absolute top-full left-0 mt-2 z-50 w-72 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-150">
+                <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider px-2 py-1">
+                  Model Engine
+                </p>
+                {AI_MODELS.map((model) => (
+                  <button
+                    key={model.id}
+                    type="button"
+                    onClick={() => {
+                      setModel(model.id as AiModelId);
+                      setIsHeaderModelOpen(false);
+                    }}
+                    className={`w-full flex items-start gap-2.5 p-2 rounded-xl text-left transition-all cursor-pointer ${
+                      model.id === selectedModelId
+                        ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-medium'
+                        : 'hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-600 dark:text-zinc-400'
+                    }`}
+                  >
+                    <div className="pt-0.5">{getModelIcon(model.icon)}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-semibold">{model.name}</p>
+                        <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-zinc-200 dark:bg-zinc-800 font-mono">
+                          {model.contextWindow}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-zinc-400 leading-tight pt-0.5">
+                        {model.tagline}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Reasoning & Web Search Indicators */}
+          <div className="hidden sm:flex items-center gap-1.5 pl-1">
+            {isDeepThinkEnabled && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-medium flex items-center gap-1 border border-zinc-200 dark:border-zinc-700">
+                <Brain className="w-3 h-3" />
+                <span>Reasoning</span>
               </span>
+            )}
 
-              {isDeepThinkEnabled && (
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-violet-500/20 text-violet-300 font-medium flex items-center gap-0.5">
-                  <Brain className="w-2.5 h-2.5" />
-                  <span>Reasoning</span>
-                </span>
-              )}
-
-              {isWebSearchEnabled && (
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 font-medium flex items-center gap-0.5">
-                  <Globe className="w-2.5 h-2.5" />
-                  <span>Live Search</span>
-                </span>
-              )}
-            </div>
+            {isWebSearchEnabled && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-medium flex items-center gap-1 border border-zinc-200 dark:border-zinc-700">
+                <Globe className="w-3 h-3" />
+                <span>Search</span>
+              </span>
+            )}
           </div>
         </div>
 
         {/* Header Right Action Buttons */}
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex items-center gap-1 sm:gap-1.5">
+          {/* New Chat Button (Prominent ChatGPT style) */}
           <button
             type="button"
             onClick={() => createNewSession()}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-200 transition-colors cursor-pointer"
-            title="Start new conversation"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-xs font-medium text-zinc-900 dark:text-white transition-colors cursor-pointer shadow-sm"
+            title="Start new chat"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>New Chat</span>
+            <span className="hidden xs:inline">New chat</span>
           </button>
 
           <button
             type="button"
             onClick={handleShare}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-900 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
             title="Share conversation"
           >
             <Share2 className="w-4 h-4" />
@@ -112,8 +194,8 @@ export const AiChatArea = () => {
             <button
               type="button"
               onClick={clearActiveSessionMessages}
-              className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-900 transition-colors cursor-pointer"
-              title="Clear messages in this chat"
+              className="p-2 rounded-xl text-zinc-500 hover:text-rose-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
+              title="Clear messages"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -122,11 +204,11 @@ export const AiChatArea = () => {
       </header>
 
       {/* Main Conversation Stream */}
-      <div className="flex-1 overflow-y-auto relative z-10 scrollbar-thin scrollbar-thumb-slate-800 flex flex-col">
+      <div className="flex-1 overflow-y-auto relative z-10 scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-800 flex flex-col">
         {messages.length === 0 ? (
           <AiEmptyState />
         ) : (
-          <div className="flex-1 flex flex-col py-4">
+          <div className="flex-1 flex flex-col py-3 sm:py-4">
             {messages.map((msg, index) => (
               <AiMessageItem key={msg.id} message={msg} isLatest={index === messages.length - 1} />
             ))}

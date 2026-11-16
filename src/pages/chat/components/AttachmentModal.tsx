@@ -19,15 +19,23 @@ import { mediaApi } from '@/features/media';
 import { showApiError } from '@/shared/api/api-error';
 import { toast } from 'sonner';
 
+export type AttachmentData = {
+  storageKey: string;
+  url: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+};
+
 interface AttachmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSendAttachment: (type: MessageType, url: string, caption?: string) => void;
+  onSendAttachment: (type: MessageType, attachment: AttachmentData, caption?: string) => void;
   isSending?: boolean;
   initialFile?: File | null;
 }
 
-const formatFileSize = (bytes: number): string => {
+export const formatFileSize = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -167,7 +175,17 @@ export const AttachmentModal = ({
     setIsUploading(true);
     try {
       const confirmData = await mediaApi.uploadFile(selectedFile);
-      onSendAttachment(activeTab, confirmData.url, caption.trim());
+      onSendAttachment(
+        activeTab,
+        {
+          storageKey: confirmData.storageKey,
+          url: confirmData.url,
+          fileName: selectedFile.name,
+          mimeType: confirmData.contentType || selectedFile.type,
+          sizeBytes: selectedFile.size,
+        },
+        caption.trim() || undefined,
+      );
       handleClearFile();
       setCaption('');
       onClose();

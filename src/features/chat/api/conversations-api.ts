@@ -58,6 +58,14 @@ export type MessageReply = {
   deleted: boolean;
 };
 
+export type MessageAttachment = {
+  id: string;
+  storageKey: string;
+  fileName?: string | null;
+  mimeType?: string | null;
+  sizeBytes?: number | null;
+};
+
 export type Message = {
   id: string;
   conversationId: string;
@@ -75,14 +83,19 @@ export type Message = {
   deletedAt: string | null;
   deleted?: boolean;
   reactions?: MessageReaction[] | Record<string, string[]>;
+  attachments?: MessageAttachment[];
 };
 
 export type SendMessageRequest = {
   conversationId: string;
   clientMessageId?: string;
   type?: MessageType;
-  content: string;
+  content?: string | null;
   replyToId?: string | null;
+  storageKey?: string | null;
+  fileName?: string | null;
+  mimeType?: string | null;
+  sizeBytes?: number | null;
 };
 
 export type MessagesResponse = {

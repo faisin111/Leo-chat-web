@@ -7,9 +7,11 @@ let activeGlobalAudio: HTMLAudioElement | null = null;
 let stopActiveGlobalAudio: (() => void) | null = null;
 
 interface VoiceMessagePlayerProps {
-  audioUrl: string;
+  audioUrl?: string | null;
+  storageKey?: string | null;
   isOwn: boolean;
   caption?: string | null;
+  isLoadingUrl?: boolean;
 }
 
 const formatAudioTime = (seconds: number): string => {
@@ -35,7 +37,13 @@ const generateWaveformBars = (seed: string, count = 32): number[] => {
   return bars;
 };
 
-export const VoiceMessagePlayer = ({ audioUrl, isOwn, caption }: VoiceMessagePlayerProps) => {
+export const VoiceMessagePlayer = ({
+  audioUrl,
+  storageKey,
+  isOwn,
+  caption,
+  isLoadingUrl = false,
+}: VoiceMessagePlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -45,7 +53,8 @@ export const VoiceMessagePlayer = ({ audioUrl, isOwn, caption }: VoiceMessagePla
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const waveformRef = useRef<HTMLDivElement>(null);
 
-  const waveformBars = useMemo(() => generateWaveformBars(audioUrl, 32), [audioUrl]);
+  const seed = audioUrl || storageKey || 'voice-note';
+  const waveformBars = useMemo(() => generateWaveformBars(seed, 32), [seed]);
 
   const handleStop = useCallback(() => {
     if (audioRef.current) {
@@ -55,6 +64,11 @@ export const VoiceMessagePlayer = ({ audioUrl, isOwn, caption }: VoiceMessagePla
   }, []);
 
   useEffect(() => {
+    if (!audioUrl) {
+      audioRef.current = null;
+      return;
+    }
+
     const audio = new Audio(audioUrl);
     audioRef.current = audio;
     audio.preload = 'metadata';
@@ -163,14 +177,15 @@ export const VoiceMessagePlayer = ({ audioUrl, isOwn, caption }: VoiceMessagePla
         <button
           type="button"
           onClick={togglePlay}
+          disabled={!audioUrl || isLoadingUrl}
           className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-95 shadow-xs cursor-pointer ${
             isOwn
               ? 'bg-white text-primary hover:bg-white/95'
               : 'bg-primary text-white hover:bg-primary/95'
-          }`}
+          } ${!audioUrl || isLoadingUrl ? 'opacity-70 cursor-wait' : ''}`}
           title={isPlaying ? 'Pause voice message' : 'Play voice message'}
         >
-          {isLoading ? (
+          {isLoading || isLoadingUrl ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : isPlaying ? (
             <Pause className="w-5 h-5 fill-current" />

@@ -29,12 +29,17 @@ const getWsUrl = () => {
 export type SendChatMessagePayload = {
   conversationId: string;
   clientMessageId: string;
-  content: string;
+  content?: string | null;
   type?: string;
   replyToId?: string | null;
+  storageKey?: string | null;
+  fileName?: string | null;
+  mimeType?: string | null;
+  sizeBytes?: number | null;
 };
 
-export type CallSignalAction = 'OFFER' | 'ANSWER' | 'ICE_CANDIDATE' | 'REJECT' | 'BUSY' | 'END';
+export type CallSignalAction =
+  'OFFER' | 'ANSWER' | 'ICE_CANDIDATE' | 'REJECT' | 'BUSY' | 'END' | 'DELIVERED' | 'UNAVAILABLE';
 
 export type CallSignalRequest = {
   conversationId: string;
@@ -327,8 +332,12 @@ class WebSocketService {
       conversationId: payload.conversationId,
       clientMessageId: payload.clientMessageId,
       type: payload.type || 'TEXT',
-      content: payload.content,
+      content: payload.content ?? null,
       replyToId: payload.replyToId ?? null,
+      storageKey: payload.storageKey ?? null,
+      fileName: payload.fileName ?? null,
+      mimeType: payload.mimeType ?? null,
+      sizeBytes: payload.sizeBytes ?? null,
     });
   }
 

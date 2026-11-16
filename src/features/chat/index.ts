@@ -29,6 +29,7 @@ export type {
   ConversationMember,
   ConversationsResponse,
   Message,
+  MessageAttachment,
   MessageType,
   SendMessageRequest,
   MessageReaction,

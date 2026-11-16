@@ -220,4 +220,46 @@ describe('useCallStore', () => {
 
     expect(useCallStore.getState().status).toBe('idle');
   });
+
+  it('handles UNAVAILABLE signal and immediately fails outgoing call', async () => {
+    useCallStore.setState({
+      status: 'outgoing',
+      callId: 'call-unavailable',
+      conversationId: 'conv-1',
+      targetUserId: 'offline-user-id',
+      targetUserName: 'OfflineUser',
+    });
+
+    await useCallStore.getState().handleIncomingSignal({
+      conversationId: 'conv-1',
+      callId: 'call-unavailable',
+      fromUserId: 'offline-user-id',
+      fromUsername: 'OfflineUser',
+      targetUserId: 'my-id',
+      action: 'UNAVAILABLE',
+    });
+
+    expect(useCallStore.getState().status).toBe('idle');
+  });
+
+  it('handles DELIVERED signal and keeps outgoing call ringing', async () => {
+    useCallStore.setState({
+      status: 'outgoing',
+      callId: 'call-delivered',
+      conversationId: 'conv-1',
+      targetUserId: 'target-user-id',
+      targetUserName: 'TargetUser',
+    });
+
+    await useCallStore.getState().handleIncomingSignal({
+      conversationId: 'conv-1',
+      callId: 'call-delivered',
+      fromUserId: 'my-id',
+      fromUsername: 'Me',
+      targetUserId: 'target-user-id',
+      action: 'DELIVERED',
+    });
+
+    expect(useCallStore.getState().status).toBe('outgoing');
+  });
 });

@@ -525,6 +525,20 @@ export const useCallStore = create<CallState>((set, get) => ({
         break;
       }
 
+      case 'UNAVAILABLE': {
+        if (currentStatus === 'outgoing' || currentStatus === 'connecting') {
+          callSound.stopRing();
+          toast.error(`${get().targetUserName || 'User'} is offline or unavailable`);
+          get().cleanUp();
+        }
+        break;
+      }
+
+      case 'DELIVERED': {
+        // Signaling reached target user; outgoing call remains in ringing state
+        break;
+      }
+
       case 'END': {
         callSound.playCallEnd();
         toast.info('Call ended');

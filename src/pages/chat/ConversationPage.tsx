@@ -55,11 +55,12 @@ import { useSession } from '@/features/auth';
 import { format } from 'date-fns';
 import { AddMembersModal } from './components/AddMembersModal';
 import { EditGroupModal } from './components/EditGroupModal';
-import { AttachmentModal } from './components/AttachmentModal';
+import { AttachmentModal, formatFileSize } from './components/AttachmentModal';
+import type { AttachmentData } from './components/AttachmentModal';
 import { UserProfileSidebar } from './components/UserProfileSidebar';
 import { VoiceMessagePlayer } from './components/VoiceMessagePlayer';
 import { VoiceRecorderBar } from './components/VoiceRecorderBar';
-import { mediaApi } from '@/features/media';
+import { mediaApi, useMediaDownloadUrl } from '@/features/media';
 import { showApiError } from '@/shared/api/api-error';
 import { useUserById, useSearchUsers } from '@/features/users';
 import { wsService } from '@/shared/api/websocket';
@@ -68,6 +69,125 @@ import { toast } from 'sonner';
 import { useCallStore } from '@/features/calls';
 
 const QUICK_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+
+const ChatMessageImage = ({
+  msg,
+  onPreview,
+}: {
+  msg: Message;
+  onPreview: (url: string) => void;
+}) => {
+  const attachment = msg.attachments?.[0];
+  const fallbackUrl = (msg.content || '').split('\n')[0] || '';
+  const { url, isLoading } = useMediaDownloadUrl(attachment?.storageKey, fallbackUrl || null);
+  const caption = msg.attachments?.length
+    ? msg.content
+    : msg.content?.includes('\n')
+      ? msg.content.substring(msg.content.indexOf('\n') + 1)
+      : null;
+
+  const displayUrl = url || fallbackUrl;
+
+  return (
+    <div className="space-y-1">
+      {isLoading && !displayUrl ? (
+        <div className="w-56 h-36 rounded-xl bg-muted/70 animate-pulse flex items-center justify-center">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : displayUrl ? (
+        <button
+          type="button"
+          onClick={() => onPreview(displayUrl)}
+          className="block p-0 bg-transparent border-none cursor-pointer rounded-xl overflow-hidden hover:opacity-95 transition-opacity"
+          title="Click to view full image"
+        >
+          <img
+            src={displayUrl}
+            alt={attachment?.fileName || 'Shared attachment'}
+            className="max-w-xs sm:max-w-sm rounded-xl object-cover max-h-60"
+          />
+        </button>
+      ) : (
+        <div className="text-xs italic text-muted-foreground">Image unavailable</div>
+      )}
+      {caption && <p className="text-xs pt-1 break-words">{caption}</p>}
+    </div>
+  );
+};
+
+const ChatMessageVoice = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) => {
+  const attachment = msg.attachments?.[0];
+  const fallbackUrl = (msg.content || '').split('\n')[0] || '';
+  const { url, isLoading } = useMediaDownloadUrl(attachment?.storageKey, fallbackUrl || null);
+  const caption = msg.attachments?.length
+    ? msg.content
+    : msg.content?.includes('\n')
+      ? msg.content.substring(msg.content.indexOf('\n') + 1)
+      : null;
+
+  return (
+    <VoiceMessagePlayer
+      audioUrl={url || fallbackUrl}
+      storageKey={attachment?.storageKey}
+      isOwn={isOwn}
+      caption={caption}
+      isLoadingUrl={isLoading && !url && !fallbackUrl}
+    />
+  );
+};
+
+const ChatMessageFile = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) => {
+  const attachment = msg.attachments?.[0];
+  const [rawFileUrl, ...captionParts] = (msg.content || '').split('\n');
+  const fallbackUrl = rawFileUrl && rawFileUrl.startsWith('http') ? rawFileUrl : '#';
+  const { url, isLoading } = useMediaDownloadUrl(
+    attachment?.storageKey,
+    fallbackUrl !== '#' ? fallbackUrl : null,
+  );
+
+  const cleanFileName =
+    attachment?.fileName ||
+    decodeURIComponent((fallbackUrl.split('?')[0] || '').split('/').pop() || 'Document');
+  const fileCaption = attachment ? msg.content : captionParts.join('\n');
+  const sizeText = attachment?.sizeBytes ? formatFileSize(attachment.sizeBytes) : null;
+  const targetHref = url || fallbackUrl;
+
+  return (
+    <div className="space-y-1.5">
+      <a
+        href={targetHref}
+        target="_blank"
+        rel="noreferrer"
+        download={cleanFileName}
+        className={`flex items-center space-x-2.5 p-2 rounded-xl transition-colors ${
+          isOwn
+            ? 'bg-white/15 hover:bg-white/25 text-white'
+            : 'bg-card hover:bg-muted text-card-foreground border border-border shadow-2xs'
+        }`}
+      >
+        <FileText className={`w-6 h-6 shrink-0 ${isOwn ? 'text-white' : 'text-primary'}`} />
+        <div className="min-w-0 pr-2">
+          <span className="text-xs font-semibold block truncate max-w-[170px]">
+            {cleanFileName}
+          </span>
+          <span className="text-[10px] opacity-75">
+            {isLoading
+              ? 'Loading link...'
+              : sizeText
+                ? `${sizeText} • Click to download`
+                : 'Click to view or download'}
+          </span>
+        </div>
+        {isLoading ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin opacity-60 shrink-0" />
+        ) : (
+          <ExternalLink className="w-3.5 h-3.5 opacity-60 shrink-0" />
+        )}
+      </a>
+      {fileCaption && <p className="text-xs pt-0.5 px-0.5 break-words">{fileCaption}</p>}
+    </div>
+  );
+};
 
 export const ConversationPage = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
@@ -239,6 +359,7 @@ export const ConversationPage = () => {
           deletedAt: msg.deletedAt || null,
           deleted: !!msg.deleted || msg.deletedAt != null,
           seq: typeof msg.seq === 'number' && msg.seq < 1000000000 ? msg.seq : 0,
+          attachments: msg.attachments || [],
         };
 
         setLiveMessages((prev) => {
@@ -558,11 +679,23 @@ export const ConversationPage = () => {
   };
 
   // Sending image or file attachment
-  const handleSendAttachment = (type: MessageType, url: string, caption?: string) => {
+  const handleSendAttachment = (
+    type: MessageType,
+    attachment: AttachmentData,
+    caption?: string,
+  ) => {
     if (!conversationId) return;
     const optimisticId = crypto.randomUUID();
-    const finalContent = caption ? `${url}\n${caption}` : url;
+    const trimmedCaption = caption?.trim() || null;
     const replyId = replyingTo?.id || null;
+
+    // Pre-populate query cache with immediate download url
+    queryClient.setQueryData(['media-download', attachment.storageKey], {
+      bucket: 'images',
+      storageKey: attachment.storageKey,
+      url: attachment.url,
+      expiresIn: 900,
+    });
 
     const optimisticMsg: Message = {
       id: optimisticId,
@@ -571,11 +704,20 @@ export const ConversationPage = () => {
       seq: 0,
       clientMessageId: optimisticId,
       type,
-      content: finalContent,
+      content: trimmedCaption,
       replyToId: replyId,
       createdAt: new Date().toISOString(),
       editedAt: null,
       deletedAt: null,
+      attachments: [
+        {
+          id: crypto.randomUUID(),
+          storageKey: attachment.storageKey,
+          fileName: attachment.fileName,
+          mimeType: attachment.mimeType,
+          sizeBytes: attachment.sizeBytes,
+        },
+      ],
     };
 
     setLiveMessages((prev) => [optimisticMsg, ...prev]);
@@ -584,17 +726,25 @@ export const ConversationPage = () => {
     const sentViaWs = wsService.sendChatMessage({
       conversationId,
       clientMessageId: optimisticId,
-      content: finalContent,
+      content: trimmedCaption,
       type,
       replyToId: replyId,
+      storageKey: attachment.storageKey,
+      fileName: attachment.fileName,
+      mimeType: attachment.mimeType,
+      sizeBytes: attachment.sizeBytes,
     });
 
     if (!sentViaWs) {
       sendMessage.mutate({
-        content: finalContent,
+        content: trimmedCaption,
         type,
         clientMessageId: optimisticId,
         replyToId: replyId,
+        storageKey: attachment.storageKey,
+        fileName: attachment.fileName,
+        mimeType: attachment.mimeType,
+        sizeBytes: attachment.sizeBytes,
       });
     }
   };
@@ -609,6 +759,14 @@ export const ConversationPage = () => {
       const optimisticId = crypto.randomUUID();
       const replyId = replyingTo?.id || null;
 
+      // Seed query cache with immediate playback URL
+      queryClient.setQueryData(['media-download', confirmData.storageKey], {
+        bucket: confirmData.bucket || 'images',
+        storageKey: confirmData.storageKey,
+        url: confirmData.url,
+        expiresIn: confirmData.expiresIn || 900,
+      });
+
       const optimisticMsg: Message = {
         id: optimisticId,
         conversationId,
@@ -616,11 +774,20 @@ export const ConversationPage = () => {
         seq: 0,
         clientMessageId: optimisticId,
         type: 'VOICE',
-        content: confirmData.url,
+        content: null,
         replyToId: replyId,
         createdAt: new Date().toISOString(),
         editedAt: null,
         deletedAt: null,
+        attachments: [
+          {
+            id: crypto.randomUUID(),
+            storageKey: confirmData.storageKey,
+            fileName: audioFile.name,
+            mimeType: audioFile.type || confirmData.contentType || 'audio/webm',
+            sizeBytes: audioFile.size,
+          },
+        ],
       };
 
       setLiveMessages((prev) => [optimisticMsg, ...prev]);
@@ -630,17 +797,25 @@ export const ConversationPage = () => {
       const sentViaWs = wsService.sendChatMessage({
         conversationId,
         clientMessageId: optimisticId,
-        content: confirmData.url,
+        content: null,
         type: 'VOICE',
         replyToId: replyId,
+        storageKey: confirmData.storageKey,
+        fileName: audioFile.name,
+        mimeType: audioFile.type || confirmData.contentType || 'audio/webm',
+        sizeBytes: audioFile.size,
       });
 
       if (!sentViaWs) {
         sendMessage.mutate({
-          content: confirmData.url,
+          content: null,
           type: 'VOICE',
           clientMessageId: optimisticId,
           replyToId: replyId,
+          storageKey: confirmData.storageKey,
+          fileName: audioFile.name,
+          mimeType: audioFile.type || confirmData.contentType || 'audio/webm',
+          sizeBytes: audioFile.size,
         });
       }
     } catch (err: unknown) {
@@ -1372,88 +1547,21 @@ export const ConversationPage = () => {
                             </div>
                           ) : msg.type === 'IMAGE' ? (
                             /* Image Attachment Message */
-                            <div className="space-y-1">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setPreviewImageUrl((msg.content || '').split('\n')[0] || null)
-                                }
-                                className="block p-0 bg-transparent border-none cursor-pointer rounded-xl overflow-hidden hover:opacity-95 transition-opacity"
-                                title="Click to view full image"
-                              >
-                                <img
-                                  src={(msg.content || '').split('\n')[0]}
-                                  alt="Shared attachment"
-                                  className="max-w-xs sm:max-w-sm rounded-xl object-cover max-h-60"
-                                />
-                              </button>
-                              {msg.content?.includes('\n') && (
-                                <p className="text-xs pt-1">
-                                  {msg.content.substring(msg.content.indexOf('\n') + 1)}
-                                </p>
-                              )}
-                            </div>
+                            <ChatMessageImage
+                              msg={msg}
+                              onPreview={(url) => setPreviewImageUrl(url)}
+                            />
                           ) : msg.type === 'VOICE' ||
                             (msg.type === 'FILE' &&
-                              (msg.content || '')
-                                .split('\n')[0]
-                                ?.match(/\.(mp3|wav|ogg|webm|m4a|aac)(\?.*)?$/i)) ? (
+                              (msg.attachments?.[0]?.mimeType?.startsWith('audio/') ||
+                                (msg.content || '')
+                                  .split('\n')[0]
+                                  ?.match(/\.(mp3|wav|ogg|webm|m4a|aac)(\?.*)?$/i))) ? (
                             /* Voice / Audio Message */
-                            <VoiceMessagePlayer
-                              audioUrl={(msg.content || '').split('\n')[0] || ''}
-                              isOwn={isOwn}
-                              caption={
-                                msg.content?.includes('\n')
-                                  ? msg.content.substring(msg.content.indexOf('\n') + 1)
-                                  : null
-                              }
-                            />
+                            <ChatMessageVoice msg={msg} isOwn={isOwn} />
                           ) : msg.type === 'FILE' ? (
                             /* Document / File Message */
-                            (() => {
-                              const [rawFileUrl, ...captionParts] = (msg.content || '').split('\n');
-                              const fileUrl = rawFileUrl || '#';
-                              const fileCaption = captionParts.join('\n');
-                              const cleanFileName = decodeURIComponent(
-                                (fileUrl.split('?')[0] || '').split('/').pop() || 'Document',
-                              );
-
-                              return (
-                                <div className="space-y-1.5">
-                                  <a
-                                    href={fileUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    download={cleanFileName}
-                                    className={`flex items-center space-x-2.5 p-2 rounded-xl transition-colors ${
-                                      isOwn
-                                        ? 'bg-white/15 hover:bg-white/25 text-white'
-                                        : 'bg-card hover:bg-muted text-card-foreground border border-border shadow-2xs'
-                                    }`}
-                                  >
-                                    <FileText
-                                      className={`w-6 h-6 shrink-0 ${
-                                        isOwn ? 'text-white' : 'text-primary'
-                                      }`}
-                                    />
-                                    <div className="min-w-0 pr-2">
-                                      <span className="text-xs font-semibold block truncate max-w-[170px]">
-                                        {cleanFileName}
-                                      </span>
-                                      <span className="text-[10px] opacity-75">
-                                        Click to view or download
-                                      </span>
-                                    </div>
-                                    <ExternalLink className="w-3.5 h-3.5 opacity-60 shrink-0" />
-                                  </a>
-                                  {fileCaption && (
-                                    <p className="text-xs pt-0.5 px-0.5 break-words">
-                                      {fileCaption}
-                                    </p>
-                                  )}
-                                </div>
-                              );
-                            })()
+                            <ChatMessageFile msg={msg} isOwn={isOwn} />
                           ) : (
                             /* Standard Text Message */
                             msg.content || ''

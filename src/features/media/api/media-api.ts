@@ -29,6 +29,13 @@ export type ConfirmResponse = {
   expiresIn: number;
 };
 
+export type MediaDownloadResponse = {
+  bucket: string;
+  storageKey: string;
+  url: string;
+  expiresIn: number;
+};
+
 export const resolveMimeType = (file: File): string => {
   if (file.type && file.type.trim()) return file.type.toLowerCase();
   const ext = file.name.split('.').pop()?.toLowerCase();
@@ -93,6 +100,14 @@ export const mediaApi = {
 
   confirm: async (data: ConfirmRequest): Promise<ConfirmResponse> => {
     const response = await http.post('/media/confirm', data);
+    return response.data;
+  },
+
+  /** Get an authorized signed download URL for an attachment */
+  getDownloadUrl: async (storageKey: string): Promise<MediaDownloadResponse> => {
+    const response = await http.get('/media/download', {
+      params: { storageKey },
+    });
     return response.data;
   },
 

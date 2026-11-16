@@ -57,7 +57,7 @@ export const UserProfileModal = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
 
           {/* Modal Card */}
@@ -66,15 +66,15 @@ export const UserProfileModal = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             transition={{ duration: 0.2 }}
-            className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative z-10 border border-slate-100 max-h-[90vh] flex flex-col"
+            className="bg-card rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative z-10 border border-border max-h-[90vh] flex flex-col"
           >
             {/* Top decorative banner */}
-            <div className="h-28 bg-gradient-to-r from-primary/20 via-primary/10 to-orange-100/50 relative shrink-0">
+            <div className="h-28 bg-gradient-to-r from-primary/30 via-primary/15 to-primary/5 relative shrink-0">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={onClose}
-                className="absolute top-3 right-3 rounded-full bg-white/80 backdrop-blur hover:bg-white text-slate-500 hover:text-slate-800 h-8 w-8 shadow-sm"
+                className="absolute top-3 right-3 rounded-full bg-card/80 backdrop-blur hover:bg-card text-muted-foreground hover:text-foreground h-8 w-8 shadow-sm"
               >
                 <X className="w-4 h-4" />
               </Button>
@@ -88,13 +88,13 @@ export const UserProfileModal = ({
                   <Avatar
                     src={avatarUrl}
                     alt={displayName}
-                    className="w-24 h-24 border-4 border-white bg-slate-100 text-slate-700 font-bold text-2xl shadow-md"
+                    className="w-24 h-24 border-4 border-card bg-primary/10 text-primary font-bold text-2xl shadow-md"
                     fallback={
                       isLoading ? <Skeleton className="w-full h-full rounded-full" /> : initials
                     }
                   />
                   {userId && isOnline(userId) && (
-                    <span className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-4 border-white rounded-full ring-2 ring-emerald-500/20" />
+                    <span className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-4 border-card rounded-full ring-2 ring-emerald-500/20" />
                   )}
                 </div>
 
@@ -103,16 +103,16 @@ export const UserProfileModal = ({
                     <span
                       className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
                         isOnline(userId)
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
-                          : 'bg-slate-100 text-slate-600'
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                          : 'bg-muted text-muted-foreground'
                       }`}
                     >
                       {getLastSeenText(userId)}
                     </span>
                   )}
                   {user?.role && (
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                      <Shield className="w-3 h-3 mr-1 text-slate-500" />
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-muted text-foreground border border-border">
+                      <Shield className="w-3 h-3 mr-1 text-muted-foreground" />
                       {user.role}
                     </span>
                   )}
@@ -136,39 +136,39 @@ export const UserProfileModal = ({
                 <div className="space-y-5">
                   {/* Name & Handle */}
                   <div>
-                    <h2 className="text-xl font-bold text-slate-900">{displayName}</h2>
+                    <h2 className="text-xl font-bold text-foreground">{displayName}</h2>
                     {user?.username && (
-                      <p className="text-sm font-medium text-slate-500">@{user.username}</p>
+                      <p className="text-sm font-medium text-muted-foreground">@{user.username}</p>
                     )}
                   </div>
 
                   {/* Bio */}
                   {user?.bio && (
-                    <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
-                      <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">
+                    <div className="p-3.5 bg-muted/50 rounded-2xl border border-border">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
                         Bio
                       </p>
-                      <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                      <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
                         {user.bio}
                       </p>
                     </div>
                   )}
 
                   {/* Details Card */}
-                  <div className="space-y-2.5 bg-slate-50/70 p-4 rounded-2xl border border-slate-100 text-sm">
+                  <div className="space-y-2.5 bg-muted/40 p-4 rounded-2xl border border-border text-sm">
                     {/* Email */}
                     {user?.email && (
                       <div className="flex items-center justify-between py-1">
-                        <div className="flex items-center space-x-2.5 text-slate-600 min-w-0 pr-2">
-                          <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                        <div className="flex items-center space-x-2.5 text-foreground min-w-0 pr-2">
+                          <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
                           <span className="truncate">{user.email}</span>
                         </div>
                         {user.emailVerified !== undefined && (
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
                               user.emailVerified
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-orange-100 text-orange-700'
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
                             }`}
                           >
                             {user.emailVerified ? (
@@ -189,9 +189,9 @@ export const UserProfileModal = ({
 
                     {/* Phone */}
                     {user?.phoneNumber && (
-                      <div className="flex items-center justify-between py-1 border-t border-slate-100/80 pt-2">
-                        <div className="flex items-center space-x-2.5 text-slate-600">
-                          <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                      <div className="flex items-center justify-between py-1 border-t border-border pt-2">
+                        <div className="flex items-center space-x-2.5 text-foreground">
+                          <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
                           <span>{user.phoneNumber}</span>
                         </div>
                       </div>
@@ -199,9 +199,9 @@ export const UserProfileModal = ({
 
                     {/* Region */}
                     {user?.region && (
-                      <div className="flex items-center justify-between py-1 border-t border-slate-100/80 pt-2">
-                        <div className="flex items-center space-x-2.5 text-slate-600">
-                          <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+                      <div className="flex items-center justify-between py-1 border-t border-border pt-2">
+                        <div className="flex items-center space-x-2.5 text-foreground">
+                          <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
                           <span>{user.region}</span>
                         </div>
                       </div>
@@ -209,9 +209,9 @@ export const UserProfileModal = ({
 
                     {/* Age */}
                     {user?.age !== undefined && user?.age !== null && user?.age > 0 && (
-                      <div className="flex items-center justify-between py-1 border-t border-slate-100/80 pt-2">
-                        <div className="flex items-center space-x-2.5 text-slate-600">
-                          <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                      <div className="flex items-center justify-between py-1 border-t border-border pt-2">
+                        <div className="flex items-center space-x-2.5 text-foreground">
+                          <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
                           <span>{user.age} years old</span>
                         </div>
                       </div>

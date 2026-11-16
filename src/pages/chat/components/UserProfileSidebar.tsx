@@ -524,20 +524,20 @@ export const UserProfileSidebar = ({
 
       {/* Leave Group Confirmation Modal */}
       {isLeaveConfirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100">
-            <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mb-4 mx-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-card rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-border">
+            <div className="w-12 h-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mb-4 mx-auto">
               <LogOut className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-bold text-center text-slate-900 mb-1">
+            <h3 className="text-base font-bold text-center text-foreground mb-1">
               Leave this group?
             </h3>
-            <p className="text-xs text-center text-slate-500 mb-6">
+            <p className="text-xs text-center text-muted-foreground mb-6">
               You won&apos;t receive any more messages from this group unless you are added back.
             </p>
             <div className="flex space-x-2">
               <Button
-                variant="ghost"
+                variant="outline"
                 onClick={() => setIsLeaveConfirmOpen(false)}
                 className="flex-1 rounded-xl"
               >

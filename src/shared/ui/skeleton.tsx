@@ -206,7 +206,7 @@ export function UserDetailSkeleton() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Avatar & Quick Info */}
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 flex flex-col items-center text-center">
+          <div className="bg-card rounded-2xl border border-border shadow-xs p-6 flex flex-col items-center text-center">
             <Skeleton className="w-24 h-24 rounded-full mb-4" />
             <Skeleton className="h-5 w-36 rounded-md mb-2" />
             <Skeleton className="h-3.5 w-24 rounded-md mb-4" />
@@ -214,13 +214,13 @@ export function UserDetailSkeleton() {
               <Skeleton className="h-5 w-16 rounded-full" />
               <Skeleton className="h-5 w-20 rounded-full" />
             </div>
-            <div className="w-full space-y-2 pt-4 border-t border-slate-100">
+            <div className="w-full space-y-2 pt-4 border-t border-border">
               <Skeleton className="h-9 w-full rounded-xl" />
               <Skeleton className="h-9 w-full rounded-xl" />
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
+          <div className="bg-card rounded-2xl border border-border shadow-xs p-6 space-y-4">
             <Skeleton className="h-4 w-32 rounded-md" />
             <div className="space-y-3">
               <Skeleton className="h-8 w-full rounded-xl" />
@@ -232,7 +232,7 @@ export function UserDetailSkeleton() {
 
         {/* Right Column: Detailed Info & Audit Trail */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
+          <div className="bg-card rounded-2xl border border-border shadow-xs p-6 space-y-4">
             <Skeleton className="h-5 w-40 rounded-md" />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Skeleton className="h-16 rounded-xl" />
@@ -242,7 +242,7 @@ export function UserDetailSkeleton() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
+          <div className="bg-card rounded-2xl border border-border shadow-xs p-6 space-y-4">
             <div className="flex items-center justify-between">
               <Skeleton className="h-5 w-36 rounded-md" />
               <Skeleton className="h-4 w-20 rounded-md" />
@@ -261,7 +261,7 @@ export function UserDetailSkeleton() {
 
 export function ReportDetailSkeleton() {
   return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50/60 h-full animate-pulse">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-background h-full animate-pulse">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
@@ -279,9 +279,9 @@ export function ReportDetailSkeleton() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Report Details & Message Context */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
+          <div className="bg-card rounded-2xl border border-border shadow-xs p-6 space-y-4">
             <Skeleton className="h-5 w-36 rounded-md" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-muted/50 border border-border">
               <Skeleton className="h-10 rounded-lg" />
               <Skeleton className="h-10 rounded-lg" />
               <Skeleton className="h-10 rounded-lg" />
@@ -290,7 +290,7 @@ export function ReportDetailSkeleton() {
             <Skeleton className="h-24 w-full rounded-xl" />
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
+          <div className="bg-card rounded-2xl border border-border shadow-xs p-6 space-y-4">
             <Skeleton className="h-5 w-48 rounded-md" />
             <Skeleton className="h-28 w-full rounded-xl" />
           </div>
@@ -298,7 +298,7 @@ export function ReportDetailSkeleton() {
 
         {/* Right Column: Moderation Actions */}
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-4">
+          <div className="bg-card rounded-2xl border border-border shadow-xs p-6 space-y-4">
             <Skeleton className="h-5 w-40 rounded-md" />
             <div className="space-y-3">
               <Skeleton className="h-10 w-full rounded-xl" />

@@ -43,22 +43,22 @@ export const NewGroupPage = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-[100dvh] bg-slate-50 relative overflow-hidden">
+    <div className="flex-1 flex flex-col h-[100dvh] bg-background relative overflow-hidden">
       {/* Header */}
-      <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-4 md:px-8 shrink-0 z-10 sticky top-0">
+      <header className="h-16 border-b border-border bg-card flex items-center justify-between px-4 md:px-8 shrink-0 z-10 sticky top-0">
         <div className="flex items-center">
           <Button
             variant="ghost"
             size="icon"
             asChild
-            className="mr-4 text-slate-500 hover:bg-slate-100"
+            className="mr-4 text-muted-foreground hover:bg-muted"
           >
             <Link to="/app">
               <ArrowLeft className="w-5 h-5" />
             </Link>
           </Button>
           <div className="flex flex-col">
-            <h2 className="font-bold text-slate-900 leading-tight">New Group</h2>
+            <h2 className="font-bold text-foreground leading-tight">New Group</h2>
           </div>
         </div>
       </header>
@@ -67,12 +67,12 @@ export const NewGroupPage = () => {
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-8">
           {/* Left Panel: Inputs and Search */}
           <div className="flex-1 flex flex-col min-w-0">
-            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm mb-6">
-              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">
+            <div className="bg-card rounded-3xl p-6 border border-border shadow-sm mb-6">
+              <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4">
                 Group Details
               </h3>
               <Input
-                className="h-12 bg-slate-50 rounded-xl border-slate-200 font-medium text-lg placeholder:font-normal"
+                className="h-12 bg-background rounded-xl border-border font-medium text-lg placeholder:font-normal"
                 placeholder="Group Name"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -80,15 +80,15 @@ export const NewGroupPage = () => {
               />
             </div>
 
-            <div className="bg-white rounded-3xl flex-1 flex flex-col border border-slate-200 shadow-sm overflow-hidden min-h-[400px]">
-              <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">
+            <div className="bg-card rounded-3xl flex-1 flex flex-col border border-border shadow-sm overflow-hidden min-h-[400px]">
+              <div className="p-6 border-b border-border bg-muted/30">
+                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4">
                   Add Members
                 </h3>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
-                    className="pl-10 h-12 bg-white rounded-xl border-slate-200"
+                    className="pl-10 h-12 bg-background rounded-xl border-border"
                     placeholder="Search by username or display name..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -100,7 +100,7 @@ export const NewGroupPage = () => {
                 {isSearchLoading && debouncedQuery && <SelectableUserSkeleton />}
 
                 {!isSearchLoading && searchResults?.length === 0 && debouncedQuery && (
-                  <p className="text-sm text-slate-500 text-center py-8">
+                  <p className="text-sm text-muted-foreground text-center py-8">
                     No users found matching &quot;{debouncedQuery}&quot;
                   </p>
                 )}
@@ -109,10 +109,10 @@ export const NewGroupPage = () => {
                   (!searchResults || searchResults.length === 0) &&
                   !debouncedQuery && (
                     <div className="text-center py-12 flex flex-col items-center">
-                      <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                        <Users className="w-8 h-8 text-slate-400" />
+                      <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                        <Users className="w-8 h-8 text-muted-foreground" />
                       </div>
-                      <p className="text-slate-500 text-sm">
+                      <p className="text-muted-foreground text-sm">
                         Search for users to add them to the group.
                       </p>
                     </div>
@@ -141,12 +141,12 @@ export const NewGroupPage = () => {
 
           {/* Right Panel: Preview */}
           <div className="w-full md:w-[340px] shrink-0">
-            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm sticky top-8 flex flex-col items-center">
+            <div className="bg-card rounded-3xl p-6 border border-border shadow-sm sticky top-8 flex flex-col items-center">
               <div className="w-20 h-20 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4 relative overflow-hidden">
                 <Users className="w-8 h-8 relative z-10" />
               </div>
 
-              <h3 className="text-xl font-bold mb-2 text-center break-words w-full">
+              <h3 className="text-xl font-bold mb-2 text-center break-words w-full text-foreground">
                 {title.trim() || 'Untitled Group'}
               </h3>
 
@@ -156,13 +156,13 @@ export const NewGroupPage = () => {
 
               <div className="w-full mb-6">
                 <div className="flex justify-between items-center mb-4">
-                  <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  <span className="text-xs font-bold text-foreground uppercase tracking-wider">
                     Members · {selectedUsers.length + 1}
                   </span>
                   {selectedUsers.length > 0 && (
                     <button
                       onClick={() => setSelectedUsers([])}
-                      className="text-[10px] font-bold text-slate-400 hover:text-slate-700 uppercase transition-colors"
+                      className="text-[10px] font-bold text-muted-foreground hover:text-foreground uppercase transition-colors"
                     >
                       Clear
                     </button>
@@ -190,7 +190,7 @@ export const NewGroupPage = () => {
                     />
                   ))}
                   {selectedUsers.length === 0 && (
-                    <p className="text-xs text-slate-400 text-center py-4 italic">
+                    <p className="text-xs text-muted-foreground text-center py-4 italic">
                       No members added yet
                     </p>
                   )}
@@ -199,6 +199,7 @@ export const NewGroupPage = () => {
 
               <div className="w-full space-y-3 mt-auto">
                 <Button
+                  variant="gradient"
                   onClick={handleCreate}
                   disabled={!title.trim() || selectedUsers.length === 0 || createGroup.isPending}
                   className="w-full rounded-xl h-12 shadow-sm font-semibold gap-2"
@@ -213,7 +214,7 @@ export const NewGroupPage = () => {
                   )}
                 </Button>
                 {(!title.trim() || selectedUsers.length === 0) && (
-                  <p className="text-[10px] text-center text-slate-500 font-medium px-4">
+                  <p className="text-[10px] text-center text-muted-foreground font-medium px-4">
                     Please provide a group name and select at least one member.
                   </p>
                 )}
@@ -249,22 +250,28 @@ function SelectableUser({
       onKeyDown={(e) => e.key === 'Enter' && onClick()}
       role="button"
       tabIndex={0}
-      className={`flex items-center p-3 rounded-xl border-2 transition-colors cursor-pointer ${selected ? 'border-primary bg-primary/5' : 'border-transparent hover:border-slate-200 bg-white'}`}
+      className={`flex items-center p-3 rounded-xl border-2 transition-colors cursor-pointer ${
+        selected ? 'border-primary bg-primary/10' : 'border-transparent hover:border-border bg-card'
+      }`}
     >
       <div
-        className={`w-6 h-6 rounded-md border flex items-center justify-center mr-4 shrink-0 transition-colors ${selected ? 'bg-primary border-primary text-white' : 'border-slate-300 bg-white'}`}
+        className={`w-6 h-6 rounded-md border flex items-center justify-center mr-4 shrink-0 transition-colors ${
+          selected
+            ? 'bg-primary border-primary text-primary-foreground'
+            : 'border-border bg-background'
+        }`}
       >
         {selected && <span className="text-xs font-bold">✓</span>}
       </div>
       <Avatar
         src={avatarUrl}
         alt={name}
-        className="w-10 h-10 font-bold text-sm mr-4 shrink-0 bg-slate-100 text-slate-700"
+        className="w-10 h-10 font-bold text-sm mr-4 shrink-0 bg-primary/10 text-primary"
         fallback={initials}
       />
       <div className="flex-1 min-w-0 pr-4">
-        <p className="font-semibold text-sm text-slate-900 truncate">{name}</p>
-        <p className="text-xs text-slate-500 truncate">{handle}</p>
+        <p className="font-semibold text-sm text-foreground truncate">{name}</p>
+        <p className="text-xs text-muted-foreground truncate">{handle}</p>
       </div>
     </div>
   );
@@ -293,21 +300,29 @@ function SelectedMember({
         <Avatar
           src={avatarUrl}
           alt={name}
-          className={`w-8 h-8 text-[10px] font-bold shrink-0 ${memberRole === 'OWNER' ? 'bg-slate-900 text-white' : 'bg-primary/10 text-primary'}`}
+          className={`w-8 h-8 text-[10px] font-bold shrink-0 ${
+            memberRole === 'OWNER'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-primary/10 text-primary'
+          }`}
           fallback={initials}
         />
-        <span className="text-xs font-semibold text-slate-900 truncate">{name}</span>
+        <span className="text-xs font-semibold text-foreground truncate">{name}</span>
       </div>
       <div className="flex items-center space-x-2 shrink-0">
         <span
-          className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${memberRole === 'OWNER' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}`}
+          className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+            memberRole === 'OWNER'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted text-muted-foreground'
+          }`}
         >
           {memberRole}
         </span>
         {removable && (
           <button
             onClick={onRemove}
-            className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+            className="w-6 h-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
           >
             <X className="w-3 h-3" />
           </button>

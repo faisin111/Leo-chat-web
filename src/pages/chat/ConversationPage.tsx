@@ -818,7 +818,7 @@ export const ConversationPage = () => {
 
   return (
     <div
-      className="flex-1 flex h-full bg-white relative overflow-hidden"
+      className="flex-1 flex h-full bg-background relative overflow-hidden"
       onDragOver={handleChatDragOver}
       onDragLeave={handleChatDragLeave}
       onDrop={handleChatDrop}
@@ -826,16 +826,16 @@ export const ConversationPage = () => {
       {/* Drag & Drop Visual Indicator */}
       {isWindowDragOver && (
         <div className="absolute inset-0 z-50 bg-primary/10 backdrop-blur-xs border-2 border-dashed border-primary rounded-2xl m-3 flex flex-col items-center justify-center pointer-events-none">
-          <div className="w-16 h-16 rounded-3xl bg-white shadow-xl flex items-center justify-center text-primary mb-3">
+          <div className="w-16 h-16 rounded-3xl bg-card shadow-xl flex items-center justify-center text-primary mb-3">
             <UploadCloud className="w-8 h-8 animate-bounce" />
           </div>
           <p className="font-bold text-base text-primary">Drop file here to send</p>
-          <p className="text-xs text-slate-600 mt-1">Image or document from your device</p>
+          <p className="text-xs text-muted-foreground mt-1">Image or document from your device</p>
         </div>
       )}
 
       {/* Main Chat Column */}
-      <div className="flex-1 flex flex-col h-full min-w-0 bg-white">
+      <div className="flex-1 flex flex-col h-full min-w-0 bg-background">
         <AddMembersModal
           isOpen={isAddMembersOpen}
           onClose={() => setIsAddMembersOpen(false)}
@@ -1252,7 +1252,7 @@ export const ConversationPage = () => {
                           <div
                             className={`opacity-0 group-hover/bubble:opacity-100 transition-opacity absolute -top-8 ${
                               isOwn ? 'right-0' : 'left-0'
-                            } bg-white shadow-md border border-slate-200 rounded-full px-2 py-0.5 flex items-center space-x-1 z-20`}
+                            } bg-card shadow-md border border-border rounded-full px-2 py-0.5 flex items-center space-x-1 z-20`}
                           >
                             {/* Quick Reactions */}
                             {QUICK_REACTION_EMOJIS.slice(0, 4).map((emoji) => (
@@ -1267,7 +1267,7 @@ export const ConversationPage = () => {
                               </button>
                             ))}
 
-                            <div className="w-px h-3 bg-slate-200 mx-0.5" />
+                            <div className="w-px h-3 bg-border mx-0.5" />
 
                             {/* Reply button */}
                             <button
@@ -1349,7 +1349,7 @@ export const ConversationPage = () => {
                               <textarea
                                 value={editingContent}
                                 onChange={(e) => setEditingContent(e.target.value)}
-                                className="w-full bg-white text-slate-900 rounded-xl p-2 text-xs border border-slate-300 focus:outline-none resize-none"
+                                className="w-full bg-background text-foreground rounded-xl p-2 text-xs border border-border focus:outline-none resize-none"
                                 rows={2}
                               />
                               <div className="flex justify-end space-x-1.5">
@@ -1364,7 +1364,7 @@ export const ConversationPage = () => {
                                   type="button"
                                   onClick={() => handleSaveEdit(msg.id)}
                                   disabled={editMessage.isPending}
-                                  className="text-[11px] px-2.5 py-1 rounded-md bg-white text-primary font-bold hover:bg-slate-100 cursor-pointer shadow-xs"
+                                  className="text-[11px] px-2.5 py-1 rounded-md bg-primary text-primary-foreground font-bold hover:opacity-90 cursor-pointer shadow-xs"
                                 >
                                   {editMessage.isPending ? 'Saving...' : 'Save'}
                                 </button>
@@ -1428,7 +1428,7 @@ export const ConversationPage = () => {
                                     className={`flex items-center space-x-2.5 p-2 rounded-xl transition-colors ${
                                       isOwn
                                         ? 'bg-white/15 hover:bg-white/25 text-white'
-                                        : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200/80 shadow-2xs'
+                                        : 'bg-card hover:bg-muted text-card-foreground border border-border shadow-2xs'
                                     }`}
                                   >
                                     <FileText

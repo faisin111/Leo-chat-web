@@ -31,22 +31,27 @@ export const NewChatPage = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-white relative">
-      <header className="h-16 border-b border-slate-100 flex items-center px-4 shrink-0 bg-white">
-        <Button variant="ghost" size="icon" asChild className="mr-4 text-slate-500">
+    <div className="flex-1 flex flex-col h-full bg-background relative">
+      <header className="h-16 border-b border-border flex items-center px-4 shrink-0 bg-card">
+        <Button
+          variant="ghost"
+          size="icon"
+          asChild
+          className="mr-4 text-muted-foreground hover:text-foreground"
+        >
           <Link to="/app">
             <ArrowLeft className="w-5 h-5" />
           </Link>
         </Button>
-        <h2 className="font-semibold text-base">New Direct Message</h2>
+        <h2 className="font-semibold text-base text-foreground">New Direct Message</h2>
       </header>
 
-      <div className="p-6 shrink-0 border-b border-slate-100 bg-slate-50/50">
+      <div className="p-6 shrink-0 border-b border-border bg-card/50">
         <div className="relative flex items-center gap-3">
           <div className="relative flex-1">
-            <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
-              className="pl-10 h-12 bg-white text-base rounded-xl border-slate-200"
+              className="pl-10 h-12 bg-background text-base rounded-xl border-border"
               placeholder="Search by username or display name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -56,14 +61,14 @@ export const NewChatPage = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 px-2">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 px-2">
           {debouncedQuery ? 'Search Results' : 'Type to search users'}
         </p>
 
         {isLoading && debouncedQuery && <UserRowSkeleton />}
 
         {!isLoading && users?.length === 0 && debouncedQuery && (
-          <p className="text-sm text-slate-500 text-center py-8">
+          <p className="text-sm text-muted-foreground text-center py-8">
             No users found matching &quot;{debouncedQuery}&quot;
           </p>
         )}
@@ -76,7 +81,7 @@ export const NewChatPage = () => {
             status={user.status}
             avatarUrl={user.profilePictureUrl}
             initials={(user.displayName || user.username).substring(0, 2).toUpperCase()}
-            color="bg-slate-100 text-slate-700"
+            color="bg-primary/10 text-primary"
             onClick={() => setSelectedUser(user)}
           />
         ))}
@@ -90,18 +95,18 @@ export const NewChatPage = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedUser(null)}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-40"
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm z-40"
             />
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-50 p-4">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm pointer-events-auto overflow-hidden relative"
+                className="bg-card rounded-3xl shadow-2xl p-6 w-full max-w-sm pointer-events-auto overflow-hidden relative border border-border"
               >
                 <button
                   onClick={() => setSelectedUser(null)}
-                  className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -117,29 +122,30 @@ export const NewChatPage = () => {
                         .toUpperCase()}
                     />
                     {selectedUser.status === 'ONLINE' && (
-                      <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 border-4 border-white rounded-full" />
+                      <div className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-4 border-card rounded-full" />
                     )}
                   </div>
 
-                  <h3 className="text-xl font-bold text-slate-900 mb-1">
+                  <h3 className="text-xl font-bold text-foreground mb-1">
                     {selectedUser.displayName || selectedUser.username}
                   </h3>
-                  <p className="text-slate-500 font-medium mb-6">@{selectedUser.username}</p>
+                  <p className="text-muted-foreground font-medium mb-6">@{selectedUser.username}</p>
 
-                  <div className="w-full bg-slate-50 rounded-2xl p-4 mb-6 text-sm text-slate-600 text-left border border-slate-100">
+                  <div className="w-full bg-muted/50 rounded-2xl p-4 mb-6 text-sm text-foreground text-left border border-border">
                     <p className="mb-2">
-                      <span className="font-semibold text-slate-700">Bio:</span>{' '}
+                      <span className="font-semibold text-foreground">Bio:</span>{' '}
                       {selectedUser.bio || 'No bio provided.'}
                     </p>
                     {selectedUser.region && (
                       <p>
-                        <span className="font-semibold text-slate-700">Location:</span>{' '}
+                        <span className="font-semibold text-foreground">Location:</span>{' '}
                         {selectedUser.region}
                       </p>
                     )}
                   </div>
 
                   <Button
+                    variant="gradient"
                     onClick={handleStartChat}
                     disabled={startDm.isPending}
                     className="w-full h-12 rounded-xl text-base font-semibold gap-2"
@@ -169,7 +175,7 @@ function UserRow({ name, handle, status, initials, color, onClick, isPending, av
   return (
     <div
       onClick={onClick}
-      className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors group"
+      className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 cursor-pointer transition-colors group"
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && onClick()}
@@ -183,14 +189,14 @@ function UserRow({ name, handle, status, initials, color, onClick, isPending, av
             fallback={initials}
           />
           {isOnline && (
-            <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full" />
+            <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-card rounded-full" />
           )}
         </div>
         <div>
-          <h3 className="font-semibold text-slate-900 group-hover:text-primary transition-colors">
+          <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
             {name}
           </h3>
-          <p className="text-sm text-slate-500">{handle}</p>
+          <p className="text-sm text-muted-foreground">{handle}</p>
         </div>
       </div>
       <Button

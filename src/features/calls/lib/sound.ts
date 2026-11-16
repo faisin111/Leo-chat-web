@@ -25,7 +25,7 @@ class CallSoundManager {
     }
   }
 
-  // Play outgoing ringback tone: 440Hz + 480Hz burst (2s on, 3s off)
+  // Play outgoing ringback tone: 440Hz + 480Hz smooth harmonic burst
   startOutgoingRing() {
     if (this.isRinging) this.stopRing();
     this.isRinging = true;
@@ -39,21 +39,26 @@ class CallSoundManager {
         const osc2 = ctx.createOscillator();
         const gain = ctx.createGain();
 
+        osc1.type = 'sine';
+        osc2.type = 'sine';
         osc1.frequency.value = 440;
         osc2.frequency.value = 480;
 
-        // Subtle, pleasant volume
-        gain.gain.setValueAtTime(0.04, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.6);
+        // Smooth volume envelope with soft attack and decay to eliminate audio clicks
+        const t0 = ctx.currentTime;
+        gain.gain.setValueAtTime(0.0001, t0);
+        gain.gain.linearRampToValueAtTime(0.045, t0 + 0.08);
+        gain.gain.setValueAtTime(0.045, t0 + 1.5);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.8);
 
         osc1.connect(gain);
         osc2.connect(gain);
         gain.connect(ctx.destination);
 
-        osc1.start();
-        osc2.start();
-        osc1.stop(ctx.currentTime + 1.6);
-        osc2.stop(ctx.currentTime + 1.6);
+        osc1.start(t0);
+        osc2.start(t0);
+        osc1.stop(t0 + 1.85);
+        osc2.stop(t0 + 1.85);
       } catch {
         // Ignore audio playback errors if user hasn't interacted with page yet
       }
@@ -81,15 +86,16 @@ class CallSoundManager {
           osc.type = 'sine';
           osc.frequency.value = freq;
 
-          const startTime = ctx.currentTime + idx * 0.12;
-          gain.gain.setValueAtTime(0.06, startTime);
-          gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.6);
+          const startTime = ctx.currentTime + idx * 0.14;
+          gain.gain.setValueAtTime(0.0001, startTime);
+          gain.gain.linearRampToValueAtTime(0.065, startTime + 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.65);
 
           osc.connect(gain);
           gain.connect(ctx.destination);
 
           osc.start(startTime);
-          osc.stop(startTime + 0.6);
+          osc.stop(startTime + 0.7);
         });
       } catch {
         // Audio policy ignore
@@ -97,7 +103,7 @@ class CallSoundManager {
     };
 
     playChime();
-    this.intervalId = setInterval(playChime, 2500);
+    this.intervalId = setInterval(playChime, 2600);
   }
 
   stopRing() {
@@ -116,17 +122,21 @@ class CallSoundManager {
     try {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.frequency.setValueAtTime(440, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.25);
 
-      gain.gain.setValueAtTime(0.08, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+      const t0 = ctx.currentTime;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, t0);
+      osc.frequency.exponentialRampToValueAtTime(220, t0 + 0.28);
+
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.linearRampToValueAtTime(0.07, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.28);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
 
-      osc.start();
-      osc.stop(ctx.currentTime + 0.25);
+      osc.start(t0);
+      osc.stop(t0 + 0.3);
     } catch {
       // Ignore
     }

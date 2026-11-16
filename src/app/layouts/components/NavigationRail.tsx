@@ -2,7 +2,6 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   MessageSquare,
-  Sparkles,
   Users,
   Settings,
   Shield,
@@ -11,6 +10,7 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
+import { AiRotatingIcon } from '@/features/ai';
 import { useSession, authSession, authApi, isAdminRole } from '@/features/auth';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -73,7 +73,7 @@ export function NavigationRail() {
         />
         <NavItem
           to="/app/ai"
-          icon={<Sparkles className="w-5 h-5" />}
+          icon={<AiRotatingIcon size="nav" />}
           active={location.pathname.startsWith('/app/ai')}
           label="LeoChat AI"
         />

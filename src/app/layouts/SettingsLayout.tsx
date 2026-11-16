@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { AnimatedOutlet } from './AnimatedOutlet';
 import { User, MonitorSmartphone, Shield, Ban, Palette } from 'lucide-react';
 import { useSession } from '@/features/auth';
+import { env } from '@/shared/config/env';
 
 export default function SettingsLayout() {
   const location = useLocation();
@@ -78,7 +79,9 @@ export default function SettingsLayout() {
               </span>
               Account ACTIVE
             </p>
-            <p className="text-[10px] opacity-80">Connected securely · LeoChat Pro</p>
+            <p className="text-[10px] opacity-80">
+              Connected securely · LeoChat Pro v{env.APP_VERSION}
+            </p>
           </div>
         </div>
       </aside>

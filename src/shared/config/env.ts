@@ -34,4 +34,5 @@ export const env = {
   APP_ENV: parsed.VITE_APP_ENV,
   SENTRY_DSN: parsed.VITE_SENTRY_DSN,
   MAX_UPLOAD_MB: parsed.VITE_MAX_UPLOAD_MB,
+  APP_VERSION: '1.0.0',
 };

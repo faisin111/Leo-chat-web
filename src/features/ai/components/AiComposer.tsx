@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowUp, Brain, Globe, Paperclip, Mic, X, FileText, Sparkles } from 'lucide-react';
+import { ArrowUp, Brain, Globe, Paperclip, Mic, X, FileText, Sparkles, Square } from 'lucide-react';
 import { useAiStore } from '../store/ai.store';
 import { getModelById } from '../lib/ai-models';
 import type { AiAttachment } from '../types/ai.types';
@@ -17,6 +17,7 @@ export const AiComposer = () => {
     isDeepThinkEnabled,
     isWebSearchEnabled,
     sendMessage,
+    stopGeneration,
     toggleDeepThink,
     toggleWebSearch,
   } = useAiStore();
@@ -179,20 +180,31 @@ export const AiComposer = () => {
               <Mic className="w-4 h-4" />
             </button>
 
-            {/* Send Button */}
-            <button
-              type="button"
-              onClick={handleSend}
-              disabled={(!prompt.trim() && attachments.length === 0) || isGenerating}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-                prompt.trim() || attachments.length > 0
-                  ? 'bg-gradient-to-tr from-primary via-violet-600 to-indigo-600 text-white shadow-md shadow-primary/30 hover:scale-105 active:scale-95'
-                  : 'bg-white/10 text-slate-500 cursor-not-allowed'
-              }`}
-              title="Send message"
-            >
-              <ArrowUp className="w-4 h-4" />
-            </button>
+            {/* Send or Stop Generation Button */}
+            {isGenerating ? (
+              <button
+                type="button"
+                onClick={stopGeneration}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white shadow-md border border-slate-700 transition-all cursor-pointer hover:scale-105 active:scale-95 group"
+                title="Stop generating"
+              >
+                <Square className="w-3 h-3 fill-current text-rose-400 group-hover:scale-110 transition-transform" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={!prompt.trim() && attachments.length === 0}
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                  prompt.trim() || attachments.length > 0
+                    ? 'bg-gradient-to-tr from-primary via-violet-600 to-indigo-600 text-white shadow-md shadow-primary/30 hover:scale-105 active:scale-95'
+                    : 'bg-white/10 text-slate-500 cursor-not-allowed'
+                }`}
+                title="Send message"
+              >
+                <ArrowUp className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </div>

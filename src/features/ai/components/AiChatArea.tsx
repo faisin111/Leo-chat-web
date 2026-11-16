@@ -1,10 +1,11 @@
 import { useRef, useEffect } from 'react';
-import { PanelLeftOpen, Sparkles, Trash2, Share2, Plus, Brain, Globe, Loader2 } from 'lucide-react';
+import { PanelLeftOpen, Sparkles, Trash2, Share2, Plus, Brain, Globe } from 'lucide-react';
 import { useAiStore } from '../store/ai.store';
 import { getModelById } from '../lib/ai-models';
 import { AiEmptyState } from './AiEmptyState';
 import { AiMessageItem } from './AiMessageItem';
 import { AiComposer } from './AiComposer';
+import { AiGeneratingIndicator } from './AiGeneratingIndicator';
 import { toast } from 'sonner';
 
 export const AiChatArea = () => {
@@ -130,30 +131,8 @@ export const AiChatArea = () => {
               <AiMessageItem key={msg.id} message={msg} isLatest={index === messages.length - 1} />
             ))}
 
-            {/* Thinking / Generating Pulse Indicator */}
-            {isGenerating && (
-              <div className="w-full py-4 sm:py-6 px-3 sm:px-6 bg-slate-900/30 border-y border-slate-900/40">
-                <div className="max-w-3xl mx-auto flex items-start gap-3 sm:gap-4">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary via-violet-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-primary/25 shrink-0 animate-pulse">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  <div className="space-y-2 pt-1">
-                    <div className="flex items-center gap-2 text-xs text-slate-300 font-medium">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
-                      <span>
-                        {isDeepThinkEnabled
-                          ? 'Thinking & evaluating reasoning steps…'
-                          : 'Generating response…'}
-                      </span>
-                    </div>
-                    <div className="space-y-1.5 max-w-md">
-                      <div className="h-2 bg-slate-800/80 rounded-full animate-pulse w-3/4" />
-                      <div className="h-2 bg-slate-800/60 rounded-full animate-pulse w-1/2" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Modern AI Generation & Thinking State Indicator */}
+            {isGenerating && <AiGeneratingIndicator />}
 
             <div ref={messagesEndRef} />
           </div>

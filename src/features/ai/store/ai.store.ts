@@ -133,6 +133,7 @@ interface AiState {
   toggleSidebar: () => void;
   setSidebarOpen: (isOpen: boolean) => void;
   sendMessage: (content: string, attachments?: AiAttachment[]) => Promise<void>;
+  stopGeneration: () => void;
   regenerateResponse: (messageId: string) => Promise<void>;
   clearActiveSessionMessages: () => void;
 }
@@ -316,6 +317,10 @@ Feel free to ask follow-up questions or request adjustments to this solution!`,
       }),
       isGenerating: false,
     }));
+  },
+
+  stopGeneration: () => {
+    set({ isGenerating: false });
   },
 
   regenerateResponse: async (messageId) => {

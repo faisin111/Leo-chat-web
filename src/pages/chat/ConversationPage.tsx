@@ -860,11 +860,11 @@ export const ConversationPage = () => {
         />
 
         {/* Header */}
-        <header className="h-16 border-b border-slate-100 flex items-center justify-between px-3 sm:px-6 shrink-0 bg-white">
+        <header className="h-16 border-b border-border bg-card/90 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 shrink-0 z-20">
           <div className="flex items-center min-w-0 space-x-1 sm:space-x-3">
             <Link
               to="/app"
-              className="md:hidden flex items-center justify-center w-10 h-10 -ml-1 rounded-full text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors shrink-0"
+              className="md:hidden flex items-center justify-center w-10 h-10 -ml-1 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
               aria-label="Back to conversations"
               title="Back to conversations"
             >
@@ -874,16 +874,16 @@ export const ConversationPage = () => {
             <button
               type="button"
               onClick={() => setIsProfileSidebarOpen((prev) => !prev)}
-              className="flex items-center space-x-2.5 sm:space-x-3 text-left rounded-2xl p-1 -ml-1 transition-colors hover:bg-slate-50 cursor-pointer group/header min-w-0"
+              className="flex items-center space-x-2.5 sm:space-x-3 text-left rounded-2xl p-1 -ml-1 transition-colors hover:bg-muted/60 cursor-pointer group/header min-w-0"
               title="View details"
             >
               <Avatar
                 src={headerAvatar}
                 alt={headerName}
-                className="w-10 h-10 bg-slate-100 text-slate-700 font-bold text-xs shrink-0 border border-slate-100"
+                className="w-10 h-10 bg-muted text-foreground font-bold text-xs shrink-0 border border-border"
                 fallback={
                   isGroup && !headerAvatar ? (
-                    <Users className="w-5 h-5 text-slate-500" />
+                    <Users className="w-5 h-5 text-muted-foreground" />
                   ) : isTargetUserLoading && !headerAvatar ? (
                     <Skeleton className="w-full h-full rounded-full" />
                   ) : (
@@ -893,7 +893,7 @@ export const ConversationPage = () => {
               />
               <div className="min-w-0">
                 <div className="flex items-center space-x-1.5 min-w-0">
-                  <h2 className="font-semibold text-sm text-slate-900 group-hover/header:text-primary transition-colors truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs md:max-w-sm flex items-center gap-1.5">
+                  <h2 className="font-semibold text-sm text-foreground group-hover/header:text-primary transition-colors truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs md:max-w-sm flex items-center gap-1.5">
                     {isTargetUserLoading && !headerName ? (
                       <Skeleton className="h-4 w-28 rounded-md" />
                     ) : (
@@ -902,12 +902,12 @@ export const ConversationPage = () => {
                         {isPinned && (
                           <Pin className="w-3 h-3 text-primary fill-primary/20 shrink-0" />
                         )}
-                        {isMuted && <BellOff className="w-3 h-3 text-slate-400 shrink-0" />}
+                        {isMuted && <BellOff className="w-3 h-3 text-muted-foreground shrink-0" />}
                       </>
                     )}
                   </h2>
                 </div>
-                <p className="text-[11px] text-slate-500 font-medium truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs md:max-w-sm">
+                <p className="text-[11px] text-muted-foreground font-medium truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs md:max-w-sm">
                   {headerSubtitle}
                 </p>
               </div>
@@ -920,12 +920,12 @@ export const ConversationPage = () => {
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsAddMembersOpen(true)}
-                  className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9 min-h-[36px] min-w-[36px] cursor-pointer"
+                  className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-full h-9 w-9 min-h-[36px] min-w-[36px] cursor-pointer"
                   title="Add members"
                 >
                   <UserPlus className="w-4 h-4" />
                 </Button>
-                <div className="hidden sm:block w-px h-4 bg-slate-200 mx-1"></div>
+                <div className="hidden sm:block w-px h-4 bg-border mx-1"></div>
               </>
             )}
 
@@ -935,7 +935,9 @@ export const ConversationPage = () => {
               size="icon"
               onClick={() => setIsSearchOpen((prev) => !prev)}
               className={`rounded-full h-9 w-9 min-h-[36px] min-w-[36px] cursor-pointer ${
-                isSearchOpen ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-slate-600'
+                isSearchOpen
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               }`}
               title="Search messages"
             >
@@ -946,7 +948,7 @@ export const ConversationPage = () => {
               variant="ghost"
               size="icon"
               onClick={() => handleStartCall(false)}
-              className="hidden sm:inline-flex text-slate-400 hover:text-slate-600 rounded-full h-9 w-9 cursor-pointer"
+              className="hidden sm:inline-flex text-muted-foreground hover:text-foreground hover:bg-muted rounded-full h-9 w-9 cursor-pointer"
               title="Start voice call"
             >
               <Phone className="w-4 h-4" />
@@ -955,12 +957,12 @@ export const ConversationPage = () => {
               variant="ghost"
               size="icon"
               onClick={() => handleStartCall(true)}
-              className="hidden sm:inline-flex text-slate-400 hover:text-slate-600 rounded-full h-9 w-9 cursor-pointer"
+              className="hidden sm:inline-flex text-muted-foreground hover:text-foreground hover:bg-muted rounded-full h-9 w-9 cursor-pointer"
               title="Start video call"
             >
               <Video className="w-4 h-4" />
             </Button>
-            <div className="hidden sm:block w-px h-4 bg-slate-200 mx-1"></div>
+            <div className="hidden sm:block w-px h-4 bg-border mx-1"></div>
 
             {/* Conversation Actions Menu */}
             <div className="relative">
@@ -968,7 +970,7 @@ export const ConversationPage = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsHeaderMenuOpen((prev) => !prev)}
-                className="text-slate-400 hover:text-slate-600 rounded-full h-9 w-9 min-h-[36px] min-w-[36px] cursor-pointer"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-full h-9 w-9 min-h-[36px] min-w-[36px] cursor-pointer"
                 title="Conversation actions"
               >
                 <MoreVertical className="w-4 h-4" />
@@ -981,7 +983,7 @@ export const ConversationPage = () => {
                     onClick={() => setIsHeaderMenuOpen(false)}
                     aria-hidden="true"
                   />
-                  <div className="absolute right-0 top-full mt-1.5 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-40 animate-in fade-in zoom-in-95">
+                  <div className="absolute right-0 top-full mt-1.5 w-48 bg-card rounded-2xl shadow-xl border border-border py-1.5 z-40 animate-in fade-in zoom-in-95 backdrop-blur-md">
                     <button
                       type="button"
                       disabled={isPinLoading}
@@ -992,10 +994,10 @@ export const ConversationPage = () => {
                           else pin(conversationId);
                         }
                       }}
-                      className="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-medium"
+                      className="w-full text-left px-3.5 py-2 text-xs text-foreground hover:bg-muted flex items-center gap-2.5 cursor-pointer font-medium transition-colors"
                     >
                       <Pin
-                        className={`w-3.5 h-3.5 ${isPinned ? 'fill-primary text-primary' : 'text-slate-400'}`}
+                        className={`w-3.5 h-3.5 ${isPinned ? 'fill-primary text-primary' : 'text-muted-foreground'}`}
                       />
                       <span>{isPinned ? 'Unpin Conversation' : 'Pin Conversation'}</span>
                     </button>
@@ -1016,16 +1018,16 @@ export const ConversationPage = () => {
                           }
                         }
                       }}
-                      className="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-medium"
+                      className="w-full text-left px-3.5 py-2 text-xs text-foreground hover:bg-muted flex items-center gap-2.5 cursor-pointer font-medium transition-colors"
                     >
                       {isMuted ? (
                         <>
-                          <Bell className="w-3.5 h-3.5 text-slate-400" />
+                          <Bell className="w-3.5 h-3.5 text-muted-foreground" />
                           <span>Unmute Notifications</span>
                         </>
                       ) : (
                         <>
-                          <BellOff className="w-3.5 h-3.5 text-slate-400" />
+                          <BellOff className="w-3.5 h-3.5 text-muted-foreground" />
                           <span>Mute Notifications (8h)</span>
                         </>
                       )}
@@ -1041,22 +1043,22 @@ export const ConversationPage = () => {
                           else archive(conversationId);
                         }
                       }}
-                      className="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-medium"
+                      className="w-full text-left px-3.5 py-2 text-xs text-foreground hover:bg-muted flex items-center gap-2.5 cursor-pointer font-medium transition-colors"
                     >
-                      <Archive className="w-3.5 h-3.5 text-slate-400" />
+                      <Archive className="w-3.5 h-3.5 text-muted-foreground" />
                       <span>{isArchived ? 'Unarchive Conversation' : 'Archive Conversation'}</span>
                     </button>
 
                     {isGroup && isGroupAdmin && (
                       <>
-                        <div className="h-px bg-slate-100 my-1" />
+                        <div className="h-px bg-border my-1" />
                         <button
                           type="button"
                           onClick={() => {
                             setIsHeaderMenuOpen(false);
                             setIsEditGroupOpen(true);
                           }}
-                          className="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-medium"
+                          className="w-full text-left px-3.5 py-2 text-xs text-foreground hover:bg-muted flex items-center gap-2.5 cursor-pointer font-medium transition-colors"
                         >
                           <Edit3 className="w-3.5 h-3.5 text-primary" />
                           <span>Edit Group</span>
@@ -1084,19 +1086,19 @@ export const ConversationPage = () => {
 
         {/* In-Chat Message Search Bar */}
         {isSearchOpen && (
-          <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2.5 animate-in slide-in-from-top-2 duration-150 shrink-0">
-            <Search className="w-4 h-4 text-slate-400 shrink-0" />
+          <div className="px-4 py-2.5 bg-muted/50 border-b border-border flex items-center gap-2.5 animate-in slide-in-from-top-2 duration-150 shrink-0">
+            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
             <Input
               value={messageSearchQuery}
               onChange={(e) => setMessageSearchQuery(e.target.value)}
               placeholder="Search in conversation..."
-              className="h-9 bg-white border-slate-200 text-xs rounded-xl flex-1"
+              className="h-9 bg-card border-border/80 text-xs rounded-xl flex-1 text-foreground"
             />
             {messageSearchQuery && (
               <button
                 type="button"
                 onClick={() => setMessageSearchQuery('')}
-                className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                className="text-muted-foreground hover:text-foreground p-1 cursor-pointer"
                 title="Clear query"
               >
                 <X className="w-3.5 h-3.5" />
@@ -1108,7 +1110,7 @@ export const ConversationPage = () => {
                 setIsSearchOpen(false);
                 setMessageSearchQuery('');
               }}
-              className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-2 py-1 rounded-lg cursor-pointer"
+              className="text-xs font-semibold text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg cursor-pointer transition-colors"
             >
               Close
             </button>
@@ -1120,11 +1122,11 @@ export const ConversationPage = () => {
           {isLoading ? (
             <ChatMessagesSkeleton />
           ) : allMessages.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 py-12">
-              <p className="text-sm font-medium">
+            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground py-12">
+              <p className="text-sm font-semibold text-foreground">
                 {debouncedSearchQuery ? 'No matching messages found.' : 'No messages yet.'}
               </p>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {debouncedSearchQuery
                   ? 'Try searching with different keywords.'
                   : 'Send a message to start the conversation!'}
@@ -1313,10 +1315,10 @@ export const ConversationPage = () => {
 
                         {/* Bubble Content */}
                         <div
-                          className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-sm break-words [overflow-wrap:anywhere] shadow-xs ${
+                          className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-sm break-words [overflow-wrap:anywhere] shadow-xs transition-all ${
                             isOwn
-                              ? 'bg-primary text-white rounded-tr-sm'
-                              : 'bg-slate-100 text-slate-800 rounded-tl-sm'
+                              ? 'bg-gradient-to-br from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground shadow-md shadow-primary/20 rounded-tr-xs'
+                              : 'bg-muted text-foreground border border-border/60 rounded-tl-xs'
                           }`}
                         >
                           {/* Replied Parent Message Quote */}
@@ -1324,8 +1326,8 @@ export const ConversationPage = () => {
                             <div
                               className={`text-[11px] mb-2 p-1.5 pl-2.5 rounded-lg border-l-2 max-w-full truncate ${
                                 isOwn
-                                  ? 'bg-black/10 text-white/90 border-white/60'
-                                  : 'bg-slate-200/70 text-slate-700 border-primary'
+                                  ? 'bg-black/15 text-white/95 border-white/70'
+                                  : 'bg-background/80 text-foreground/80 border-primary'
                               }`}
                             >
                               <span className="font-semibold block truncate">
@@ -1498,10 +1500,10 @@ export const ConversationPage = () => {
                                     ? `${reaction.emoji} by ${userNames}`
                                     : `${reaction.count} reaction${reaction.count > 1 ? 's' : ''}`
                                 }
-                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
+                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border transition-all cursor-pointer active:scale-95 ${
                                   hasUserReacted
-                                    ? 'bg-primary/10 border-primary/30 text-primary shadow-2xs font-bold'
-                                    : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+                                    ? 'bg-primary/15 border-primary/40 text-primary shadow-xs font-bold'
+                                    : 'bg-muted border-border text-muted-foreground hover:bg-muted/80 hover:text-foreground'
                                 }`}
                               >
                                 <span className="mr-1">{reaction.emoji}</span>
@@ -1534,23 +1536,23 @@ export const ConversationPage = () => {
         </div>
 
         {/* Input Area */}
-        <div className="p-3 sm:p-4 bg-white border-t border-slate-100 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        <div className="p-3 sm:p-4 bg-card/90 backdrop-blur-md border-t border-border pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           {/* Replying Banner */}
           {replyingTo && (
-            <div className="flex items-center justify-between bg-primary/5 border border-primary/20 px-3.5 py-1.5 rounded-xl mb-2 animate-in slide-in-from-bottom-2">
+            <div className="flex items-center justify-between bg-primary/10 border border-primary/20 px-3.5 py-1.5 rounded-xl mb-2 animate-in slide-in-from-bottom-2">
               <div className="flex items-center space-x-2 min-w-0 pr-2">
                 <CornerUpLeft className="w-3.5 h-3.5 text-primary shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[10px] font-bold text-primary truncate">
                     Replying to {replyingTo.senderId === currentUser?.id ? 'yourself' : 'message'}
                   </p>
-                  <p className="text-xs text-slate-600 truncate">{replyingTo.content}</p>
+                  <p className="text-xs text-muted-foreground truncate">{replyingTo.content}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setReplyingTo(null)}
-                className="text-slate-400 hover:text-slate-700 p-0.5 rounded-full cursor-pointer"
+                className="text-muted-foreground hover:text-foreground p-0.5 rounded-full cursor-pointer transition-colors"
                 title="Cancel reply"
               >
                 <X className="w-3.5 h-3.5" />
@@ -1560,7 +1562,7 @@ export const ConversationPage = () => {
 
           {/* Typing Indicator */}
           {Object.keys(typingUsers).length > 0 && (
-            <div className="flex items-center space-x-2 text-xs text-slate-400 mb-2 px-2">
+            <div className="flex items-center space-x-2 text-xs text-muted-foreground mb-2 px-2">
               <div className="flex space-x-1">
                 <span
                   className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"
@@ -1591,9 +1593,9 @@ export const ConversationPage = () => {
               isSending={isVoiceUploading}
             />
           ) : (
-            <div className="flex items-end bg-slate-50 rounded-2xl border border-slate-200 p-1 pl-3 sm:pl-4 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+            <div className="flex items-end bg-muted/60 dark:bg-muted/30 rounded-2xl border border-border/80 p-1 pl-3 sm:pl-4 focus-within:ring-2 focus-within:ring-primary/25 focus-within:border-primary/50 transition-all">
               <textarea
-                className="flex-1 bg-transparent border-none focus:ring-0 resize-none py-2.5 sm:py-3 max-h-32 text-base md:text-sm focus:outline-none"
+                className="flex-1 bg-transparent border-none focus:ring-0 resize-none py-2.5 sm:py-3 max-h-32 text-base md:text-sm focus:outline-none text-foreground placeholder:text-muted-foreground"
                 placeholder="Write a message..."
                 rows={1}
                 value={content}
@@ -1639,21 +1641,21 @@ export const ConversationPage = () => {
 
                   {/* Popover Menu */}
                   {isAttachmentMenuOpen && (
-                    <div className="absolute bottom-12 left-0 z-40 bg-white rounded-2xl shadow-xl border border-slate-100 p-1.5 w-52 flex flex-col space-y-1 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="absolute bottom-12 left-0 z-40 bg-card rounded-2xl shadow-2xl border border-border p-1.5 w-52 flex flex-col space-y-1 animate-in fade-in zoom-in-95 duration-100 backdrop-blur-md">
                       <button
                         type="button"
                         onClick={() => {
                           setIsAttachmentMenuOpen(false);
                           imageFileInputRef.current?.click();
                         }}
-                        className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-primary transition-colors cursor-pointer text-left w-full"
+                        className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-foreground hover:bg-muted hover:text-primary transition-colors cursor-pointer text-left w-full"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-lg bg-primary/15 text-primary flex items-center justify-center shrink-0">
                           <ImageIcon className="w-4 h-4" />
                         </div>
                         <div>
                           <span className="block font-medium">Photos & Videos</span>
-                          <span className="text-[10px] text-slate-400 font-normal">
+                          <span className="text-[10px] text-muted-foreground font-normal">
                             Pick from device
                           </span>
                         </div>
@@ -1665,14 +1667,14 @@ export const ConversationPage = () => {
                           setIsAttachmentMenuOpen(false);
                           docFileInputRef.current?.click();
                         }}
-                        className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-primary transition-colors cursor-pointer text-left w-full"
+                        className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-foreground hover:bg-muted hover:text-primary transition-colors cursor-pointer text-left w-full"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-500/15 text-indigo-500 dark:text-indigo-400 flex items-center justify-center shrink-0">
                           <FileText className="w-4 h-4" />
                         </div>
                         <div>
                           <span className="block font-medium">Document / File</span>
-                          <span className="text-[10px] text-slate-400 font-normal">
+                          <span className="text-[10px] text-muted-foreground font-normal">
                             PDF, doc, sheet, zip
                           </span>
                         </div>
@@ -1684,14 +1686,14 @@ export const ConversationPage = () => {
                           setIsAttachmentMenuOpen(false);
                           setIsVoiceRecording(true);
                         }}
-                        className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-primary transition-colors cursor-pointer text-left w-full"
+                        className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-foreground hover:bg-muted hover:text-primary transition-colors cursor-pointer text-left w-full"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-500 dark:text-emerald-400 flex items-center justify-center shrink-0">
                           <Mic className="w-4 h-4" />
                         </div>
                         <div>
                           <span className="block font-medium">Voice Message</span>
-                          <span className="text-[10px] text-slate-400 font-normal">
+                          <span className="text-[10px] text-muted-foreground font-normal">
                             Record audio note
                           </span>
                         </div>
@@ -1704,9 +1706,9 @@ export const ConversationPage = () => {
                           setPendingAttachmentFile(null);
                           setIsAttachmentModalOpen(true);
                         }}
-                        className="flex items-center space-x-2 px-3 py-2 rounded-xl text-[11px] font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors cursor-pointer text-left w-full border-t border-slate-100 mt-1"
+                        className="flex items-center space-x-2 px-3 py-2 rounded-xl text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer text-left w-full border-t border-border mt-1"
                       >
-                        <HardDrive className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <HardDrive className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                         <span>Browse internal storage</span>
                       </button>
                     </div>
@@ -1719,7 +1721,7 @@ export const ConversationPage = () => {
                   onClick={() => {
                     setContent((prev) => `${prev} 😊`);
                   }}
-                  className="text-slate-400 hover:text-slate-600 rounded-full h-8 w-8 min-h-[36px] min-w-[36px] cursor-pointer"
+                  className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-full h-8 w-8 min-h-[36px] min-w-[36px] cursor-pointer"
                   title="Add emoji"
                 >
                   <Smile className="w-4 h-4" />
@@ -1728,7 +1730,7 @@ export const ConversationPage = () => {
                 {content.trim().length > 0 ? (
                   <Button
                     size="icon"
-                    className="rounded-full h-9 w-9 min-h-[36px] min-w-[36px] bg-primary text-white hover:bg-primary/90 ml-1 sm:ml-2 shadow-sm cursor-pointer"
+                    className="rounded-full h-9 w-9 min-h-[36px] min-w-[36px] bg-gradient-to-r from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground hover:brightness-105 ml-1 sm:ml-2 shadow-md shadow-primary/25 cursor-pointer active:scale-95 transition-all"
                     onClick={handleSend}
                     disabled={sendMessage.isPending}
                     title="Send message"
@@ -1744,7 +1746,7 @@ export const ConversationPage = () => {
                     type="button"
                     size="icon"
                     onClick={() => setIsVoiceRecording(true)}
-                    className="rounded-full h-9 w-9 min-h-[36px] min-w-[36px] bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all ml-1 sm:ml-2 shadow-xs cursor-pointer"
+                    className="rounded-full h-9 w-9 min-h-[36px] min-w-[36px] bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all ml-1 sm:ml-2 shadow-xs cursor-pointer active:scale-95"
                     title="Record voice message"
                   >
                     <Mic className="w-4 h-4" />

@@ -47,20 +47,28 @@ export default function ChatLayout() {
   const isConversationDetail = location.pathname.startsWith('/app/c/');
 
   return (
-    <div className="flex h-full w-full bg-slate-50">
+    <div className="flex h-full w-full bg-background">
       {/* Messages Sidebar (Hidden on mobile if viewing a conversation) */}
       <aside
-        className={`${isConversationDetail ? 'hidden md:flex' : 'flex'} w-full md:w-[340px] border-r border-slate-200 bg-white flex-col shrink-0`}
+        className={`${
+          isConversationDetail ? 'hidden md:flex' : 'flex'
+        } w-full md:w-[340px] border-r border-border bg-card flex-col shrink-0`}
       >
         <div className="p-4 flex flex-col h-full">
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-xl font-bold text-slate-900">Messages</h2>
-              <p className="text-xs text-emerald-600 font-medium">● Online</p>
+              <h2 className="text-xl font-bold tracking-tight text-foreground">Messages</h2>
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5 mt-0.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                Online
+              </p>
             </div>
             <Link
               to="/app/new"
-              className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors shadow-xs"
+              className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 text-primary border border-primary/20 flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xs"
               title="New direct message or group"
             >
               <PenSquare className="w-4 h-4" />
@@ -68,19 +76,19 @@ export default function ChatLayout() {
           </div>
 
           {/* Search Bar with Debounce & Clear */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <div className="relative mb-3.5">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9.5 pr-8 bg-slate-100/70 border-none rounded-xl h-10 text-sm focus-visible:ring-2 focus-visible:ring-primary/20"
+              className="pl-9.5 pr-8 bg-muted/60 dark:bg-muted/40 border-border/70 rounded-xl h-10 text-sm placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/30"
               placeholder="Search conversations & users"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-full cursor-pointer"
                 title="Clear search"
               >
                 <X className="w-3.5 h-3.5" />
@@ -89,47 +97,27 @@ export default function ChatLayout() {
           </div>
 
           {/* Filter Pills */}
-          <div className="flex items-center space-x-1.5 mb-4 text-xs font-semibold overflow-x-auto pb-1 hide-scrollbar">
-            <button
-              onClick={() => setActiveFilter('all')}
-              className={`px-3.5 py-1.5 rounded-full transition-colors cursor-pointer shrink-0 ${
-                activeFilter === 'all'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'text-slate-500 hover:bg-slate-100'
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setActiveFilter('unread')}
-              className={`px-3.5 py-1.5 rounded-full transition-colors cursor-pointer shrink-0 ${
-                activeFilter === 'unread'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'text-slate-500 hover:bg-slate-100'
-              }`}
-            >
-              Unread
-            </button>
-            <button
-              onClick={() => setActiveFilter('groups')}
-              className={`px-3.5 py-1.5 rounded-full transition-colors cursor-pointer shrink-0 ${
-                activeFilter === 'groups'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'text-slate-500 hover:bg-slate-100'
-              }`}
-            >
-              Groups
-            </button>
-            <button
-              onClick={() => setActiveFilter('archived')}
-              className={`px-3.5 py-1.5 rounded-full transition-colors cursor-pointer shrink-0 ${
-                activeFilter === 'archived'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'text-slate-500 hover:bg-slate-100'
-              }`}
-            >
-              Archived
-            </button>
+          <div className="flex items-center space-x-1.5 mb-3.5 text-xs font-semibold overflow-x-auto pb-1 hide-scrollbar">
+            {(
+              [
+                { id: 'all', label: 'All' },
+                { id: 'unread', label: 'Unread' },
+                { id: 'groups', label: 'Groups' },
+                { id: 'archived', label: 'Archived' },
+              ] as const
+            ).map((filter) => (
+              <button
+                key={filter.id}
+                onClick={() => setActiveFilter(filter.id)}
+                className={`px-3 py-1.5 rounded-full transition-all duration-200 cursor-pointer shrink-0 active:scale-95 ${
+                  activeFilter === filter.id
+                    ? 'bg-gradient-to-r from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground shadow-sm shadow-primary/25 font-bold'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
           </div>
 
           {/* Conversations List */}
@@ -137,9 +125,9 @@ export default function ChatLayout() {
             {isLoading ? (
               <ConversationsListSkeleton />
             ) : filteredConversations.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-400 text-center px-4">
-                <p className="text-sm font-medium">No conversations found</p>
-                <p className="text-xs text-slate-400 mt-1">
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground text-center px-4">
+                <p className="text-sm font-semibold text-foreground">No conversations found</p>
+                <p className="text-xs text-muted-foreground mt-1 max-w-[240px]">
                   {debouncedQuery
                     ? `No matches for "${debouncedQuery}"`
                     : activeFilter === 'archived'
@@ -175,7 +163,6 @@ export default function ChatLayout() {
                         : 'New'
                     }
                     active={location.pathname === `/app/c/${conv.id}`}
-                    color="bg-slate-100 text-slate-700"
                     isArchived={conv.status === 'ARCHIVED'}
                   />
                 );
@@ -186,7 +173,7 @@ export default function ChatLayout() {
               <button
                 onClick={() => fetchNextPage()}
                 disabled={isFetchingNextPage}
-                className="w-full py-2.5 text-xs font-semibold text-primary hover:bg-primary/5 rounded-xl transition-colors mt-2 flex items-center justify-center cursor-pointer"
+                className="w-full py-2.5 text-xs font-semibold text-primary hover:bg-primary/10 rounded-xl transition-colors mt-2 flex items-center justify-center cursor-pointer active:scale-98"
               >
                 {isFetchingNextPage ? <Skeleton className="h-4 w-20 rounded-md" /> : 'Load more'}
               </button>
@@ -194,17 +181,17 @@ export default function ChatLayout() {
           </div>
 
           {/* Bottom Archived Bar */}
-          <div className="mt-auto pt-3 border-t border-slate-100">
+          <div className="mt-auto pt-3 border-t border-border">
             <button
               onClick={() => setActiveFilter(activeFilter === 'archived' ? 'all' : 'archived')}
-              className={`flex items-center justify-between text-xs font-medium w-full p-2 rounded-xl transition-colors cursor-pointer ${
+              className={`flex items-center justify-between text-xs font-medium w-full p-2 rounded-xl transition-all cursor-pointer active:scale-98 ${
                 activeFilter === 'archived'
-                  ? 'bg-slate-100 text-slate-900 font-bold'
-                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                  ? 'bg-primary/10 text-primary font-bold border border-primary/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               }`}
             >
               <div className="flex items-center">
-                <Hash className="w-4 h-4 mr-2 text-slate-400" />
+                <Hash className="w-4 h-4 mr-2 text-muted-foreground" />
                 <span>Archived conversations</span>
               </div>
               {activeFilter === 'archived' && (
@@ -217,7 +204,9 @@ export default function ChatLayout() {
 
       {/* Main Content (Hidden on mobile if viewing the list) */}
       <main
-        className={`${!isConversationDetail ? 'hidden md:flex' : 'flex'} flex-1 bg-white relative flex-col min-w-0`}
+        className={`${
+          !isConversationDetail ? 'hidden md:flex' : 'flex'
+        } flex-1 bg-background relative flex-col min-w-0`}
       >
         <AnimatedOutlet />
       </main>
@@ -234,7 +223,6 @@ interface ChatItemProps {
   time: string;
   badge?: string;
   active?: boolean;
-  color?: string;
   avatarUrl?: string | null;
   isPinned?: boolean;
   isMuted?: boolean;
@@ -250,7 +238,6 @@ function ChatItem({
   time,
   badge,
   active = false,
-  color = 'bg-slate-100 text-slate-700',
   avatarUrl,
   isPinned,
   isMuted,
@@ -276,23 +263,29 @@ function ChatItem({
   return (
     <Link
       to={`/app/c/${id}`}
-      className={`w-full flex items-start text-left p-3 rounded-2xl transition-colors ${
-        active ? 'bg-primary/5 shadow-xs' : 'hover:bg-slate-50'
+      className={`w-full flex items-start text-left p-3 rounded-2xl transition-all duration-200 active:scale-[0.99] ${
+        active
+          ? 'bg-gradient-to-r from-primary/15 to-primary/5 border border-primary/20 shadow-xs'
+          : 'hover:bg-muted/60 border border-transparent'
       }`}
     >
       <div className="relative shrink-0 mr-3">
         <Avatar
           src={avatarUrl}
           alt={name}
-          className={`w-10 h-10 text-sm font-bold ${color}`}
+          className="w-10 h-10 text-sm font-bold bg-muted text-foreground border border-border/60"
           fallback={
-            type === 'GROUP' && !avatarUrl ? <Users className="w-5 h-5 text-slate-500" /> : initials
+            type === 'GROUP' && !avatarUrl ? (
+              <Users className="w-5 h-5 text-muted-foreground" />
+            ) : (
+              initials
+            )
           }
         />
         {isTyping && (
           <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5" title="Typing...">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-primary border-2 border-white" />
+            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-primary border-2 border-background" />
           </span>
         )}
       </div>
@@ -300,11 +293,11 @@ function ChatItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
           <div className="flex items-center space-x-1.5 min-w-0 pr-1">
-            <p className="font-semibold text-sm truncate text-slate-900">{name}</p>
+            <p className="font-semibold text-sm truncate text-foreground">{name}</p>
             {isPinned && <Pin className="w-3 h-3 text-primary shrink-0 fill-primary/20" />}
-            {isMuted && <BellOff className="w-3 h-3 text-slate-400 shrink-0" />}
+            {isMuted && <BellOff className="w-3 h-3 text-muted-foreground shrink-0" />}
             {isArchived && (
-              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 shrink-0">
+              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-muted text-muted-foreground shrink-0">
                 Archived
               </span>
             )}
@@ -315,7 +308,7 @@ function ChatItem({
                 ? 'text-primary font-bold animate-pulse'
                 : active
                   ? 'text-primary font-bold'
-                  : 'text-slate-400'
+                  : 'text-muted-foreground'
             }`}
           >
             {isTyping ? 'typing...' : time}
@@ -333,7 +326,7 @@ function ChatItem({
           </div>
         ) : (
           <p
-            className={`text-xs truncate ${active ? 'text-slate-700 font-medium' : 'text-slate-500'}`}
+            className={`text-xs truncate ${active ? 'text-foreground/90 font-medium' : 'text-muted-foreground'}`}
           >
             {message}
           </p>
@@ -341,7 +334,7 @@ function ChatItem({
       </div>
 
       {badge && (
-        <div className="ml-2 w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold shrink-0 mt-3">
+        <div className="ml-2 w-5 h-5 rounded-full bg-gradient-to-r from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground flex items-center justify-center text-[10px] font-bold shrink-0 mt-3 shadow-xs">
           {badge}
         </div>
       )}

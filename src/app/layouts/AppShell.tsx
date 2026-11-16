@@ -15,7 +15,7 @@ export default function AppShell() {
   return (
     <div className="flex flex-col md:flex-row h-[100dvh] w-full bg-background text-foreground overflow-hidden">
       <NavigationRail />
-      <main className="flex-1 flex relative overflow-hidden bg-white min-w-0 h-full order-first md:order-last">
+      <main className="flex-1 flex relative overflow-hidden bg-background min-w-0 h-full order-first md:order-last">
         <AnimatedOutlet />
       </main>
       <CallManager />

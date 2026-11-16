@@ -115,7 +115,7 @@ export default function AdminLayout() {
         </div>
       </aside>
 
-      <main className="flex-1 bg-white relative overflow-hidden flex flex-col">
+      <main className="flex-1 bg-background relative overflow-hidden flex flex-col">
         <AnimatedOutlet />
       </main>
     </div>
@@ -142,9 +142,9 @@ function AdminNavItem({
   return (
     <Link
       to={to}
-      className={`flex items-center justify-center md:justify-between px-4 py-2 md:px-3 md:py-2.5 rounded-full md:rounded-lg text-sm transition-colors whitespace-nowrap shrink-0 ${
+      className={`flex items-center justify-center md:justify-between px-4 py-2 md:px-3 md:py-2.5 rounded-full md:rounded-xl text-sm transition-all duration-200 whitespace-nowrap shrink-0 active:scale-[0.98] ${
         active
-          ? 'bg-slate-800 text-white font-medium'
+          ? 'bg-gradient-to-r from-primary/20 to-primary/5 text-primary border border-primary/25 font-semibold shadow-xs'
           : 'text-slate-400 bg-slate-800/50 md:bg-transparent hover:bg-slate-800 hover:text-white'
       }`}
     >

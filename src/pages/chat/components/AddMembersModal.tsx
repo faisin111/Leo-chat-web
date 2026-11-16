@@ -79,35 +79,37 @@ export const AddMembersModal = ({ isOpen, onClose, conversationId }: AddMembersM
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl w-full max-w-lg shadow-xl overflow-hidden flex flex-col max-h-[85vh]"
+              className="bg-card rounded-3xl w-full max-w-lg shadow-2xl border border-border overflow-hidden flex flex-col max-h-[85vh]"
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <div className="flex items-center justify-between p-6 border-b border-border">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
                     <Users className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="font-bold text-lg">Add Members</h2>
-                    <p className="text-xs text-slate-500">Select users to add to this group</p>
+                    <h2 className="font-bold text-lg text-foreground">Add Members</h2>
+                    <p className="text-xs text-muted-foreground">
+                      Select users to add to this group
+                    </p>
                   </div>
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={onClose}
-                  className="rounded-full text-slate-400 hover:text-slate-600"
+                  className="rounded-full text-muted-foreground hover:text-foreground hover:bg-muted"
                 >
                   <X className="w-5 h-5" />
                 </Button>
               </div>
 
               {/* Search */}
-              <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+              <div className="p-4 border-b border-border bg-muted/20">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    className="pl-9 h-11 bg-white rounded-xl border-slate-200 text-sm"
+                    className="pl-9 h-11 bg-background rounded-xl border-border text-sm text-foreground"
                     placeholder="Search by username or display name..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -120,14 +122,14 @@ export const AddMembersModal = ({ isOpen, onClose, conversationId }: AddMembersM
                     {selectedUsers.map((user) => (
                       <div
                         key={user.id}
-                        className="flex items-center bg-primary/10 text-primary text-xs font-bold px-3 py-1.5 rounded-full"
+                        className="flex items-center bg-primary/15 text-primary text-xs font-bold px-3 py-1.5 rounded-full border border-primary/20"
                       >
                         <span className="truncate max-w-[100px]">
                           {user.displayName || user.username}
                         </span>
                         <button
                           onClick={() => toggleUser(user)}
-                          className="ml-2 text-primary/70 hover:text-primary"
+                          className="ml-2 text-primary/70 hover:text-primary cursor-pointer"
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -142,7 +144,7 @@ export const AddMembersModal = ({ isOpen, onClose, conversationId }: AddMembersM
                 {isSearchLoading && debouncedQuery && <AddMembersSkeleton />}
 
                 {!isSearchLoading && searchResults?.length === 0 && debouncedQuery && (
-                  <p className="text-sm text-slate-500 text-center py-8">
+                  <p className="text-sm text-muted-foreground text-center py-8">
                     No users found matching &quot;{debouncedQuery}&quot;
                   </p>
                 )}
@@ -151,10 +153,12 @@ export const AddMembersModal = ({ isOpen, onClose, conversationId }: AddMembersM
                   (!searchResults || searchResults.length === 0) &&
                   !debouncedQuery && (
                     <div className="text-center py-12 flex flex-col items-center">
-                      <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3">
-                        <Search className="w-5 h-5 text-slate-400" />
+                      <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
+                        <Search className="w-5 h-5 text-muted-foreground" />
                       </div>
-                      <p className="text-slate-500 text-sm">Type a name to search for users.</p>
+                      <p className="text-muted-foreground text-sm">
+                        Type a name to search for users.
+                      </p>
                     </div>
                   )}
 
@@ -178,11 +182,11 @@ export const AddMembersModal = ({ isOpen, onClose, conversationId }: AddMembersM
               </div>
 
               {/* Footer */}
-              <div className="p-6 border-t border-slate-100 bg-white">
+              <div className="p-6 border-t border-border bg-card">
                 <Button
                   onClick={handleAdd}
                   disabled={selectedUsers.length === 0 || addMembers.isPending}
-                  className="w-full rounded-xl h-12 font-semibold shadow-sm"
+                  className="w-full rounded-xl h-12 font-semibold shadow-md bg-gradient-to-r from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground hover:brightness-105 active:scale-98 transition-all"
                 >
                   {addMembers.isPending ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -207,22 +211,30 @@ function SelectableUser({ initials, name, handle, selected, avatarUrl, onClick }
       onKeyDown={(e) => e.key === 'Enter' && onClick()}
       role="button"
       tabIndex={0}
-      className={`flex items-center p-3 rounded-xl border-2 transition-colors cursor-pointer ${selected ? 'border-primary bg-primary/5' : 'border-transparent hover:border-slate-200 bg-white'}`}
+      className={`flex items-center p-3 rounded-xl border-2 transition-colors cursor-pointer ${
+        selected
+          ? 'border-primary bg-primary/10'
+          : 'border-transparent hover:border-border hover:bg-muted/40 bg-card'
+      }`}
     >
       <div
-        className={`w-5 h-5 rounded-md border flex items-center justify-center mr-4 shrink-0 transition-colors ${selected ? 'bg-primary border-primary text-white' : 'border-slate-300 bg-white'}`}
+        className={`w-5 h-5 rounded-md border flex items-center justify-center mr-4 shrink-0 transition-colors ${
+          selected
+            ? 'bg-primary border-primary text-primary-foreground'
+            : 'border-border bg-muted/30'
+        }`}
       >
         {selected && <span className="text-[10px] font-bold">✓</span>}
       </div>
       <Avatar
         src={avatarUrl}
         alt={name}
-        className="w-10 h-10 font-bold text-sm mr-4 shrink-0 bg-slate-100 text-slate-700"
+        className="w-10 h-10 font-bold text-sm mr-4 shrink-0 bg-muted text-foreground border border-border"
         fallback={initials}
       />
       <div className="flex-1 min-w-0 pr-4">
-        <p className="font-semibold text-sm text-slate-900 truncate">{name}</p>
-        <p className="text-xs text-slate-500 truncate">{handle}</p>
+        <p className="font-semibold text-sm text-foreground truncate">{name}</p>
+        <p className="text-xs text-muted-foreground truncate">{handle}</p>
       </div>
     </div>
   );

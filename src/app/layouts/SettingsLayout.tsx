@@ -11,23 +11,30 @@ export default function SettingsLayout() {
   const getInitials = (name: string) => name.substring(0, 2).toUpperCase();
 
   return (
-    <div className="flex flex-col md:flex-row h-full w-full bg-slate-50/50">
+    <div className="flex flex-col md:flex-row h-full w-full bg-background">
       {/* Settings Sidebar */}
-      <aside className="w-full md:w-[300px] border-b md:border-b-0 md:border-r border-slate-200 bg-white flex flex-col shrink-0 md:h-full">
+      <aside className="w-full md:w-[300px] border-b md:border-b-0 md:border-r border-border bg-card flex flex-col shrink-0 md:h-full">
         <div className="p-4 md:p-6 pb-0 md:pb-6">
-          <h2 className="text-xl font-semibold mb-4 md:mb-6">Settings</h2>
+          <h2 className="text-xl font-bold tracking-tight text-foreground mb-4 md:mb-6 flex items-center gap-2">
+            <span>Settings</span>
+            <span className="w-2 h-2 rounded-full bg-primary" />
+          </h2>
 
-          <div className="hidden md:flex items-center space-x-3 p-3 rounded-xl border border-slate-100 shadow-sm mb-6">
-            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
+          <div className="hidden md:flex items-center space-x-3 p-3 rounded-2xl border border-border/70 bg-muted/40 dark:bg-slate-900/40 shadow-xs mb-6 backdrop-blur-xs">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 text-primary flex items-center justify-center font-bold shadow-xs">
               {user?.displayName ? getInitials(user.displayName) : 'U'}
             </div>
             <div className="overflow-hidden">
-              <p className="font-semibold text-sm truncate">{user?.displayName || 'User'}</p>
-              <p className="text-xs text-slate-500 truncate">{user?.username || '@username'}</p>
+              <p className="font-semibold text-sm text-foreground truncate">
+                {user?.displayName || 'User'}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {user?.username || '@username'}
+              </p>
             </div>
           </div>
 
-          <nav className="flex flex-row md:flex-col space-x-2 md:space-x-0 md:space-y-1 overflow-x-auto pb-4 md:pb-0 hide-scrollbar">
+          <nav className="flex flex-row md:flex-col space-x-2 md:space-x-0 md:space-y-1.5 overflow-x-auto pb-4 md:pb-0 hide-scrollbar">
             <SettingsNavItem
               to="/app/settings/profile"
               icon={<User className="w-4 h-4" />}
@@ -63,17 +70,20 @@ export default function SettingsLayout() {
         </div>
 
         <div className="hidden md:block mt-auto p-6">
-          <div className="p-4 rounded-xl bg-green-50 border border-green-100 text-green-800">
+          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300">
             <p className="text-xs font-bold mb-1 flex items-center">
-              <span className="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+              <span className="relative flex h-2 w-2 mr-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
               Account ACTIVE
             </p>
-            <p className="text-[10px] opacity-80">Member since {new Date().getFullYear()}</p>
+            <p className="text-[10px] opacity-80">Connected securely · LeoChat Pro</p>
           </div>
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto bg-background">
         <AnimatedOutlet />
       </main>
     </div>
@@ -96,10 +106,10 @@ function SettingsNavItem({
   return (
     <Link
       to={to}
-      className={`flex items-center justify-center md:justify-between px-4 py-2 md:px-3 md:py-2.5 rounded-full md:rounded-lg text-sm transition-colors font-medium whitespace-nowrap shrink-0 ${
+      className={`flex items-center justify-center md:justify-between px-4 py-2 md:px-3.5 md:py-2.5 rounded-full md:rounded-xl text-sm transition-all duration-200 font-medium whitespace-nowrap shrink-0 active:scale-[0.98] ${
         active
-          ? 'bg-primary/10 text-primary'
-          : 'text-slate-600 bg-slate-100 md:bg-transparent hover:bg-slate-200 md:hover:bg-slate-100 hover:text-slate-900'
+          ? 'bg-gradient-to-r from-primary/15 to-primary/5 text-primary border border-primary/20 font-semibold shadow-xs'
+          : 'text-muted-foreground bg-muted/50 md:bg-transparent hover:bg-muted hover:text-foreground'
       }`}
     >
       <div className="flex items-center space-x-2 md:space-x-3">
@@ -108,7 +118,11 @@ function SettingsNavItem({
       </div>
       {badge && (
         <span
-          className={`hidden md:inline-block ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${active ? 'bg-primary text-primary-foreground' : 'bg-slate-200 text-slate-700'}`}
+          className={`hidden md:inline-block ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+            active
+              ? 'bg-primary text-primary-foreground shadow-xs'
+              : 'bg-muted text-muted-foreground'
+          }`}
         >
           {badge}
         </span>

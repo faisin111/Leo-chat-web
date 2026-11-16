@@ -103,30 +103,39 @@ export const ProfilePage = () => {
   };
 
   return (
-    <div className="p-8 max-w-6xl mx-auto pb-20">
+    <div className="p-4 sm:p-6 md:p-8 max-w-6xl mx-auto pb-20">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-semibold mb-1">Profile & account</h1>
-          <p className="text-slate-500 text-sm">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground mb-1">
+            Profile & account
+          </h1>
+          <p className="text-muted-foreground text-sm">
             Manage your identity, privacy and sign-in preferences.
           </p>
         </div>
         <div className="flex space-x-3">
           {isEditing ? (
             <>
-              <Button variant="outline" onClick={handleCancel} disabled={updateProfile.isPending}>
+              <Button
+                variant="outline"
+                onClick={handleCancel}
+                disabled={updateProfile.isPending}
+                className="rounded-xl"
+              >
                 <X className="w-4 h-4 mr-2" /> Cancel
               </Button>
               <Button
+                variant="gradient"
                 onClick={handleSubmit(onSubmit)}
                 disabled={!isDirty || updateProfile.isPending}
+                className="rounded-xl"
               >
                 {updateProfile.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Save changes
               </Button>
             </>
           ) : (
-            <Button variant="outline" onClick={() => setIsEditing(true)}>
+            <Button variant="outline" onClick={() => setIsEditing(true)} className="rounded-xl">
               <Edit2 className="w-4 h-4 mr-2" /> Edit Profile
             </Button>
           )}
@@ -137,11 +146,11 @@ export const ProfilePage = () => {
         {/* Left Column (Wider) */}
         <div className="lg:col-span-2 space-y-6">
           {/* Public Profile Card */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+          <div className="bg-card rounded-2xl p-6 border border-border shadow-xs">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h3 className="font-semibold mb-1">Public profile</h3>
-                <p className="text-xs text-slate-500">
+                <h3 className="font-semibold text-foreground mb-1">Public profile</h3>
+                <p className="text-xs text-muted-foreground">
                   This information is visible to people who can find you.
                 </p>
               </div>
@@ -291,29 +300,29 @@ export const ProfilePage = () => {
           </div>
 
           {/* Sessions & Devices Card */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+          <div className="bg-card rounded-2xl p-6 border border-border shadow-xs">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h3 className="font-semibold mb-1">Sessions & devices</h3>
-                <p className="text-xs text-slate-500">
-                  You&apos;re signed in on 3 devices. Review anything you don&apos;t recognize.
+                <h3 className="font-semibold text-foreground mb-1">Sessions & devices</h3>
+                <p className="text-xs text-muted-foreground">
+                  You&apos;re signed in on active devices. Review anything you don&apos;t recognize.
                 </p>
               </div>
-              <Button variant="outline" size="sm" className="rounded-full">
-                Sign out others
+              <Button variant="outline" size="sm" className="rounded-xl asChild">
+                <Link to="/app/settings/sessions">View all</Link>
               </Button>
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-center p-3 rounded-xl border border-slate-100 bg-slate-50">
-                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm mr-4 shrink-0 text-slate-400">
+              <div className="flex items-center p-3 rounded-xl border border-border bg-muted/30">
+                <div className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center shadow-xs mr-4 shrink-0 text-muted-foreground">
                   <MonitorSmartphone className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold">MacBook Pro · Chrome</p>
-                  <p className="text-xs text-slate-500">San Francisco, CA · Current session</p>
+                  <p className="text-sm font-semibold text-foreground">Current Device</p>
+                  <p className="text-xs text-muted-foreground">Active session · LeoChat Web</p>
                 </div>
-                <span className="text-[10px] font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded-full uppercase">
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase">
                   Current
                 </span>
               </div>
@@ -321,14 +330,14 @@ export const ProfilePage = () => {
           </div>
 
           {/* Danger Zone: Deactivate Account Card */}
-          <div className="bg-white rounded-2xl p-6 border border-red-200/80 shadow-xs">
+          <div className="bg-card rounded-2xl p-6 border border-destructive/30 shadow-xs">
             <div className="flex items-center gap-2.5 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900 text-base">Danger Zone</h3>
-                <p className="text-xs text-slate-500">Irreversible account actions</p>
+                <h3 className="font-semibold text-foreground text-base">Danger Zone</h3>
+                <p className="text-xs text-muted-foreground">Irreversible account actions</p>
               </div>
             </div>
 
@@ -375,83 +384,94 @@ export const ProfilePage = () => {
         {/* Right Column */}
         <div className="space-y-6">
           {/* Notifications */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-            <h3 className="font-semibold mb-1">Notifications</h3>
-            <p className="text-xs text-slate-500 mb-6">Choose how LeoChat gets your attention.</p>
+          <div className="bg-card rounded-2xl p-6 border border-border shadow-xs">
+            <h3 className="font-semibold text-foreground mb-1">Notifications</h3>
+            <p className="text-xs text-muted-foreground mb-6">
+              Choose how LeoChat gets your attention.
+            </p>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <Bell className="w-4 h-4 text-slate-400" />
+                  <Bell className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium">Direct messages</p>
-                    <p className="text-[10px] text-slate-500">
+                    <p className="text-sm font-medium text-foreground">Direct messages</p>
+                    <p className="text-[10px] text-muted-foreground">
                       Notify for every new direct message
                     </p>
                   </div>
                 </div>
                 <div className="w-8 h-5 rounded-full bg-primary flex items-center p-0.5 justify-end">
-                  <div className="w-4 h-4 bg-white rounded-full shadow-sm"></div>
+                  <div className="w-4 h-4 bg-white rounded-full shadow-xs"></div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Security */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+          <div className="bg-card rounded-2xl p-6 border border-border shadow-xs">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h3 className="font-semibold mb-1">Security</h3>
-                <p className="text-xs text-slate-500">Keep control of account access.</p>
+                <h3 className="font-semibold text-foreground mb-1">Security</h3>
+                <p className="text-xs text-muted-foreground">Keep control of account access.</p>
               </div>
-              <Button variant="outline" size="sm" className="rounded-full">
-                Manage
+              <Button variant="outline" size="sm" className="rounded-xl asChild">
+                <Link to="/app/settings/security">Manage</Link>
               </Button>
             </div>
 
             <div className="space-y-4">
-              <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+              <div className="flex justify-between items-center pb-4 border-b border-border">
                 <div>
-                  <p className="text-sm font-medium">Two-factor authentication</p>
-                  <p className="text-[10px] text-slate-500">Authenticator app enabled</p>
+                  <p className="text-sm font-medium text-foreground">Two-factor authentication</p>
+                  <p className="text-[10px] text-muted-foreground">Authenticator app enabled</p>
                 </div>
-                <span className="text-[10px] font-bold text-green-600 uppercase">On</span>
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase">
+                  On
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-sm font-medium">Password</p>
-                  <p className="text-[10px] text-slate-500">Updated 45 days ago</p>
+                  <p className="text-sm font-medium text-foreground">Password</p>
+                  <p className="text-[10px] text-muted-foreground">Updated recently</p>
                 </div>
-                <button className="text-xs text-primary font-medium hover:underline">Change</button>
+                <Link
+                  to="/app/settings/security"
+                  className="text-xs text-primary font-medium hover:underline"
+                >
+                  Change
+                </Link>
               </div>
             </div>
           </div>
 
           {/* Blocked Users */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+          <div className="bg-card rounded-2xl p-6 border border-border shadow-xs">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h3 className="font-semibold mb-1">Blocked users</h3>
-                <p className="text-xs text-slate-500">Blocked people can&apos;t message you.</p>
+                <h3 className="font-semibold text-foreground mb-1">Blocked users</h3>
+                <p className="text-xs text-muted-foreground">
+                  Blocked people can&apos;t message you.
+                </p>
               </div>
-              <Button variant="outline" size="sm" className="rounded-full">
-                View all
+              <Button variant="outline" size="sm" className="rounded-xl asChild">
+                <Link to="/app/settings/blocked">View all</Link>
               </Button>
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center text-xs font-bold">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
                     RB
                   </div>
                   <div>
-                    <p className="text-sm font-medium">Riley Brooks</p>
-                    <p className="text-[10px] text-slate-500">Blocked Aug 15</p>
+                    <p className="text-sm font-medium text-foreground">Riley Brooks</p>
+                    <p className="text-[10px] text-muted-foreground">Blocked Aug 15</p>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-full">
-                  Unblock
+                <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-xl asChild">
+                  <Link to="/app/settings/blocked">Manage</Link>
                 </Button>
               </div>
             </div>
@@ -461,22 +481,24 @@ export const ProfilePage = () => {
 
       {/* Deactivate Account Confirmation Modal */}
       {isDeactivateModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-card rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900">Deactivate Account</h3>
-                <p className="text-xs text-slate-500">This action will immediately log you out</p>
+                <h3 className="text-base font-bold text-foreground">Deactivate Account</h3>
+                <p className="text-xs text-muted-foreground">
+                  This action will immediately log you out
+                </p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-600 leading-relaxed mb-4">
+            <p className="text-xs text-muted-foreground leading-relaxed mb-4">
               Your profile will be deactivated, and other members won&apos;t be able to send you
               messages. To proceed, please type{' '}
-              <strong className="font-mono text-red-600">deactivate</strong> in the box below:
+              <strong className="font-mono text-destructive">deactivate</strong> in the box below:
             </p>
 
             <Input

@@ -90,18 +90,20 @@ export const SessionsPage = () => {
   const activeCount = sessions?.filter((s) => s.active !== false && !s.logoutAt).length ?? 0;
 
   return (
-    <div className="max-w-3xl w-full mx-auto p-6 sm:p-8 overflow-y-auto">
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="max-w-3xl w-full mx-auto p-4 sm:p-6 md:p-8 overflow-y-auto space-y-6">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Sessions & Devices</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              Sessions & Devices
+            </h1>
             {!isLoading && sessions && (
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
                 {activeCount} active
               </span>
             )}
           </div>
-          <p className="text-slate-500 text-sm">
+          <p className="text-muted-foreground text-sm">
             Manage browser sessions and devices currently signed into your account.
           </p>
         </div>
@@ -111,16 +113,18 @@ export const SessionsPage = () => {
         {isLoading && <SessionsSkeleton />}
 
         {isError && (
-          <div className="p-6 bg-red-50 text-red-600 rounded-2xl border border-red-100 text-center text-sm font-medium">
+          <div className="p-6 bg-destructive/10 text-destructive rounded-2xl border border-destructive/20 text-center text-sm font-medium">
             Failed to load sessions. Please try refreshing the page.
           </div>
         )}
 
         {!isLoading && !isError && sessions?.length === 0 && (
-          <div className="p-10 bg-white text-slate-500 rounded-2xl border border-slate-200 text-center">
-            <ShieldCheck className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <h3 className="font-semibold text-slate-700 text-base mb-1">No active sessions</h3>
-            <p className="text-sm text-slate-400">There are no devices or sessions on record.</p>
+          <div className="p-10 bg-card text-muted-foreground rounded-2xl border border-border text-center">
+            <ShieldCheck className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
+            <h3 className="font-semibold text-foreground text-base mb-1">No active sessions</h3>
+            <p className="text-sm text-muted-foreground">
+              There are no devices or sessions on record.
+            </p>
           </div>
         )}
 
@@ -158,10 +162,10 @@ export const SessionsPage = () => {
             return (
               <div
                 key={session.sessionId}
-                className={`p-5 sm:p-6 bg-white rounded-2xl border transition-all shadow-xs relative overflow-hidden ${
+                className={`p-5 sm:p-6 bg-card rounded-2xl border transition-all shadow-xs relative overflow-hidden ${
                   isActive
-                    ? 'border-slate-200 hover:border-slate-300'
-                    : 'border-slate-200/60 bg-slate-50/50 opacity-80'
+                    ? 'border-border hover:border-primary/40'
+                    : 'border-border/60 bg-muted/30 opacity-75'
                 }`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -171,7 +175,7 @@ export const SessionsPage = () => {
                       className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
                         isActive
                           ? 'bg-primary/10 text-primary border border-primary/20'
-                          : 'bg-slate-100 text-slate-400 border border-slate-200'
+                          : 'bg-muted text-muted-foreground border border-border'
                       }`}
                     >
                       <DeviceIcon className="w-6 h-6" />
@@ -180,32 +184,32 @@ export const SessionsPage = () => {
                     <div className="min-w-0 flex-1 space-y-1">
                       {/* Title & Badges */}
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="font-semibold text-slate-900 text-base leading-tight truncate">
+                        <h3 className="font-semibold text-foreground text-base leading-tight truncate">
                           {primaryTitle}
                         </h3>
 
                         {/* Active / Inactive Badge */}
                         {isActive ? (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                             Active
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border">
                             Signed out
                           </span>
                         )}
 
                         {/* Platform Badge */}
                         {session.platform && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-muted text-muted-foreground border border-border">
                             {session.platform.toUpperCase()}
                           </span>
                         )}
 
                         {/* App Version Badge */}
                         {session.appVersion && (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-mono font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-mono font-medium bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
                             {`v${session.appVersion}`}
                           </span>
                         )}
@@ -213,22 +217,24 @@ export const SessionsPage = () => {
 
                       {/* Subtitle if deviceName was custom */}
                       {secondarySubtitle && (
-                        <p className="text-xs font-medium text-slate-500">{secondarySubtitle}</p>
+                        <p className="text-xs font-medium text-muted-foreground">
+                          {secondarySubtitle}
+                        </p>
                       )}
 
                       {/* Metadata Details Row */}
-                      <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-slate-500 pt-1">
+                      <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-muted-foreground pt-1">
                         {/* IP Address */}
                         {session.ipAddress && (
-                          <span className="inline-flex items-center gap-1 font-mono text-slate-600">
-                            <Globe className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span className="inline-flex items-center gap-1 font-mono text-foreground">
+                            <Globe className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                             {session.ipAddress}
                           </span>
                         )}
 
                         {/* Activity Status */}
                         <span className="inline-flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                           {session.logoutAt
                             ? `Logged out ${safeFormatDistance(session.logoutAt)}`
                             : session.lastUsedAt
@@ -238,8 +244,8 @@ export const SessionsPage = () => {
 
                         {/* Created date */}
                         {session.createdAt && (
-                          <span className="inline-flex items-center gap-1 text-slate-400 hidden md:inline-flex">
-                            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span className="inline-flex items-center gap-1 text-muted-foreground hidden md:inline-flex">
+                            <Calendar className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                             Signed in {safeFormatDate(session.createdAt)}
                           </span>
                         )}
@@ -248,7 +254,7 @@ export const SessionsPage = () => {
                       {/* User Agent preview */}
                       {session.userAgent && (
                         <p
-                          className="text-[11px] text-slate-400 font-mono truncate max-w-xl pt-0.5"
+                          className="text-[11px] text-muted-foreground font-mono truncate max-w-xl pt-0.5"
                           title={session.userAgent}
                         >
                           {session.userAgent}
@@ -263,7 +269,7 @@ export const SessionsPage = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-slate-600 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors text-xs font-medium h-9 px-3.5 rounded-xl cursor-pointer"
+                        className="text-muted-foreground hover:text-red-500 hover:border-red-500/30 hover:bg-red-500/10 transition-colors text-xs font-medium h-9 px-3.5 rounded-xl cursor-pointer"
                         onClick={() => handleRevoke(session.sessionId)}
                         disabled={revokeSession.isPending}
                         title="Sign out this session"
@@ -278,7 +284,7 @@ export const SessionsPage = () => {
                         )}
                       </Button>
                     ) : (
-                      <span className="text-xs text-slate-400 font-medium px-3 py-1.5 bg-slate-100/70 rounded-xl border border-slate-200">
+                      <span className="text-xs text-muted-foreground font-medium px-3 py-1.5 bg-muted rounded-xl border border-border">
                         Revoked
                       </span>
                     )}
@@ -289,8 +295,8 @@ export const SessionsPage = () => {
           })}
       </div>
 
-      <div className="mt-8 p-4 bg-orange-50 border border-orange-100 rounded-2xl flex items-start space-x-3 text-orange-800">
-        <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-orange-600" />
+      <div className="mt-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-start space-x-3 text-amber-800 dark:text-amber-300">
+        <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
         <p className="text-sm leading-relaxed">
           If you see a device or location you don&apos;t recognize, sign out of that session
           immediately and change your password in the Security settings.
@@ -306,7 +312,7 @@ function SessionsSkeleton() {
       {Array.from({ length: 3 }).map((_, i) => (
         <div
           key={i}
-          className="p-5 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-xs relative overflow-hidden"
+          className="p-5 sm:p-6 bg-card rounded-2xl border border-border shadow-xs relative overflow-hidden"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start sm:items-center space-x-4 flex-1">

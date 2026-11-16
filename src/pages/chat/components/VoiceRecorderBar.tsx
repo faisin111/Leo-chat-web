@@ -270,7 +270,7 @@ export const VoiceRecorderBar = ({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600"></span>
               </span>
-              <span className="text-xs font-bold text-slate-800 tabular-nums">
+              <span className="text-xs font-bold text-foreground tabular-nums">
                 {formatTimer(recordingSeconds)}
               </span>
             </div>
@@ -281,7 +281,7 @@ export const VoiceRecorderBar = ({
                 <div
                   key={idx}
                   style={{ height: `${lvl}%` }}
-                  className="w-1 bg-primary/80 rounded-full transition-all duration-75"
+                  className="w-1 bg-gradient-to-t from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] rounded-full transition-all duration-75"
                 />
               ))}
             </div>
@@ -292,7 +292,7 @@ export const VoiceRecorderBar = ({
             <button
               type="button"
               onClick={handleTogglePreviewPlay}
-              className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shrink-0 hover:bg-primary/90 transition-transform active:scale-95 shadow-2xs cursor-pointer"
+              className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground flex items-center justify-center shrink-0 hover:brightness-105 transition-transform active:scale-95 shadow-md shadow-primary/25 cursor-pointer"
               title={isPreviewPlaying ? 'Pause preview' : 'Play preview'}
             >
               {isPreviewPlaying ? (
@@ -302,8 +302,8 @@ export const VoiceRecorderBar = ({
               )}
             </button>
             <div className="min-w-0">
-              <span className="text-xs font-bold text-slate-800 block">Voice note preview</span>
-              <span className="text-[10px] text-slate-500 tabular-nums">
+              <span className="text-xs font-bold text-foreground block">Voice note preview</span>
+              <span className="text-[10px] text-muted-foreground tabular-nums">
                 {formatTimer(recordingSeconds)}
               </span>
             </div>
@@ -320,7 +320,7 @@ export const VoiceRecorderBar = ({
           size="icon"
           onClick={handleDiscard}
           disabled={isSending}
-          className="rounded-full h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 cursor-pointer"
+          className="rounded-full h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 cursor-pointer"
           title="Discard recording"
         >
           <Trash2 className="w-4 h-4" />
@@ -334,7 +334,7 @@ export const VoiceRecorderBar = ({
             size="icon"
             onClick={handleStopAndPreview}
             disabled={isSending || isInitializing}
-            className="rounded-full h-8 w-8 text-slate-600 hover:text-primary hover:bg-primary/10 cursor-pointer"
+            className="rounded-full h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer"
             title="Stop & preview"
           >
             <Square className="w-3.5 h-3.5 fill-current" />
@@ -346,7 +346,7 @@ export const VoiceRecorderBar = ({
           type="button"
           onClick={handleSend}
           disabled={isSending || (recordingSeconds === 0 && !audioBlob)}
-          className="rounded-full h-8 px-3.5 bg-primary text-white hover:bg-primary/90 font-semibold shadow-xs cursor-pointer gap-1.5 text-xs"
+          className="rounded-full h-8 px-3.5 bg-gradient-to-r from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground hover:brightness-105 font-semibold shadow-md shadow-primary/20 cursor-pointer gap-1.5 text-xs active:scale-95 transition-all"
           title="Send voice message"
         >
           {isSending ? (

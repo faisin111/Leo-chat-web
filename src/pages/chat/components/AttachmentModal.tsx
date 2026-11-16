@@ -196,17 +196,17 @@ export const AttachmentModal = ({
             initial={{ scale: 0.95, opacity: 0, y: 10 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 10 }}
-            className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden z-10 flex flex-col"
+            className="bg-card rounded-3xl w-full max-w-lg shadow-2xl border border-border overflow-hidden z-10 flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+            <div className="flex items-center justify-between p-6 border-b border-border">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
                   <HardDrive className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg text-slate-900">Upload Attachment</h3>
-                  <p className="text-xs text-slate-500">
+                  <h3 className="font-bold text-lg text-foreground">Upload Attachment</h3>
+                  <p className="text-xs text-muted-foreground">
                     Pick a photo or document directly from your internal storage
                   </p>
                 </div>
@@ -216,7 +216,7 @@ export const AttachmentModal = ({
                 size="icon"
                 onClick={onClose}
                 disabled={isBusy}
-                className="rounded-full text-slate-400 hover:text-slate-600"
+                className="rounded-full text-muted-foreground hover:text-foreground hover:bg-muted"
               >
                 <X className="w-5 h-5" />
               </Button>
@@ -235,8 +235,8 @@ export const AttachmentModal = ({
                 }}
                 className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                   activeTab === 'IMAGE'
-                    ? 'bg-primary text-white shadow-xs font-bold'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-gradient-to-r from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground shadow-sm font-bold'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
                 }`}
               >
                 <ImageIcon className="w-4 h-4" />
@@ -253,8 +253,8 @@ export const AttachmentModal = ({
                 }}
                 className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                   activeTab === 'FILE'
-                    ? 'bg-primary text-white shadow-xs font-bold'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-gradient-to-r from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground shadow-sm font-bold'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
                 }`}
               >
                 <FileText className="w-4 h-4" />
@@ -288,22 +288,22 @@ export const AttachmentModal = ({
                   className={`w-full border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
                     isDragOver
                       ? 'border-primary bg-primary/5 scale-[1.01]'
-                      : 'border-slate-200 bg-slate-50/70 hover:bg-slate-100 hover:border-slate-300'
+                      : 'border-border bg-muted/30 hover:bg-muted/50 hover:border-primary/50'
                   }`}
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center text-primary mb-3">
+                  <div className="w-14 h-14 rounded-2xl bg-card border border-border shadow-sm flex items-center justify-center text-primary mb-3">
                     <UploadCloud className="w-7 h-7" />
                   </div>
-                  <p className="text-sm font-semibold text-slate-800 mb-1">
+                  <p className="text-sm font-semibold text-foreground mb-1">
                     {activeTab === 'IMAGE'
                       ? 'Choose image from internal storage'
                       : 'Choose document from internal storage'}
                   </p>
-                  <p className="text-xs text-slate-500 max-w-xs mb-3">
+                  <p className="text-xs text-muted-foreground max-w-xs mb-3">
                     Click to browse your device files or drag and drop your{' '}
                     {activeTab === 'IMAGE' ? 'image' : 'document'} here
                   </p>
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-200/70 text-slate-600">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-muted text-muted-foreground">
                     Max size: 10 MB
                   </span>
                 </button>
@@ -311,7 +311,7 @@ export const AttachmentModal = ({
                 /* Selected File Preview */
                 <div className="space-y-3">
                   {activeTab === 'IMAGE' && previewUrl ? (
-                    <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 flex items-center justify-center max-h-56">
+                    <div className="relative rounded-2xl overflow-hidden border border-border bg-slate-950 flex items-center justify-center max-h-56">
                       <img src={previewUrl} alt="Preview" className="w-full h-56 object-contain" />
                       <div className="absolute top-2 right-2 flex space-x-1">
                         <button
@@ -336,7 +336,7 @@ export const AttachmentModal = ({
                     </div>
                   ) : (
                     /* Document preview card */
-                    <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-between">
+                    <div className="p-4 rounded-2xl border border-border bg-muted/40 flex items-center justify-between">
                       <div className="flex items-center space-x-3 min-w-0 pr-3">
                         <div
                           className={`w-12 h-12 rounded-xl flex items-center justify-center border font-bold text-xs uppercase shrink-0 ${
@@ -346,10 +346,10 @@ export const AttachmentModal = ({
                           {selectedFile.name.split('.').pop() || 'FILE'}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 truncate">
+                          <p className="text-sm font-semibold text-foreground truncate">
                             {selectedFile.name}
                           </p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-muted-foreground">
                             {formatFileSize(selectedFile.size)}
                           </p>
                         </div>
@@ -361,7 +361,7 @@ export const AttachmentModal = ({
                           size="sm"
                           disabled={isBusy}
                           onClick={() => fileInputRef.current?.click()}
-                          className="rounded-xl text-xs font-medium text-slate-600 hover:text-slate-900"
+                          className="rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground"
                         >
                           Change
                         </Button>
@@ -371,7 +371,7 @@ export const AttachmentModal = ({
                           size="icon"
                           disabled={isBusy}
                           onClick={handleClearFile}
-                          className="rounded-xl text-slate-400 hover:text-rose-600"
+                          className="rounded-xl text-muted-foreground hover:text-rose-500"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -381,8 +381,8 @@ export const AttachmentModal = ({
 
                   {/* File meta info */}
                   {activeTab === 'IMAGE' && (
-                    <div className="flex items-center justify-between text-xs text-slate-500 px-1">
-                      <span className="truncate max-w-[280px] font-medium text-slate-700">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                      <span className="truncate max-w-[280px] font-medium text-foreground">
                         {selectedFile.name}
                       </span>
                       <span>{formatFileSize(selectedFile.size)}</span>
@@ -393,7 +393,7 @@ export const AttachmentModal = ({
 
               {/* Caption Input */}
               <div className="space-y-1.5 pt-1">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
                   Optional Caption / Note
                 </label>
                 <Input
@@ -401,25 +401,25 @@ export const AttachmentModal = ({
                   disabled={isBusy}
                   onChange={(e) => setCaption(e.target.value)}
                   placeholder="Add a message or description..."
-                  className="h-11 rounded-xl bg-slate-50 border-slate-200 text-sm focus:bg-white"
+                  className="h-11 rounded-xl bg-muted/40 border-border text-sm text-foreground focus:bg-background"
                 />
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-border">
                 <Button
                   type="button"
                   variant="ghost"
                   onClick={onClose}
                   disabled={isBusy}
-                  className="rounded-xl text-slate-600"
+                  className="rounded-xl text-muted-foreground"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={!selectedFile || isBusy}
-                  className="rounded-xl font-semibold shadow-sm px-6 gap-2"
+                  className="rounded-xl font-semibold shadow-md px-6 gap-2 bg-gradient-to-r from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground hover:brightness-105 active:scale-95 transition-all"
                 >
                   {isBusy ? (
                     <>

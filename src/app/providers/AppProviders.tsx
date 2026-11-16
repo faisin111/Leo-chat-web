@@ -1,8 +1,10 @@
 import type { PropsWithChildren } from 'react';
 import { QueryClient, QueryClientProvider, MutationCache } from '@tanstack/react-query';
-import { Toaster } from 'sonner';
+import { ThemeProvider } from 'next-themes';
 import { SessionBootstrap } from './SessionBootstrap';
 import { showApiError } from '@/shared/api/api-error';
+import { ThemeSync } from '@/shared/theme';
+import { ModernToaster } from '@/shared/ui/toaster';
 
 const queryClient = new QueryClient({
   mutationCache: new MutationCache({
@@ -32,26 +34,17 @@ const queryClient = new QueryClient({
 
 export function AppProviders({ children }: PropsWithChildren) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <SessionBootstrap>{children}</SessionBootstrap>
-      <Toaster
-        position="top-right"
-        closeButton
-        expand
-        className="toaster group"
-        toastOptions={{
-          classNames: {
-            toast: 'group toast group-[.toaster]:shadow-lg group-[.toaster]:font-sans',
-            error:
-              'group-[.toaster]:bg-red-500 group-[.toaster]:text-white group-[.toaster]:border-red-600',
-            success:
-              'group-[.toaster]:bg-green-700 group-[.toaster]:text-white group-[.toaster]:border-none',
-            warning:
-              'group-[.toaster]:bg-amber-500 group-[.toaster]:text-white group-[.toaster]:border-amber-600',
-            info: 'group-[.toaster]:bg-blue-500 group-[.toaster]:text-white group-[.toaster]:border-blue-600',
-          },
-        }}
-      />
-    </QueryClientProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange={false}
+    >
+      <ThemeSync />
+      <QueryClientProvider client={queryClient}>
+        <SessionBootstrap>{children}</SessionBootstrap>
+        <ModernToaster />
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }

@@ -222,7 +222,7 @@ export const VoiceMessagePlayer = ({ audioUrl, isOwn, caption }: VoiceMessagePla
                         : 'bg-white/40'
                       : isPlayed
                         ? 'bg-primary'
-                        : 'bg-slate-300'
+                        : 'bg-border'
                   }`}
                 />
               );
@@ -231,14 +231,14 @@ export const VoiceMessagePlayer = ({ audioUrl, isOwn, caption }: VoiceMessagePla
 
           {/* Time & Speed Controls */}
           <div className="flex items-center justify-between text-[11px] font-medium pt-1">
-            <span className={`tabular-nums ${isOwn ? 'text-white/80' : 'text-slate-500'}`}>
+            <span className={`tabular-nums ${isOwn ? 'text-white/80' : 'text-muted-foreground'}`}>
               {formatAudioTime(currentTime > 0 ? currentTime : duration)}
             </span>
 
             <div className="flex items-center space-x-2">
               <span
                 className={`flex items-center gap-0.5 text-[10px] ${
-                  isOwn ? 'text-white/70' : 'text-slate-400'
+                  isOwn ? 'text-white/70' : 'text-muted-foreground'
                 }`}
               >
                 <Mic className="w-3 h-3 opacity-80" />
@@ -252,7 +252,7 @@ export const VoiceMessagePlayer = ({ audioUrl, isOwn, caption }: VoiceMessagePla
                 className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors cursor-pointer ${
                   isOwn
                     ? 'bg-white/20 text-white hover:bg-white/30'
-                    : 'bg-slate-200/80 text-slate-700 hover:bg-slate-300'
+                    : 'bg-muted text-foreground hover:bg-muted/80 border border-border/50'
                 }`}
                 title="Change playback speed"
               >
@@ -266,7 +266,7 @@ export const VoiceMessagePlayer = ({ audioUrl, isOwn, caption }: VoiceMessagePla
       {/* Optional Caption */}
       {caption && (
         <p
-          className={`text-xs pt-2 px-1 break-words ${isOwn ? 'text-white/95' : 'text-slate-700'}`}
+          className={`text-xs pt-2 px-1 break-words ${isOwn ? 'text-white/95' : 'text-foreground'}`}
         >
           {caption}
         </p>

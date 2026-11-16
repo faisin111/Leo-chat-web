@@ -24,6 +24,7 @@ import { ConversationPage } from '../../pages/chat/ConversationPage';
 import { NewChatPage } from '../../pages/chat/NewChatPage';
 import { NewGroupPage } from '../../pages/chat/NewGroupPage';
 import { PeoplePage } from '../../pages/chat/PeoplePage';
+import { AiPage } from '../../pages/ai';
 import { ProfilePage } from '../../pages/settings/ProfilePage';
 import { SecurityPage } from '../../pages/settings/SecurityPage';
 import { SessionsPage } from '../../pages/settings/SessionsPage';
@@ -94,6 +95,7 @@ export const router = createBrowserRouter([
                   { path: 'new', element: <NewChatPage /> },
                   { path: 'new-group', element: <NewGroupPage /> },
                   { path: 'people', element: <PeoplePage /> },
+                  { path: 'ai', element: <AiPage /> },
                   {
                     path: 'settings',
                     element: <SettingsLayout />,

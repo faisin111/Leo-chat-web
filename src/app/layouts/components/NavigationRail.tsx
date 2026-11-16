@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   MessageSquare,
+  Sparkles,
   Users,
   Settings,
   Shield,
@@ -69,6 +70,12 @@ export function NavigationRail() {
           active={location.pathname === '/app' || location.pathname.startsWith('/app/c/')}
           badge={unreadData?.unreadCount}
           label="Chats"
+        />
+        <NavItem
+          to="/app/ai"
+          icon={<Sparkles className="w-5 h-5" />}
+          active={location.pathname.startsWith('/app/ai')}
+          label="LeoChat AI"
         />
         <NavItem
           to="/app/people"

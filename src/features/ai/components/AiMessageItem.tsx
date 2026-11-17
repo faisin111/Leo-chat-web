@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   Copy,
   Check,
@@ -215,6 +215,65 @@ export const AiMessageItem = ({ message, isLatest }: AiMessageItemProps) => {
   );
 };
 
+function renderInlineMarkdown(text: string): ReactNode {
+  // Regex to match inline markdown:
+  // 1: `code`
+  // 2: **bold**
+  // 3: *italic*
+  // 4: [linkText](linkUrl)
+  const regex = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\([^)]+\))/g;
+  const parts = text.split(regex);
+
+  return parts.map((part, idx) => {
+    if (!part) return null;
+
+    if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
+      return (
+        <code
+          key={idx}
+          className="px-1.5 py-0.5 mx-0.5 rounded bg-zinc-200/80 dark:bg-zinc-800 text-[11px] sm:text-xs font-mono text-zinc-900 dark:text-zinc-100 border border-zinc-300/60 dark:border-zinc-700/60"
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+
+    if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+      return (
+        <strong key={idx} className="font-semibold text-zinc-950 dark:text-white">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+
+    if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
+      return (
+        <em key={idx} className="italic text-zinc-700 dark:text-zinc-300">
+          {part.slice(1, -1)}
+        </em>
+      );
+    }
+
+    const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    if (linkMatch && linkMatch[1] && linkMatch[2]) {
+      return (
+        <a
+          key={idx}
+          href={linkMatch[2]}
+          target="_blank"
+          rel="noreferrer"
+          className="text-primary hover:underline font-medium inline-flex items-center gap-0.5 mx-0.5"
+        >
+          <span>{linkMatch[1]}</span>
+          <ExternalLink className="w-2.5 h-2.5 opacity-70" />
+        </a>
+      );
+    }
+
+    return <span key={idx}>{part}</span>;
+  });
+}
+
 // Safe Markdown and Code Block Formatter
 const FormattedMarkdown = ({ content }: { content: string }) => {
   const parts = content.split(/(```[\s\S]*?```)/g);
@@ -233,27 +292,124 @@ const FormattedMarkdown = ({ content }: { content: string }) => {
         return (
           <div key={index} className="space-y-2">
             {part.split('\n\n').map((paragraph, pIdx) => {
-              if (paragraph.startsWith('### ')) {
+              const trimmedP = paragraph.trim();
+              if (!trimmedP) return null;
+
+              // Check for markdown image: ![alt](url)
+              const imgMatch = trimmedP.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+              if (imgMatch && imgMatch[2]) {
+                const alt = imgMatch[1] || 'Generated image preview';
+                const url = imgMatch[2];
+                return (
+                  <div
+                    key={pIdx}
+                    className="my-3 rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 shadow-md group/img"
+                  >
+                    <div className="relative overflow-hidden aspect-video max-h-[420px] bg-zinc-950 flex items-center justify-center">
+                      <img
+                        src={url}
+                        alt={alt}
+                        loading="lazy"
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover/img:scale-[1.02]"
+                      />
+                    </div>
+                    {alt && (
+                      <div className="p-2.5 px-3.5 text-xs text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/90 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                        <span className="font-medium truncate">{alt}</span>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[11px] text-zinc-500 hover:text-zinc-900 dark:hover:text-white flex items-center gap-1 transition-colors"
+                        >
+                          <span>Full resolution</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              // Check for headings
+              if (trimmedP.startsWith('### ')) {
                 return (
                   <h4
                     key={pIdx}
-                    className="text-sm font-semibold text-zinc-900 dark:text-white pt-1"
+                    className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-white pt-1.5 pb-0.5"
                   >
-                    {paragraph.replace('### ', '')}
+                    {renderInlineMarkdown(trimmedP.replace(/^###\s+/, ''))}
                   </h4>
                 );
               }
-              if (paragraph.startsWith('## ')) {
+              if (trimmedP.startsWith('## ')) {
                 return (
-                  <h3 key={pIdx} className="text-base font-bold text-zinc-900 dark:text-white pt-1">
-                    {paragraph.replace('## ', '')}
+                  <h3
+                    key={pIdx}
+                    className="text-sm sm:text-base font-bold text-zinc-900 dark:text-white pt-2 pb-0.5"
+                  >
+                    {renderInlineMarkdown(trimmedP.replace(/^##\s+/, ''))}
                   </h3>
+                );
+              }
+              if (trimmedP.startsWith('# ')) {
+                return (
+                  <h2
+                    key={pIdx}
+                    className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white pt-2 pb-1"
+                  >
+                    {renderInlineMarkdown(trimmedP.replace(/^#\s+/, ''))}
+                  </h2>
+                );
+              }
+
+              // Check for blockquote
+              if (trimmedP.startsWith('> ')) {
+                return (
+                  <blockquote
+                    key={pIdx}
+                    className="border-l-2 border-zinc-400 dark:border-zinc-600 pl-3 italic text-zinc-600 dark:text-zinc-400 my-1 text-xs sm:text-sm"
+                  >
+                    {renderInlineMarkdown(trimmedP.replace(/^>\s*/, ''))}
+                  </blockquote>
+                );
+              }
+
+              // Check for bullet lists or lines
+              const lines = trimmedP.split('\n');
+              const isList =
+                lines.length > 1 && lines.every((line) => /^[-*]\s+|\d+\.\s+/.test(line.trim()));
+
+              if (isList) {
+                return (
+                  <ul key={pIdx} className="space-y-1.5 my-1 pl-1">
+                    {lines.map((line, lIdx) => {
+                      const isOrdered = /^\d+\.\s+/.test(line.trim());
+                      const cleaned = line.trim().replace(/^[-*]\s+|\d+\.\s+/, '');
+                      return (
+                        <li
+                          key={lIdx}
+                          className="flex items-start gap-2 text-xs sm:text-sm leading-relaxed"
+                        >
+                          <span className="text-zinc-400 dark:text-zinc-500 font-mono select-none pt-0.5">
+                            {isOrdered ? `${lIdx + 1}.` : '•'}
+                          </span>
+                          <span className="flex-1 min-w-0">{renderInlineMarkdown(cleaned)}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 );
               }
 
               return (
-                <p key={pIdx} className="whitespace-pre-line text-zinc-800 dark:text-zinc-200">
-                  {paragraph}
+                <p key={pIdx} className="leading-relaxed text-zinc-800 dark:text-zinc-200">
+                  {lines.map((line, lIdx) => (
+                    <span key={lIdx}>
+                      {renderInlineMarkdown(line)}
+                      {lIdx < lines.length - 1 && <br />}
+                    </span>
+                  ))}
                 </p>
               );
             })}

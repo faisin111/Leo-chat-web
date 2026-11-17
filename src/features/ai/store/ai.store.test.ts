@@ -65,4 +65,40 @@ describe('useAiStore', () => {
     expect(session?.messages[1]?.content).toBe('This is the Gemini response.');
     expect(useAiStore.getState().isGenerating).toBe(false);
   });
+
+  it('falls back gracefully to intelligent assistant when backend aiApi times out or fails', async () => {
+    const sessionId = useAiStore.getState().createNewSession();
+    useAiStore.getState().selectSession(sessionId);
+
+    // Mock timeout or network failure
+    vi.spyOn(aiApi, 'chat').mockRejectedValueOnce(
+      new Error('Request timed out. Please try again.'),
+    );
+
+    await useAiStore.getState().sendMessage('give a photo');
+
+    const session = useAiStore.getState().sessions.find((s) => s.id === sessionId);
+    expect(session?.messages).toHaveLength(2);
+    expect(session?.messages[0]?.role).toBe('user');
+    expect(session?.messages[0]?.content).toBe('give a photo');
+    expect(session?.messages[1]?.role).toBe('assistant');
+    // Content should contain the photo markdown rather than the error message
+    expect(session?.messages[1]?.content).toContain('![');
+    expect(session?.messages[1]?.content).not.toContain('Unable to complete AI request');
+    expect(useAiStore.getState().isGenerating).toBe(false);
+  });
+
+  it('handles greeting prompts with warm interactive capabilities summary on fallback', async () => {
+    const sessionId = useAiStore.getState().createNewSession();
+    useAiStore.getState().selectSession(sessionId);
+
+    vi.spyOn(aiApi, 'chat').mockRejectedValueOnce(new Error('Network error'));
+
+    await useAiStore.getState().sendMessage('hi');
+
+    const session = useAiStore.getState().sessions.find((s) => s.id === sessionId);
+    expect(session?.messages[1]?.role).toBe('assistant');
+    expect(session?.messages[1]?.content).toContain('LeoChat AI');
+    expect(useAiStore.getState().isGenerating).toBe(false);
+  });
 });

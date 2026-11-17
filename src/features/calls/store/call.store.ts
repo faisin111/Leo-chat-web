@@ -427,6 +427,7 @@ export const useCallStore = create<CallState>((set, get) => ({
     const currentStatus = get().status;
 
     switch (event.action) {
+      case 'INVITE':
       case 'OFFER': {
         if (currentStatus !== 'idle') {
           // Send busy signal back to caller
@@ -445,7 +446,7 @@ export const useCallStore = create<CallState>((set, get) => ({
           callId: event.callId,
           conversationId: event.conversationId,
           targetUserId: event.fromUserId,
-          targetUserName: event.fromUsername,
+          targetUserName: event.fromUsername || 'Incoming Call',
           callType: isVideo ? 'video' : 'audio',
           pendingOfferSdp: event.sdp || null,
           isCaller: false,

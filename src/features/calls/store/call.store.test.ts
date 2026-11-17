@@ -262,4 +262,22 @@ describe('useCallStore', () => {
 
     expect(useCallStore.getState().status).toBe('outgoing');
   });
+
+  it('handles incoming INVITE signal when idle', async () => {
+    await useCallStore.getState().handleIncomingSignal({
+      conversationId: 'conv-123',
+      callId: 'call-invite-1',
+      fromUserId: 'user-caller',
+      fromUsername: 'alice',
+      targetUserId: 'user-me',
+      action: 'INVITE',
+    });
+
+    const state = useCallStore.getState();
+    expect(state.status).toBe('incoming');
+    expect(state.callId).toBe('call-invite-1');
+    expect(state.targetUserId).toBe('user-caller');
+    expect(state.targetUserName).toBe('alice');
+    expect(callSound.startIncomingRing).toHaveBeenCalled();
+  });
 });

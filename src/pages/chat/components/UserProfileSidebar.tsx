@@ -34,6 +34,7 @@ import { useUserById, usePresence } from '@/features/users';
 import {
   useConversationMembers,
   useRemoveMember,
+  useLeaveConversation,
   useChangeMemberRole,
   useMuteConversation,
   usePinConversation,
@@ -85,6 +86,7 @@ export const UserProfileSidebar = ({
   const { pin, unpin, isLoading: isPinLoading } = usePinConversation();
   const { archive, unarchive, isLoading: isArchiveLoading } = useArchiveConversation();
   const removeMember = useRemoveMember();
+  const leaveConversation = useLeaveConversation();
 
   const targetId = user?.id || userId;
 
@@ -149,6 +151,22 @@ export const UserProfileSidebar = ({
         },
       },
     );
+  };
+
+  const handleLeaveDirectConversation = () => {
+    if (!conversationId) return;
+    if (
+      window.confirm(
+        'Are you sure you want to delete this conversation? It will be removed from your chat list.',
+      )
+    ) {
+      leaveConversation.mutate(conversationId, {
+        onSuccess: () => {
+          onClose();
+          navigate('/app');
+        },
+      });
+    }
   };
 
   const displayName = isGroup
@@ -475,7 +493,7 @@ export const UserProfileSidebar = ({
             </div>
 
             {/* Archive Direct Conversation Option */}
-            <div className="pt-2">
+            <div className="pt-2 space-y-2">
               <button
                 type="button"
                 onClick={handleToggleArchive}
@@ -484,6 +502,20 @@ export const UserProfileSidebar = ({
               >
                 <Archive className="w-4 h-4 text-slate-500" />
                 {isArchived ? 'Unarchive Conversation' : 'Archive Conversation'}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleLeaveDirectConversation}
+                disabled={leaveConversation.isPending}
+                className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                {leaveConversation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                Delete Conversation
               </button>
             </div>
           </div>

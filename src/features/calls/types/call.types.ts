@@ -1,5 +1,13 @@
 export type CallSignalAction =
-  'OFFER' | 'ANSWER' | 'ICE_CANDIDATE' | 'REJECT' | 'BUSY' | 'END' | 'DELIVERED' | 'UNAVAILABLE';
+  | 'INVITE'
+  | 'OFFER'
+  | 'ANSWER'
+  | 'ICE_CANDIDATE'
+  | 'REJECT'
+  | 'BUSY'
+  | 'END'
+  | 'DELIVERED'
+  | 'UNAVAILABLE';
 
 export type CallSignalRequest = {
   conversationId: string;

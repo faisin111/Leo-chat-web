@@ -4,6 +4,7 @@ export { useConversationDetails } from './api/use-conversation-details';
 export { useUpdateConversation } from './api/use-update-conversation';
 export { useConversationMembers } from './api/use-conversation-members';
 export { useRemoveMember } from './api/use-remove-member';
+export { useLeaveConversation } from './api/use-leave-conversation';
 export { useChangeMemberRole } from './api/use-change-member-role';
 export { useMuteConversation } from './api/use-mute-conversation';
 export { usePinConversation } from './api/use-pin-conversation';

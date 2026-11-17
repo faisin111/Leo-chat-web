@@ -46,3 +46,28 @@ export interface AiSession {
   messages: AiMessage[];
   isPinned?: boolean;
 }
+
+export type AiActionType =
+  | 'SEARCH_USERS'
+  | 'LIST_CONVERSATIONS'
+  | 'GET_BLOCKED_USERS'
+  | 'GET_USER'
+  | 'SEND_MESSAGE'
+  | 'START_CALL';
+
+export interface AiActionRequest {
+  action: AiActionType | string;
+  conversationId?: string;
+  targetUserId?: string;
+  message?: string;
+  query?: string;
+  confirmed?: boolean;
+}
+
+export interface AiActionResponse<T = unknown> {
+  action: string;
+  executed: boolean;
+  confirmationRequired: boolean;
+  message: string;
+  data: T;
+}

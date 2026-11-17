@@ -36,7 +36,7 @@ export const AiChatArea = ({ onOpenMobileSidebar }: AiChatAreaProps) => {
     toggleSidebar,
     createNewSession,
     setModel,
-    clearActiveSessionMessages,
+    deleteServerConversation,
   } = useAiStore();
 
   const [isHeaderModelOpen, setIsHeaderModelOpen] = useState(false);
@@ -193,9 +193,15 @@ export const AiChatArea = ({ onOpenMobileSidebar }: AiChatAreaProps) => {
           {messages.length > 0 && (
             <button
               type="button"
-              onClick={clearActiveSessionMessages}
+              onClick={() => {
+                if (
+                  window.confirm('Permanently delete this AI conversation and all its messages?')
+                ) {
+                  deleteServerConversation();
+                }
+              }}
               className="p-2 rounded-xl text-zinc-500 hover:text-rose-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
-              title="Clear messages"
+              title="Delete conversation"
             >
               <Trash2 className="w-4 h-4" />
             </button>

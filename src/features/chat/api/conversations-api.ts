@@ -2,7 +2,7 @@ import { http } from '@/shared/api/http-client';
 
 export type Conversation = {
   id: string;
-  type: 'DIRECT' | 'GROUP' | string;
+  type: 'DIRECT' | 'GROUP' | 'AI' | string;
   title: string | null;
   avatarUrl: string | null;
   directKey: string | null;
@@ -157,6 +157,10 @@ export const conversationsApi = {
 
   removeMember: async (conversationId: string, userId: string): Promise<void> => {
     await http.delete(`/conversations/${conversationId}/members/${userId}`);
+  },
+
+  leaveConversation: async (id: string): Promise<void> => {
+    await http.delete(`/conversations/${id}`);
   },
 
   updateMemberRole: async (

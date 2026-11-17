@@ -88,4 +88,30 @@ describe('useAiStore', () => {
     expect(session?.messages[1]?.content).not.toContain('Unsplash');
     expect(useAiStore.getState().isGenerating).toBe(false);
   });
+
+  it('initializes server AI conversation via initServerConversation', async () => {
+    vi.spyOn(aiApi, 'getOrCreateConversation').mockResolvedValueOnce({
+      id: 'server-ai-uuid',
+      type: 'AI',
+      title: 'LeoChat AI',
+      createdBy: 'user-1',
+      lastSeq: 0,
+      createdAt: new Date().toISOString(),
+      status: 'ACTIVE',
+      avatarUrl: null,
+      directKey: 'ai:user-1',
+      lastMessageAt: null,
+    });
+
+    const convId = await useAiStore.getState().initServerConversation();
+    expect(convId).toBe('server-ai-uuid');
+    expect(useAiStore.getState().serverConversationId).toBe('server-ai-uuid');
+  });
+
+  it('permanently deletes server AI conversation via deleteServerConversation', async () => {
+    const deleteSpy = vi.spyOn(aiApi, 'deleteConversation').mockResolvedValueOnce();
+
+    await useAiStore.getState().deleteServerConversation();
+    expect(deleteSpy).toHaveBeenCalled();
+  });
 });

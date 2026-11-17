@@ -73,8 +73,11 @@ interface AiState {
   isDeepThinkEnabled: boolean;
   isWebSearchEnabled: boolean;
   isSidebarOpen: boolean;
+  serverConversationId: string | null;
 
   // Actions
+  initServerConversation: () => Promise<string | null>;
+  deleteServerConversation: () => Promise<void>;
   createNewSession: (modelId?: AiModelId) => string;
   selectSession: (id: string) => Promise<void>;
   deleteSession: (id: string) => void;
@@ -102,6 +105,44 @@ export const useAiStore = create<AiState>((set, get) => ({
   isDeepThinkEnabled: false,
   isWebSearchEnabled: true,
   isSidebarOpen: true,
+  serverConversationId: null,
+
+  initServerConversation: async () => {
+    try {
+      const conv = await aiApi.getOrCreateConversation();
+      if (conv?.id) {
+        set({ serverConversationId: conv.id });
+        const { sessions, activeSessionId } = get();
+        const active = sessions.find((s) => s.id === activeSessionId) || sessions[0];
+        if (active) {
+          const updatedSessions = sessions.map((s) =>
+            s.id === active.id ? { ...s, conversationId: conv.id } : s,
+          );
+          set({ sessions: updatedSessions });
+          persistState(updatedSessions, active.id);
+
+          if (active.messages.length === 0) {
+            await get().selectSession(active.id);
+          }
+        }
+        return conv.id;
+      }
+    } catch (err) {
+      console.warn('Could not initialize server AI conversation:', err);
+    }
+    return null;
+  },
+
+  deleteServerConversation: async () => {
+    try {
+      await aiApi.deleteConversation();
+      get().clearActiveSessionMessages();
+      toast.success('AI conversation permanently deleted');
+    } catch (err) {
+      console.error('Failed to delete server AI conversation:', err);
+      toast.error('Failed to delete AI conversation');
+    }
+  },
 
   createNewSession: (modelId) => {
     const newId = crypto.randomUUID();
@@ -226,9 +267,19 @@ export const useAiStore = create<AiState>((set, get) => ({
     }
 
     const session = get().sessions.find((s) => s.id === activeSessionId);
-    const convId: string = isValidUuid(session?.conversationId)
+    let convId: string = isValidUuid(session?.conversationId)
       ? session.conversationId
-      : crypto.randomUUID();
+      : get().serverConversationId || '';
+
+    if (!isValidUuid(convId)) {
+      try {
+        const serverConv = await aiApi.getOrCreateConversation();
+        convId = serverConv.id;
+        set({ serverConversationId: convId });
+      } catch {
+        convId = crypto.randomUUID();
+      }
+    }
 
     const clientMsgId = `ai-user-${Date.now()}`;
     const userMessage: AiMessage = {

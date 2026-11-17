@@ -1,9 +1,18 @@
 import { useState, useEffect } from 'react';
 import { AiSidebar } from './AiSidebar';
 import { AiChatArea } from './AiChatArea';
+import { useAiStore } from '../store/ai.store';
 
 export const AiChatContainer = () => {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const initServerConversation = useAiStore((state) => state.initServerConversation);
+
+  // Initialize or fetch the server-owned personal AI conversation on opening AI tab
+  useEffect(() => {
+    initServerConversation().catch((err) => {
+      console.warn('Failed to auto-init server AI conversation:', err);
+    });
+  }, [initServerConversation]);
 
   // Close drawer on viewport resize to desktop
   useEffect(() => {

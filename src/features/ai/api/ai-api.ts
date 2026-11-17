@@ -11,7 +11,9 @@ export type AiChatRequest = {
 
 export const aiApi = {
   chat: async (data: AiChatRequest): Promise<Message> => {
-    const response = await http.post('/ai/chat', data);
+    const response = await http.post('/ai/chat', data, {
+      timeout: 90_000,
+    });
     return response.data;
   },
 };

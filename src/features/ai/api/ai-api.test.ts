@@ -29,11 +29,17 @@ describe('aiApi', () => {
       clientMessageId: 'client-1',
     });
 
-    expect(http.post).toHaveBeenCalledWith('/ai/chat', {
-      conversationId: 'conv-123',
-      prompt: 'Hello AI',
-      clientMessageId: 'client-1',
-    });
+    expect(http.post).toHaveBeenCalledWith(
+      '/ai/chat',
+      {
+        conversationId: 'conv-123',
+        prompt: 'Hello AI',
+        clientMessageId: 'client-1',
+      },
+      {
+        timeout: 90_000,
+      },
+    );
     expect(result).toEqual(mockResponse);
   });
 });

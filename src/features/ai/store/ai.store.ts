@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { aiApi } from '../api/ai-api';
 import { conversationsApi } from '@/features/chat';
 import type { AiSession, AiMessage, AiModelId, AiAttachment } from '../types/ai.types';
-import { generateAssistantReply } from '../lib/ai-assistant-engine';
+import { toast } from 'sonner';
 
 const STORAGE_KEY = 'leochat_ai_sessions_v2';
 const ACTIVE_KEY = 'leochat_ai_active_session_v2';
@@ -15,23 +15,14 @@ const isValidUuid = (id?: string | null): id is string => {
 const createDefaultSession = (): AiSession => {
   const convId = crypto.randomUUID();
   return {
-    id: 'welcome-session',
+    id: 'session-' + Date.now(),
     conversationId: convId,
-    title: 'Welcome to LeoChat AI',
+    title: 'New Conversation',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     modelId: 'leo-ultra',
-    isPinned: true,
-    messages: [
-      {
-        id: 'welcome-msg',
-        role: 'assistant',
-        modelId: 'leo-ultra',
-        createdAt: new Date().toISOString(),
-        content:
-          'Hello! I am **Leo AI**, your intelligent assistant powered by Gemini. You can ask me questions, discuss ideas, generate code, or ask for summaries of your chat discussions.\n\nHow can I help you today?',
-      },
-    ],
+    isPinned: false,
+    messages: [],
   };
 };
 
@@ -41,44 +32,12 @@ const loadInitialSessions = (): AiSession[] => {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map((session: AiSession) => {
-          // Auto-heal any previous timeout error messages into intelligent assistant responses
-          const healedMessages = session.messages.map((m, idx) => {
-            if (
-              m.role === 'assistant' &&
-              typeof m.content === 'string' &&
-              m.content.includes('Unable to complete AI request')
-            ) {
-              const prevUserMsg = session.messages
-                .slice(0, idx)
-                .reverse()
-                .find((x) => x.role === 'user');
-              const prompt = prevUserMsg?.content || 'Hello';
-              const reply = generateAssistantReply(
-                prompt,
-                session.modelId || 'leo-ultra',
-                false,
-                true,
-              );
-              return {
-                ...m,
-                content: reply.content,
-                thinkingContent: reply.thinkingContent,
-                thinkingDurationSecs: reply.thinkingDurationSecs,
-                sources: reply.sources,
-              };
-            }
-            return m;
-          });
-
-          return {
-            ...session,
-            messages: healedMessages,
-            conversationId: isValidUuid(session.conversationId)
-              ? session.conversationId
-              : crypto.randomUUID(),
-          };
-        });
+        return parsed.map((session: AiSession) => ({
+          ...session,
+          conversationId: isValidUuid(session.conversationId)
+            ? session.conversationId
+            : crypto.randomUUID(),
+        }));
       }
     }
   } catch {
@@ -302,77 +261,72 @@ export const useAiStore = create<AiState>((set, get) => ({
     });
     persistState(updatedSessions, activeSessionId);
 
-    const { isDeepThinkEnabled, isWebSearchEnabled } = get();
-
-    let assistantMessage: AiMessage;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-
     try {
-      // Race backend Gemini AI call with 3500ms timeout
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error('BACKEND_TIMEOUT')), 3500);
+      // Call backend Gemini AI integration directly (pure server data)
+      const aiResponse = await aiApi.chat({
+        conversationId: convId,
+        prompt: trimmed,
+        clientMessageId: clientMsgId,
       });
 
-      const aiResponse = await Promise.race([
-        aiApi.chat({
-          conversationId: convId,
-          prompt: trimmed,
-          clientMessageId: clientMsgId,
-        }),
-        timeoutPromise,
-      ]);
-
-      if (timer) clearTimeout(timer);
-
-      if (!aiResponse || !aiResponse.content) {
-        throw new Error('Empty AI response');
-      }
-
-      assistantMessage = {
+      const assistantMessage: AiMessage = {
         id: aiResponse.id || `msg-ai-${Date.now()}`,
         role: 'assistant',
         modelId: selectedModelId,
         createdAt: aiResponse.createdAt || new Date().toISOString(),
-        content: aiResponse.content,
+        content: aiResponse.content || '',
       };
-    } catch {
-      // Graceful fallback to smart client assistant engine
-      // This ensures 100% reliable, rich interactive responses even when backend Gemini is unconfigured or slow
-      const fallbackReply = generateAssistantReply(
-        trimmed,
-        selectedModelId,
-        isDeepThinkEnabled,
-        isWebSearchEnabled,
-      );
 
-      assistantMessage = {
-        id: `msg-ai-${Date.now()}`,
+      const finalSessions = get().sessions.map((s) => {
+        if (s.id !== activeSessionId) return s;
+        return {
+          ...s,
+          updatedAt: new Date().toISOString(),
+          messages: [...s.messages, assistantMessage],
+        };
+      });
+
+      set({
+        sessions: finalSessions,
+        isGenerating: false,
+      });
+      persistState(finalSessions, activeSessionId);
+    } catch (err: unknown) {
+      const errMsg =
+        err &&
+        typeof err === 'object' &&
+        'response' in err &&
+        (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          ? (err as { response?: { data?: { message?: string } } }).response!.data!.message!
+          : err instanceof Error
+            ? err.message
+            : 'AI assistant is not configured on the backend';
+
+      toast.error(errMsg);
+
+      const errorMessage: AiMessage = {
+        id: `err-${Date.now()}`,
         role: 'assistant',
-        modelId: fallbackReply.modelId || selectedModelId,
+        modelId: selectedModelId,
         createdAt: new Date().toISOString(),
-        content: fallbackReply.content,
-        thinkingContent: fallbackReply.thinkingContent,
-        thinkingDurationSecs: fallbackReply.thinkingDurationSecs,
-        sources: fallbackReply.sources,
+        content: `⚠️ **Server error:** ${errMsg}`,
       };
-    } finally {
-      if (timer) clearTimeout(timer);
+
+      const finalSessions = get().sessions.map((s) => {
+        if (s.id !== activeSessionId) return s;
+        return {
+          ...s,
+          updatedAt: new Date().toISOString(),
+          messages: [...s.messages, errorMessage],
+        };
+      });
+
+      set({
+        sessions: finalSessions,
+        isGenerating: false,
+      });
+      persistState(finalSessions, activeSessionId);
     }
-
-    const finalSessions = get().sessions.map((s) => {
-      if (s.id !== activeSessionId) return s;
-      return {
-        ...s,
-        updatedAt: new Date().toISOString(),
-        messages: [...s.messages, assistantMessage],
-      };
-    });
-
-    set({
-      sessions: finalSessions,
-      isGenerating: false,
-    });
-    persistState(finalSessions, activeSessionId);
   },
 
   stopGeneration: () => {
@@ -380,8 +334,7 @@ export const useAiStore = create<AiState>((set, get) => ({
   },
 
   regenerateResponse: async (messageId: string) => {
-    const { activeSessionId, sessions, selectedModelId, isDeepThinkEnabled, isWebSearchEnabled } =
-      get();
+    const { activeSessionId, sessions } = get();
     if (!activeSessionId) return;
 
     const session = sessions.find((s) => s.id === activeSessionId);
@@ -399,70 +352,45 @@ export const useAiStore = create<AiState>((set, get) => ({
 
     set({ isGenerating: true });
 
-    let finalContent = '';
-    let thinkingContent: string | undefined;
-    let thinkingDurationSecs: number | undefined;
-    let sources = undefined;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-
     try {
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error('BACKEND_TIMEOUT')), 3500);
+      const aiResponse = await aiApi.chat({
+        conversationId: convId,
+        prompt: userMessage.content,
       });
 
-      const aiResponse = await Promise.race([
-        aiApi.chat({
-          conversationId: convId,
-          prompt: userMessage.content,
-        }),
-        timeoutPromise,
-      ]);
+      const updatedSessions = get().sessions.map((s) => {
+        if (s.id !== activeSessionId) return s;
+        const updated = [...s.messages];
+        const targetIndex = updated.findIndex((m) => m.id === messageId);
+        if (targetIndex !== -1) {
+          updated[targetIndex] = {
+            ...updated[targetIndex]!,
+            content: aiResponse.content || '',
+            createdAt: aiResponse.createdAt || new Date().toISOString(),
+          };
+        }
+        return { ...s, messages: updated };
+      });
 
-      if (timer) clearTimeout(timer);
+      set({
+        sessions: updatedSessions,
+        isGenerating: false,
+      });
+      persistState(updatedSessions, activeSessionId);
+    } catch (err: unknown) {
+      const errMsg =
+        err &&
+        typeof err === 'object' &&
+        'response' in err &&
+        (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          ? (err as { response?: { data?: { message?: string } } }).response!.data!.message!
+          : err instanceof Error
+            ? err.message
+            : 'Failed to regenerate response from server';
 
-      if (!aiResponse || !aiResponse.content) {
-        throw new Error('Empty AI response');
-      }
-
-      finalContent = aiResponse.content;
-    } catch {
-      const fallbackReply = generateAssistantReply(
-        userMessage.content,
-        session.modelId || selectedModelId,
-        isDeepThinkEnabled,
-        isWebSearchEnabled,
-      );
-
-      finalContent = fallbackReply.content;
-      thinkingContent = fallbackReply.thinkingContent;
-      thinkingDurationSecs = fallbackReply.thinkingDurationSecs;
-      sources = fallbackReply.sources;
-    } finally {
-      if (timer) clearTimeout(timer);
+      toast.error(errMsg);
+      set({ isGenerating: false });
     }
-
-    const updatedSessions = get().sessions.map((s) => {
-      if (s.id !== activeSessionId) return s;
-      const updated = [...s.messages];
-      const targetIndex = updated.findIndex((m) => m.id === messageId);
-      if (targetIndex !== -1) {
-        updated[targetIndex] = {
-          ...updated[targetIndex]!,
-          content: finalContent,
-          thinkingContent,
-          thinkingDurationSecs,
-          sources,
-          createdAt: new Date().toISOString(),
-        };
-      }
-      return { ...s, messages: updated };
-    });
-
-    set({
-      sessions: updatedSessions,
-      isGenerating: false,
-    });
-    persistState(updatedSessions, activeSessionId);
   },
 
   clearActiveSessionMessages: () => {

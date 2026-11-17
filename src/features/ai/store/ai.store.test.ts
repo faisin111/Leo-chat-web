@@ -66,11 +66,11 @@ describe('useAiStore', () => {
     expect(useAiStore.getState().isGenerating).toBe(false);
   });
 
-  it('falls back gracefully to intelligent assistant when backend aiApi times out or fails', async () => {
+  it('handles server error without showing dummy data', async () => {
     const sessionId = useAiStore.getState().createNewSession();
     useAiStore.getState().selectSession(sessionId);
 
-    // Mock timeout or network failure
+    // Mock server error
     vi.spyOn(aiApi, 'chat').mockRejectedValueOnce(
       new Error('Request timed out. Please try again.'),
     );
@@ -82,23 +82,10 @@ describe('useAiStore', () => {
     expect(session?.messages[0]?.role).toBe('user');
     expect(session?.messages[0]?.content).toBe('give a photo');
     expect(session?.messages[1]?.role).toBe('assistant');
-    // Content should contain the photo markdown rather than the error message
-    expect(session?.messages[1]?.content).toContain('![');
-    expect(session?.messages[1]?.content).not.toContain('Unable to complete AI request');
-    expect(useAiStore.getState().isGenerating).toBe(false);
-  });
-
-  it('handles greeting prompts with warm interactive capabilities summary on fallback', async () => {
-    const sessionId = useAiStore.getState().createNewSession();
-    useAiStore.getState().selectSession(sessionId);
-
-    vi.spyOn(aiApi, 'chat').mockRejectedValueOnce(new Error('Network error'));
-
-    await useAiStore.getState().sendMessage('hi');
-
-    const session = useAiStore.getState().sessions.find((s) => s.id === sessionId);
-    expect(session?.messages[1]?.role).toBe('assistant');
-    expect(session?.messages[1]?.content).toContain('LeoChat AI');
+    // Content must be the actual server error, never fabricated dummy data or fake photos
+    expect(session?.messages[1]?.content).toContain('⚠️ **Server error:** Request timed out');
+    expect(session?.messages[1]?.content).not.toContain('![Serene');
+    expect(session?.messages[1]?.content).not.toContain('Unsplash');
     expect(useAiStore.getState().isGenerating).toBe(false);
   });
 });

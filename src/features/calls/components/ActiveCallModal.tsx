@@ -289,11 +289,12 @@ export const ActiveCallModal = () => {
 
         {/* Central Media Canvas */}
         <div className="flex-1 relative flex items-center justify-center overflow-hidden bg-slate-950/70">
-          {/* Always render remote video element so audio/video tracks play reliably */}
+          {/* Remote video element (muted because audio is permanently handled by CallManager audio element) */}
           <video
             ref={remoteVideoRef}
             autoPlay
             playsInline
+            muted
             className={`w-full h-full object-contain transition-opacity duration-300 ${
               hasRemoteVideo ? 'opacity-100' : 'opacity-0 pointer-events-none absolute'
             }`}

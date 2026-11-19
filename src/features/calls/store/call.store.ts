@@ -6,9 +6,17 @@ import { callSound } from '../lib/sound';
 import type { CallStatus, CallType, CallSignalEvent } from '../types/call.types';
 
 // STUN alone fails behind symmetric NAT (many mobile and corporate networks);
-// a TURN relay from env is added when configured.
+// multiple STUN servers and a TURN relay from env are added when configured.
 const ICE_SERVERS = [
-  { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+  {
+    urls: [
+      'stun:stun.l.google.com:19302',
+      'stun:stun1.l.google.com:19302',
+      'stun:stun2.l.google.com:19302',
+      'stun:stun3.l.google.com:19302',
+      'stun:stun4.l.google.com:19302',
+    ],
+  },
   ...(env.TURN_URLS.length > 0
     ? [
         {
@@ -145,6 +153,11 @@ export const useCallStore = create<CallState>((set, get) => ({
           : false,
       });
 
+      // Ensure all audio tracks are active
+      stream.getAudioTracks().forEach((track) => {
+        track.enabled = true;
+      });
+
       set({ localStream: stream });
 
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
@@ -154,8 +167,17 @@ export const useCallStore = create<CallState>((set, get) => ({
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
       pc.ontrack = (event) => {
-        const remote = event.streams[0] || new MediaStream([event.track]);
-        set({ remoteStream: remote });
+        if (event.streams && event.streams[0]) {
+          set({ remoteStream: event.streams[0] });
+        } else {
+          set((state) => {
+            const current = state.remoteStream || new MediaStream();
+            if (!current.getTracks().some((t) => t.id === event.track.id)) {
+              current.addTrack(event.track);
+            }
+            return { remoteStream: current };
+          });
+        }
       };
 
       pc.onicecandidate = (event) => {
@@ -245,6 +267,11 @@ export const useCallStore = create<CallState>((set, get) => ({
           : false,
       });
 
+      // Ensure all audio tracks are active
+      stream.getAudioTracks().forEach((track) => {
+        track.enabled = true;
+      });
+
       set({ localStream: stream });
 
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
@@ -253,8 +280,17 @@ export const useCallStore = create<CallState>((set, get) => ({
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
       pc.ontrack = (event) => {
-        const remote = event.streams[0] || new MediaStream([event.track]);
-        set({ remoteStream: remote });
+        if (event.streams && event.streams[0]) {
+          set({ remoteStream: event.streams[0] });
+        } else {
+          set((state) => {
+            const current = state.remoteStream || new MediaStream();
+            if (!current.getTracks().some((t) => t.id === event.track.id)) {
+              current.addTrack(event.track);
+            }
+            return { remoteStream: current };
+          });
+        }
       };
 
       pc.onicecandidate = (event) => {
@@ -298,8 +334,11 @@ export const useCallStore = create<CallState>((set, get) => ({
         }
       }
 
-      // Create and set local answer
-      const answer = await pc.createAnswer();
+      // Create and set local answer with audio reception explicitly declared
+      const answer = await pc.createAnswer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: shouldVideo,
+      });
       await pc.setLocalDescription(answer);
 
       // Transmit answer to caller
@@ -470,6 +509,10 @@ export const useCallStore = create<CallState>((set, get) => ({
       }
 
       case 'ANSWER': {
+        if (event.callId && get().callId && event.callId !== get().callId) {
+          return;
+        }
+
         if (currentStatus === 'outgoing' || currentStatus === 'connecting') {
           callSound.stopRing();
           if (outgoingTimeout) {
@@ -502,6 +545,10 @@ export const useCallStore = create<CallState>((set, get) => ({
       }
 
       case 'ICE_CANDIDATE': {
+        if (event.callId && get().callId && event.callId !== get().callId) {
+          return;
+        }
+
         if (event.candidate) {
           const candidateInit = {
             candidate: event.candidate,

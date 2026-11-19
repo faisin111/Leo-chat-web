@@ -94,6 +94,13 @@ http.interceptors.response.use(
 
     if (error.response?.status === 403) {
       clearCsrfToken();
+      // The server blocks everything until a pending password change is done: flag the session
+      // so PasswordChangeGate sends the user to the change-password screen.
+      const code = (error.response.data as { code?: string } | undefined)?.code;
+      const session = useSession.getState();
+      if (code === 'PASSWORD_CHANGE_REQUIRED' && session.user && !session.user.mustChangePassword) {
+        session.setUser({ ...session.user, mustChangePassword: true });
+      }
     }
 
     if (

@@ -5,6 +5,9 @@ import { wsService } from '@/shared/api/websocket';
 // Lightweight flag stored in sessionStorage to indicate if user previously authenticated.
 const SESSION_FLAG_KEY = 'lc_session';
 
+// Shared by every caller (HTTP 401 retry, WebSocket reconnect, session restore).
+let refreshInFlight: Promise<string> | null = null;
+
 export const authSession = {
   /** Mark that an active session exists (call after successful login/register) */
   markActive: () => sessionStorage.setItem(SESSION_FLAG_KEY, '1'),
@@ -13,10 +16,17 @@ export const authSession = {
   mightBeActive: () => sessionStorage.getItem(SESSION_FLAG_KEY) === '1',
 
   /** Refresh token using HttpOnly cookie; updates session store */
-  refresh: async (): Promise<string> => {
-    const res = await http.post<{ accessToken: string }>('/auth/refresh');
-    useSession.getState().setAccessToken(res.data.accessToken);
-    return res.data.accessToken;
+  refresh: (): Promise<string> => {
+    refreshInFlight ??= http
+      .post<{ accessToken: string }>('/auth/refresh')
+      .then((res) => {
+        useSession.getState().setAccessToken(res.data.accessToken);
+        return res.data.accessToken;
+      })
+      .finally(() => {
+        refreshInFlight = null;
+      });
+    return refreshInFlight;
   },
 
   /** Get current access token, throws if none */

@@ -2,10 +2,14 @@ import { z } from 'zod';
 
 const cleanUrl = (url?: string) => (url ? url.trim().replace(/\/+$/, '') : '');
 
+// Empty = same origin ("/api/..."), served through the Vite dev proxy or the Vercel rewrite
+// (vercel.json). Same-origin requests keep the HttpOnly refresh cookie first-party; calling the
+// backend host directly makes it a cross-site cookie that browsers drop (SameSite=Lax), so the
+// session could never be refreshed.
 const getApiBaseUrl = (input?: string) => {
   const url = cleanUrl(input);
   if (url && url.startsWith('http')) return url;
-  return 'https://leo-chat-backend.onrender.com';
+  return '';
 };
 
 const getWsUrl = (input?: string) => {

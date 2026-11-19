@@ -97,9 +97,16 @@ const isJwtExpiredOrExpiring = (token: string): boolean => {
   }
 };
 
+const isAuthRejection = (err: unknown) => {
+  const status = (err as { status?: number } | null)?.status;
+  return status === 401 || status === 403;
+};
+
 class WebSocketService {
   private client: Client | null = null;
   public isConnected = false;
+  // Set when the server rejected our CONNECT; the next attempt must get a new token first.
+  private forceTokenRefresh = false;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private ackListeners = new Set<(ack: any) => void>();
   private errorListeners = new Set<(err: WsError) => void>();
@@ -129,22 +136,30 @@ class WebSocketService {
         : {},
       beforeConnect: async () => {
         let currentToken = useSession.getState().accessToken;
-        // Refresh token through HTTP before reconnecting after expiry
-        if (!currentToken || isJwtExpiredOrExpiring(currentToken)) {
+        const needsRefresh =
+          this.forceTokenRefresh || !currentToken || isJwtExpiredOrExpiring(currentToken);
+        if (needsRefresh) {
+          const { authSession } = await import('@/features/auth/lib/auth-session');
           try {
-            const { authSession } = await import('@/features/auth/lib/auth-session');
-            if (authSession.mightBeActive()) {
-              currentToken = await authSession.refresh();
+            currentToken = authSession.mightBeActive() ? await authSession.refresh() : null;
+            this.forceTokenRefresh = false;
+          } catch (err) {
+            if (isAuthRejection(err)) {
+              // Session is gone (refresh cookie missing/expired): stop reconnecting and sign out
+              // instead of retrying with a dead token every few seconds.
+              currentToken = null;
             }
-          } catch {
-            // Ignore if refresh cookie expired
+            // Network/server errors: keep the current token and let the reconnect retry.
           }
         }
-        if (currentToken) {
-          this.client!.connectHeaders = {
-            Authorization: `Bearer ${currentToken}`,
-          };
+        if (!currentToken) {
+          const { authSession } = await import('@/features/auth/lib/auth-session');
+          authSession.expire(); // deactivates this client, so stompjs will not connect
+          return;
         }
+        this.client!.connectHeaders = {
+          Authorization: `Bearer ${currentToken}`,
+        };
       },
       reconnectDelay: 5000,
       heartbeatIncoming: 10000,
@@ -201,12 +216,8 @@ class WebSocketService {
           frame.headers['message']?.toLowerCase().includes('unauthorized') ||
           frame.headers['message']?.toLowerCase().includes('forbidden')
         ) {
-          // Token expired, refresh token through HTTP before next reconnect
-          import('@/features/auth/lib/auth-session').then(({ authSession }) => {
-            if (authSession.mightBeActive()) {
-              authSession.refresh().catch(() => {});
-            }
-          });
+          // Get a new token before the next reconnect (done in beforeConnect, one refresh only).
+          this.forceTokenRefresh = true;
         }
       },
       onWebSocketClose: () => {

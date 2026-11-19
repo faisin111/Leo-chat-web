@@ -5,7 +5,6 @@ export interface AiModelInfo {
   name: string;
   tagline: string;
   badge: string;
-  contextWindow: string;
   icon: 'sparkles' | 'zap' | 'code' | 'brain';
 }
 

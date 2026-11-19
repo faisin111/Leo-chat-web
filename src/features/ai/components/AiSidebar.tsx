@@ -142,7 +142,7 @@ export const AiSidebar = ({ isMobile = false, onClose }: AiSidebarProps) => {
                   {selectedModel.name}
                 </p>
                 <span className="text-[9px] px-1 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
-                  {selectedModel.contextWindow}
+                  {selectedModel.badge}
                 </span>
               </div>
             </div>
@@ -179,7 +179,7 @@ export const AiSidebar = ({ isMobile = false, onClose }: AiSidebarProps) => {
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-semibold">{model.name}</p>
                     <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-zinc-100 dark:bg-zinc-800 font-mono">
-                      {model.contextWindow}
+                      {model.badge}
                     </span>
                   </div>
                   <p className="text-[10px] text-zinc-400 leading-tight pt-0.5">{model.tagline}</p>

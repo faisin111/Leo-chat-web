@@ -2,8 +2,6 @@ import { useEffect, useState, type ReactNode } from 'react';
 import {
   Copy,
   Check,
-  ThumbsUp,
-  ThumbsDown,
   RotateCw,
   Volume2,
   ChevronDown,
@@ -14,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { AiMessage } from '../types/ai.types';
 import { useAiStore } from '../store/ai.store';
+import { getModelById } from '../lib/ai-models';
 import { AiRotatingIcon } from './AiRotatingIcon';
 import { toast } from 'sonner';
 
@@ -26,7 +25,6 @@ export const AiMessageItem = ({ message, isLatest }: AiMessageItemProps) => {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
   const [isThinkingExpanded, setIsThinkingExpanded] = useState(false);
-  const [feedback, setFeedback] = useState<'like' | 'dislike' | null>(null);
 
   const regenerateResponse = useAiStore((s) => s.regenerateResponse);
   const isGenerating = useAiStore((s) => s.isGenerating);
@@ -64,15 +62,6 @@ export const AiMessageItem = ({ message, isLatest }: AiMessageItemProps) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleFeedback = (type: 'like' | 'dislike') => {
-    if (feedback === type) {
-      setFeedback(null);
-    } else {
-      setFeedback(type);
-      toast.success(type === 'like' ? 'Feedback recorded! Thank you.' : 'Feedback recorded.');
-    }
-  };
-
   // User Message (ChatGPT / Gemini style right-aligned bubble)
   if (isUser) {
     return (
@@ -103,9 +92,11 @@ export const AiMessageItem = ({ message, isLatest }: AiMessageItemProps) => {
               <span className="font-semibold text-xs sm:text-sm text-zinc-900 dark:text-white">
                 LeoChat AI
               </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 font-mono">
-                {message.modelId === 'leo-reasoner' ? 'Reasoning R1' : '4.5 Ultra'}
-              </span>
+              {message.modelId && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 font-mono">
+                  {getModelById(message.modelId).name}
+                </span>
+              )}
             </div>
             <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">
               {new Date(message.createdAt).toLocaleTimeString([], {
@@ -187,32 +178,6 @@ export const AiMessageItem = ({ message, isLatest }: AiMessageItemProps) => {
                 <Copy className="w-3.5 h-3.5" />
               )}
               <span>{copied ? 'Copied' : 'Copy'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleFeedback('like')}
-              className={`p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer ${
-                feedback === 'like'
-                  ? 'text-zinc-900 dark:text-white bg-zinc-200 dark:bg-zinc-700'
-                  : ''
-              }`}
-              title="Good response"
-            >
-              <ThumbsUp className="w-3.5 h-3.5" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleFeedback('dislike')}
-              className={`p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer ${
-                feedback === 'dislike'
-                  ? 'text-zinc-900 dark:text-white bg-zinc-200 dark:bg-zinc-700'
-                  : ''
-              }`}
-              title="Bad response"
-            >
-              <ThumbsDown className="w-3.5 h-3.5" />
             </button>
 
             {isLatest && !isGenerating && (

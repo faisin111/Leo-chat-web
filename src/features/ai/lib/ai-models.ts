@@ -1,11 +1,12 @@
 import type { AiModelInfo } from '../types/ai.types';
 
+// These are modes of the backend's Gemini assistant (see the backend's AiService), not separate
+// products. Names and taglines describe only what the server actually does for each mode.
 export const DEFAULT_AI_MODEL: AiModelInfo = {
   id: 'leo-ultra',
-  name: 'LeoChat 4.5 Ultra',
-  tagline: 'Flagship reasoning & multi-modal intelligence',
+  name: 'Leo Standard',
+  tagline: 'Balanced answers for everyday questions',
   badge: 'Default',
-  contextWindow: '128k',
   icon: 'sparkles',
 };
 
@@ -13,26 +14,23 @@ export const AI_MODELS: AiModelInfo[] = [
   DEFAULT_AI_MODEL,
   {
     id: 'leo-reasoner',
-    name: 'Leo Reasoning R1',
-    tagline: 'Deep chain-of-thought for science, math & logic',
-    badge: 'Deep Think',
-    contextWindow: '64k',
+    name: 'Leo Reasoning',
+    tagline: 'Thinks step by step before answering',
+    badge: 'Reasoning',
     icon: 'brain',
   },
   {
     id: 'leo-coder',
-    name: 'Leo Code Architect',
-    tagline: 'Expert full-stack programming, architecture & review',
+    name: 'Leo Coder',
+    tagline: 'Focused on code and technical answers',
     badge: 'Coding',
-    contextWindow: '128k',
     icon: 'code',
   },
   {
     id: 'leo-fast',
-    name: 'Leo Flash 3.5',
-    tagline: 'Instant low-latency responses for quick tasks',
-    badge: 'High Speed',
-    contextWindow: '32k',
+    name: 'Leo Fast',
+    tagline: 'Quicker replies for short tasks',
+    badge: 'Fast',
     icon: 'zap',
   },
 ];

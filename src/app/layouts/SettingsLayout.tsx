@@ -3,11 +3,14 @@ import { Link, useLocation } from 'react-router-dom';
 import { AnimatedOutlet } from './AnimatedOutlet';
 import { User, MonitorSmartphone, Shield, Ban, Palette } from 'lucide-react';
 import { useSession } from '@/features/auth';
-import { env } from '@/shared/config/env';
+import { useSessions } from '@/features/users';
 
 export default function SettingsLayout() {
   const location = useLocation();
   const user = useSession((s) => s.user);
+  const { data: sessions } = useSessions();
+  const activeSessionCount =
+    sessions?.filter((session) => session.active !== false && !session.logoutAt).length ?? 0;
 
   const getInitials = (name: string) => name.substring(0, 2).toUpperCase();
 
@@ -30,7 +33,7 @@ export default function SettingsLayout() {
                 {user?.displayName || 'User'}
               </p>
               <p className="text-xs text-muted-foreground truncate">
-                {user?.username || '@username'}
+                {user?.username ? `@${user.username}` : null}
               </p>
             </div>
           </div>
@@ -47,7 +50,7 @@ export default function SettingsLayout() {
               icon={<MonitorSmartphone className="w-4 h-4" />}
               label="Sessions"
               active={location.pathname.startsWith('/app/settings/sessions')}
-              badge="3"
+              badge={activeSessionCount > 0 ? String(activeSessionCount) : undefined}
             />
             <SettingsNavItem
               to="/app/settings/security"
@@ -68,21 +71,6 @@ export default function SettingsLayout() {
               active={location.pathname.startsWith('/app/settings/appearance')}
             />
           </nav>
-        </div>
-
-        <div className="hidden md:block mt-auto p-6">
-          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300">
-            <p className="text-xs font-bold mb-1 flex items-center">
-              <span className="relative flex h-2 w-2 mr-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              Account ACTIVE
-            </p>
-            <p className="text-[10px] opacity-80">
-              Connected securely · LeoChat Pro v{env.APP_VERSION}
-            </p>
-          </div>
         </div>
       </aside>
 

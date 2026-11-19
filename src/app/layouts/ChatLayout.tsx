@@ -7,6 +7,7 @@ import { Avatar } from '@/shared/ui/avatar';
 import { useConversations, useConversationsTyping, useTypingStore } from '@/features/chat';
 import { formatDistanceToNow } from 'date-fns';
 import { Link, useLocation } from 'react-router-dom';
+import { useRealtimeStatus } from '@/shared/api/use-realtime-status';
 
 type FilterType = 'all' | 'unread' | 'groups' | 'archived';
 
@@ -25,6 +26,7 @@ export default function ChatLayout() {
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useConversations(debouncedQuery);
   const location = useLocation();
+  const isRealtimeConnected = useRealtimeStatus();
 
   const allConversations = useMemo(() => data?.pages.flatMap((page) => page.items) || [], [data]);
 
@@ -58,12 +60,19 @@ export default function ChatLayout() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-xl font-bold tracking-tight text-foreground">Messages</h2>
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5 mt-0.5">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                Online
+              <p
+                className={`text-xs font-medium flex items-center gap-1.5 mt-0.5 ${
+                  isRealtimeConnected
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-amber-600 dark:text-amber-400'
+                }`}
+              >
+                <span
+                  className={`inline-flex rounded-full h-2 w-2 ${
+                    isRealtimeConnected ? 'bg-emerald-500' : 'bg-amber-500'
+                  }`}
+                />
+                {isRealtimeConnected ? 'Connected' : 'Connecting…'}
               </p>
             </div>
             <Link

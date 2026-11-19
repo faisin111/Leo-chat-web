@@ -154,7 +154,7 @@ export const AiChatArea = ({ onOpenMobileSidebar }: AiChatAreaProps) => {
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-semibold">{model.name}</p>
                         <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-zinc-200 dark:bg-zinc-800 font-mono">
-                          {model.contextWindow}
+                          {model.badge}
                         </span>
                       </div>
                       <p className="text-[10px] text-zinc-400 leading-tight pt-0.5">

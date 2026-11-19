@@ -4,9 +4,9 @@ import { Skeleton } from '@/shared/ui/skeleton';
 import { Avatar } from '@/shared/ui/avatar';
 import { Search, UserPlus, ArrowLeft, Loader2, MessageSquarePlus, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useStartDirectMessage } from '@/features/chat';
-import { useSearchUsers, type UserSearchItem } from '@/features/users';
+import { useSearchUsers, usePresence, type UserSearchItem } from '@/features/users';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export const NewChatPage = () => {
@@ -22,6 +22,9 @@ export const NewChatPage = () => {
   }, [searchQuery]);
 
   const { data: users, isLoading } = useSearchUsers(debouncedQuery);
+  // Online dots come from the presence API, not the account status on search results.
+  const userIds = useMemo(() => users?.map((u) => u.id) ?? [], [users]);
+  const { isOnline } = usePresence(userIds);
 
   const handleStartChat = () => {
     if (!selectedUser) return;
@@ -78,7 +81,7 @@ export const NewChatPage = () => {
             key={user.id}
             name={user.displayName || user.username}
             handle={`@${user.username}`}
-            status={user.status}
+            isOnline={isOnline(user.id)}
             avatarUrl={user.profilePictureUrl}
             initials={(user.displayName || user.username).substring(0, 2).toUpperCase()}
             color="bg-primary/10 text-primary"
@@ -121,7 +124,7 @@ export const NewChatPage = () => {
                         .substring(0, 2)
                         .toUpperCase()}
                     />
-                    {selectedUser.status === 'ONLINE' && (
+                    {isOnline(selectedUser.id) && (
                       <div className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-4 border-card rounded-full" />
                     )}
                   </div>
@@ -170,8 +173,7 @@ export const NewChatPage = () => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function UserRow({ name, handle, status, initials, color, onClick, isPending, avatarUrl }: any) {
-  const isOnline = status === 'ONLINE';
+function UserRow({ name, handle, isOnline, initials, color, onClick, isPending, avatarUrl }: any) {
   return (
     <div
       onClick={onClick}

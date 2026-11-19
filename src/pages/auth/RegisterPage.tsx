@@ -395,7 +395,7 @@ export const RegisterPage = () => {
               {
                 icon: <Shield className="w-5 h-5 text-emerald-400" />,
                 title: 'Private & protected',
-                desc: 'Private direct messages remain confidential and strictly encrypted.',
+                desc: 'Direct messages are visible only to the people in the conversation.',
               },
               {
                 icon: <RefreshCcw className="w-5 h-5 text-sky-400" />,
@@ -416,23 +416,6 @@ export const RegisterPage = () => {
                 </div>
               </div>
             ))}
-          </div>
-
-          <div className="mt-8 flex items-center gap-3 pt-6 border-t border-white/10">
-            <div className="flex -space-x-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 border-2 border-slate-900 flex items-center justify-center text-[10px] font-bold">
-                MC
-              </div>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 border-2 border-slate-900 flex items-center justify-center text-[10px] font-bold">
-                JL
-              </div>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 border-2 border-slate-900 flex items-center justify-center text-[10px] font-bold">
-                NK
-              </div>
-            </div>
-            <span className="text-xs text-white/70 font-medium">
-              Joined by thousands of focused teams
-            </span>
           </div>
         </div>
       </div>

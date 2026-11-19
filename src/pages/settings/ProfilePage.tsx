@@ -5,7 +5,6 @@ import { Avatar } from '@/shared/ui/avatar';
 import { useSession, isAdminRole } from '@/features/auth';
 import {
   MonitorSmartphone,
-  Bell,
   Edit2,
   X,
   Loader2,
@@ -20,7 +19,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { showApiError } from '@/shared/api/api-error';
 import { Link } from 'react-router-dom';
-import { useUpdateProfile, useDeactivateAccount } from '@/features/users';
+import { useUpdateProfile, useDeactivateAccount, useSessions } from '@/features/users';
 // eslint-disable-next-line no-restricted-imports
 import { useResendVerification } from '@/features/auth/api/use-resend-verification';
 import { mediaApi } from '@/features/media';
@@ -50,6 +49,9 @@ export const ProfilePage = () => {
   const deactivateAccount = useDeactivateAccount();
   const resendVerification = useResendVerification();
   const isAdmin = isAdminRole(user?.role);
+  const { data: sessions, isLoading: sessionsLoading } = useSessions();
+  const activeSessionCount =
+    sessions?.filter((session) => session.active !== false && !session.logoutAt).length ?? 0;
 
   useEffect(() => {
     return () => {
@@ -362,24 +364,20 @@ export const ProfilePage = () => {
                   You&apos;re signed in on active devices. Review anything you don&apos;t recognize.
                 </p>
               </div>
-              <Button variant="outline" size="sm" className="rounded-xl asChild">
+              <Button variant="outline" size="sm" asChild className="rounded-xl">
                 <Link to="/app/settings/sessions">View all</Link>
               </Button>
             </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center p-3 rounded-xl border border-border bg-muted/30">
-                <div className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center shadow-xs mr-4 shrink-0 text-muted-foreground">
-                  <MonitorSmartphone className="w-5 h-5" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground">Current Device</p>
-                  <p className="text-xs text-muted-foreground">Active session · LeoChat Web</p>
-                </div>
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase">
-                  Current
-                </span>
+            <div className="flex items-center p-3 rounded-xl border border-border bg-muted/30">
+              <div className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center shadow-xs mr-4 shrink-0 text-muted-foreground">
+                <MonitorSmartphone className="w-5 h-5" />
               </div>
+              <p className="text-sm font-semibold text-foreground">
+                {sessionsLoading
+                  ? 'Loading sessions…'
+                  : `${activeSessionCount} active session${activeSessionCount === 1 ? '' : 's'}`}
+              </p>
             </div>
           </div>
 
@@ -437,31 +435,6 @@ export const ProfilePage = () => {
 
         {/* Right Column */}
         <div className="space-y-6">
-          {/* Notifications */}
-          <div className="bg-card rounded-2xl p-6 border border-border shadow-xs">
-            <h3 className="font-semibold text-foreground mb-1">Notifications</h3>
-            <p className="text-xs text-muted-foreground mb-6">
-              Choose how LeoChat gets your attention.
-            </p>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Bell className="w-4 h-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Direct messages</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      Notify for every new direct message
-                    </p>
-                  </div>
-                </div>
-                <div className="w-8 h-5 rounded-full bg-primary flex items-center p-0.5 justify-end">
-                  <div className="w-4 h-4 bg-white rounded-full shadow-xs"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Security */}
           <div className="bg-card rounded-2xl p-6 border border-border shadow-xs">
             <div className="flex justify-between items-center mb-6">
@@ -469,25 +442,15 @@ export const ProfilePage = () => {
                 <h3 className="font-semibold text-foreground mb-1">Security</h3>
                 <p className="text-xs text-muted-foreground">Keep control of account access.</p>
               </div>
-              <Button variant="outline" size="sm" className="rounded-xl asChild">
+              <Button variant="outline" size="sm" asChild className="rounded-xl">
                 <Link to="/app/settings/security">Manage</Link>
               </Button>
             </div>
 
             <div className="space-y-4">
-              <div className="flex justify-between items-center pb-4 border-b border-border">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Two-factor authentication</p>
-                  <p className="text-[10px] text-muted-foreground">Authenticator app enabled</p>
-                </div>
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase">
-                  On
-                </span>
-              </div>
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-sm font-medium text-foreground">Password</p>
-                  <p className="text-[10px] text-muted-foreground">Updated recently</p>
                 </div>
                 <Link
                   to="/app/settings/security"
@@ -504,30 +467,11 @@ export const ProfilePage = () => {
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h3 className="font-semibold text-foreground mb-1">Blocked users</h3>
-                <p className="text-xs text-muted-foreground">
-                  Blocked people can&apos;t message you.
-                </p>
+                <p className="text-xs text-muted-foreground">People you have blocked.</p>
               </div>
-              <Button variant="outline" size="sm" className="rounded-xl asChild">
+              <Button variant="outline" size="sm" asChild className="rounded-xl">
                 <Link to="/app/settings/blocked">View all</Link>
               </Button>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
-                    RB
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Riley Brooks</p>
-                    <p className="text-[10px] text-muted-foreground">Blocked Aug 15</p>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-xl asChild">
-                  <Link to="/app/settings/blocked">Manage</Link>
-                </Button>
-              </div>
             </div>
           </div>
         </div>

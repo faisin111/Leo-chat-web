@@ -26,7 +26,7 @@ export const ForgotPasswordPage = () => {
   const mutation = useMutation({
     mutationFn: authApi.forgotPassword,
     onSuccess: (data: unknown) => {
-      toast.success('Email verified!', { duration: 3000 });
+      toast.success('Password reset requested', { duration: 3000 });
       let token = typeof data === 'string' ? data : (data as { token?: string })?.token;
 
       // If the backend returns it in a dev mode message string: "DEV MODE TOKEN: <token>"

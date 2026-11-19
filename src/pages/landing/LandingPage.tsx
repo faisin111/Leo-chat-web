@@ -12,8 +12,6 @@ import {
   Sun,
   Moon,
   Lock,
-  Headphones,
-  CheckCheck,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
@@ -43,9 +41,6 @@ export const LandingPage = () => {
             </a>
             <a href="#security" className="hover:text-foreground transition-colors">
               Security & Privacy
-            </a>
-            <a href="#preview" className="hover:text-foreground transition-colors">
-              Live Preview
             </a>
           </nav>
 
@@ -135,121 +130,16 @@ export const LandingPage = () => {
 
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 text-xs sm:text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5 font-medium">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> Free forever tier
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> Direct &amp; group
+                chats
               </span>
               <span className="flex items-center gap-1.5 font-medium">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> TLS 1.3 encryption
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> Voice &amp; video
+                calls
               </span>
               <span className="flex items-center gap-1.5 font-medium">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> Ready in 30 seconds
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> AI assistant
               </span>
-            </div>
-          </div>
-
-          {/* Right Live UI Mockup Preview */}
-          <div id="preview" className="flex-1 w-full max-w-xl relative z-10 lg:translate-x-6">
-            <div className="bg-card/90 backdrop-blur-xl border border-border shadow-2xl rounded-3xl p-5 sm:p-6 w-full relative transition-all duration-500 hover:shadow-primary/10">
-              {/* Window Header */}
-              <div className="flex items-center justify-between pb-4 mb-4 border-b border-border/80">
-                <div className="flex items-center space-x-3">
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground flex items-center justify-center font-bold text-sm shadow-sm">
-                      DS
-                    </div>
-                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-card rounded-full" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-foreground">Design Systems Core</h3>
-                    <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> 8
-                      active now
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-1.5">
-                  <div className="w-3 h-3 rounded-full bg-rose-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                </div>
-              </div>
-
-              {/* Chat Messages Mockup */}
-              <div className="space-y-4 py-2">
-                {/* Incoming message */}
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-600 dark:text-orange-400 font-bold text-xs flex items-center justify-center shrink-0">
-                    MC
-                  </div>
-                  <div className="max-w-[80%] space-y-1">
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-semibold text-xs text-foreground">Maya Chen</span>
-                      <span className="text-[10px] text-muted-foreground">10:42 AM</span>
-                    </div>
-                    <div className="bg-muted p-3 rounded-2xl rounded-tl-sm text-xs text-foreground leading-relaxed shadow-2xs">
-                      The new dark theme and gradient tokens look incredible. All micro-interactions
-                      feel tactile and responsive! ✨
-                    </div>
-                  </div>
-                </div>
-
-                {/* Voice note incoming snippet */}
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-600 dark:text-purple-400 font-bold text-xs flex items-center justify-center shrink-0">
-                    AR
-                  </div>
-                  <div className="max-w-[80%] space-y-1">
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-semibold text-xs text-foreground">Alex Rivera</span>
-                      <span className="text-[10px] text-muted-foreground">10:43 AM</span>
-                    </div>
-                    <div className="bg-muted p-2.5 rounded-2xl rounded-tl-sm flex items-center gap-3 text-xs shadow-2xs">
-                      <div className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
-                        <Headphones className="w-3.5 h-3.5" />
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="w-1 h-3 bg-primary rounded-full animate-pulse" />
-                        <span className="w-1 h-5 bg-primary rounded-full" />
-                        <span className="w-1 h-2 bg-primary/60 rounded-full" />
-                        <span className="w-1 h-4 bg-primary rounded-full" />
-                        <span className="w-1 h-2 bg-primary/40 rounded-full" />
-                      </div>
-                      <span className="text-[11px] font-mono text-muted-foreground">0:18</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Outgoing message with gradient flare */}
-                <div className="flex flex-col items-end space-y-1">
-                  <div className="max-w-[85%] bg-gradient-to-r from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground p-3 rounded-2xl rounded-tr-sm text-xs leading-relaxed shadow-md shadow-primary/20">
-                    Shipped the live build to production! Everyone can try the themes now. 🚀
-                  </div>
-                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground pr-1">
-                    <span>10:44 AM</span>
-                    <CheckCheck className="w-3.5 h-3.5 text-primary" />
-                  </div>
-                </div>
-
-                {/* Typing indicator */}
-                <div className="flex items-center gap-2 text-xs text-muted-foreground pl-11 pt-1">
-                  <span className="font-medium text-[11px]">Naveen is typing</span>
-                  <div className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Input Dock Mockup */}
-              <div className="mt-4 pt-3 border-t border-border flex items-center gap-2">
-                <div className="flex-1 bg-background border border-border rounded-xl px-3 py-2 text-xs text-muted-foreground">
-                  Reply to Design Systems Core...
-                </div>
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] text-primary-foreground flex items-center justify-center shadow-xs">
-                  <ArrowRight className="w-4 h-4" />
-                </div>
-              </div>
             </div>
           </div>
         </section>
@@ -263,7 +153,7 @@ export const LandingPage = () => {
               </div>
               <div>
                 <h4 className="text-sm font-bold text-foreground">Instant Delivery</h4>
-                <p className="text-xs text-muted-foreground">Sub-50ms WebSocket sync</p>
+                <p className="text-xs text-muted-foreground">Real-time WebSocket sync</p>
               </div>
             </div>
 
@@ -273,7 +163,7 @@ export const LandingPage = () => {
               </div>
               <div>
                 <h4 className="text-sm font-bold text-foreground">Strict Privacy</h4>
-                <p className="text-xs text-muted-foreground">End-to-end encrypted</p>
+                <p className="text-xs text-muted-foreground">Encrypted in transit</p>
               </div>
             </div>
 
@@ -397,7 +287,7 @@ export const LandingPage = () => {
                   </li>
                   <li className="flex items-center gap-3">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span>Granular user blocking and spam prevention controls</span>
+                    <span>User reporting and admin moderation tools</span>
                   </li>
                   <li className="flex items-center gap-3">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />

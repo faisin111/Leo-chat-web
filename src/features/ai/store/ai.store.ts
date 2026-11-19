@@ -252,7 +252,8 @@ export const useAiStore = create<AiState>((set, get) => ({
               role: m.aiGenerated ? 'assistant' : 'user',
               content: m.content || '',
               createdAt: m.createdAt,
-              modelId: m.aiGenerated ? session.modelId : undefined,
+              // The server does not store which mode produced an answer; don't guess.
+              modelId: undefined,
             }));
           const updatedSessions = get().sessions.map((s) =>
             s.id === id ? { ...s, messages: mapped } : s,

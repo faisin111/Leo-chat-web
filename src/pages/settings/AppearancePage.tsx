@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useTheme } from 'next-themes';
 import {
   Monitor,
@@ -53,20 +52,6 @@ export const AppearancePage = () => {
   const setAnimations = useAppearanceStore((s) => s.setAnimations);
 
   const resetToDefaults = useAppearanceStore((s) => s.resetToDefaults);
-
-  // Interactive live preview reaction counts
-  const [reactionCounts, setReactionCounts] = useState<{ [key: string]: number }>({
-    '🔥': 5,
-    '❤️': 3,
-    '✨': 2,
-  });
-
-  const handleReactionClick = (emoji: string) => {
-    setReactionCounts((prev) => ({
-      ...prev,
-      [emoji]: (prev[emoji] || 0) + 1,
-    }));
-  };
 
   const handleReset = () => {
     resetToDefaults();
@@ -347,15 +332,12 @@ export const AppearancePage = () => {
           <div>
             <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-primary" />
-              <span>Live UI Preview Sandbox</span>
+              <span>Preview</span>
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Real-time interactive preview of your selected theme, gradients, and bubble styling.
+              Sample messages showing your selected theme and bubble style.
             </p>
           </div>
-          <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full self-start">
-            ● Live Synchronized
-          </span>
         </div>
 
         {/* Mini Chat Card Container */}
@@ -364,21 +346,9 @@ export const AppearancePage = () => {
           <div className="flex items-center justify-between pb-3 border-b border-border/60">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-[hsl(var(--primary-gradient-to))] text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                LC
+                A
               </div>
-              <div>
-                <div className="font-semibold text-xs text-foreground flex items-center gap-1.5">
-                  <span>LeoChat Studio</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                </div>
-                <div className="text-[10px] text-muted-foreground">Active in real-time</div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-primary to-[hsl(var(--primary-gradient-to))] text-primary-foreground shadow-xs">
-                3 Unread
-              </span>
+              <div className="font-semibold text-xs text-foreground">Sample chat</div>
             </div>
           </div>
 
@@ -387,15 +357,10 @@ export const AppearancePage = () => {
             {/* Incoming Bubble */}
             <div className="flex items-start gap-2.5 max-w-[85%]">
               <div className="w-7 h-7 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
-                AI
+                B
               </div>
-              <div>
-                <div className="p-3 rounded-2xl rounded-tl-xs bg-muted text-foreground text-xs leading-relaxed border border-border/50 shadow-xs">
-                  How do you like the new interface gradients and dark mode styling? ✨
-                </div>
-                <span className="text-[10px] text-muted-foreground ml-1 mt-1 inline-block">
-                  12:42 PM
-                </span>
+              <div className="p-3 rounded-2xl rounded-tl-xs bg-muted text-foreground text-xs leading-relaxed border border-border/50 shadow-xs">
+                Sample incoming message
               </div>
             </div>
 
@@ -410,24 +375,7 @@ export const AppearancePage = () => {
                       : 'bg-primary/20 text-foreground border border-primary/40 font-medium'
                 }`}
               >
-                The matching dark theme with glowing accents looks incredible! Highly professional
-                and ultra-modern 🚀
-              </div>
-
-              {/* Interactive Reaction Pills */}
-              <div className="flex items-center gap-1.5 mt-2">
-                {Object.entries(reactionCounts).map(([emoji, count]) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    onClick={() => handleReactionClick(emoji)}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-muted hover:bg-muted/80 border border-border/80 transition-transform active:scale-90 cursor-pointer shadow-xs"
-                    title={`React ${emoji}`}
-                  >
-                    <span>{emoji}</span>
-                    <span className="text-[10px] text-muted-foreground font-mono">{count}</span>
-                  </button>
-                ))}
+                Sample outgoing message in your bubble style
               </div>
             </div>
           </div>
@@ -437,13 +385,12 @@ export const AppearancePage = () => {
             <div className="flex-1 px-3 py-2 rounded-xl bg-muted/60 border border-border/60 text-xs text-muted-foreground">
               Type your message here...
             </div>
-            <button
-              type="button"
-              className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-[hsl(var(--primary-gradient-to))] text-white flex items-center justify-center shadow-md shadow-primary/25 hover:scale-105 active:scale-95 transition-all cursor-pointer"
-              title="Send test message"
+            <div
+              aria-hidden="true"
+              className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-[hsl(var(--primary-gradient-to))] text-white flex items-center justify-center shadow-md shadow-primary/25"
             >
               <Send className="w-3.5 h-3.5" />
-            </button>
+            </div>
           </div>
         </div>
       </section>
@@ -602,74 +549,6 @@ export const AppearancePage = () => {
               <option value="reduced">Reduced</option>
             </select>
           </div>
-        </div>
-      </section>
-
-      {/* 6. Snackbar & Toast Notification Showcase */}
-      <section className="bg-card rounded-2xl border border-border/80 p-5 sm:p-6 shadow-xs">
-        <div className="mb-4">
-          <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <span>Snackbar & Toast System</span>
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Test the redesigned glassmorphic snackbars with vibrant gradient badges and status
-            glows.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Button
-            variant="outline"
-            onClick={() =>
-              toast.success('Settings saved successfully!', {
-                description: 'All color themes and preferences applied across your session.',
-              })
-            }
-            className="flex items-center gap-2 text-xs border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400"
-          >
-            <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" />
-            <span>Preview Success</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={() =>
-              toast.error('Network request failed', {
-                description: 'Failed to synchronize with server. Retrying in 5 seconds...',
-              })
-            }
-            className="flex items-center gap-2 text-xs border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400"
-          >
-            <div className="w-2 h-2 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50" />
-            <span>Preview Error</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={() =>
-              toast.warning('Storage reaching capacity', {
-                description: 'You have used 85% of your available attachment media storage.',
-              })
-            }
-            className="flex items-center gap-2 text-xs border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-400"
-          >
-            <div className="w-2 h-2 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50" />
-            <span>Preview Warning</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={() =>
-              toast.info('New feature unlocked', {
-                description: 'You can now select custom dark surface depth under Appearance.',
-              })
-            }
-            className="flex items-center gap-2 text-xs border-sky-500/30 hover:bg-sky-500/10 hover:text-sky-600 dark:hover:text-sky-400"
-          >
-            <div className="w-2 h-2 rounded-full bg-sky-500 shadow-sm shadow-sky-500/50" />
-            <span>Preview Info</span>
-          </Button>
         </div>
       </section>
     </div>

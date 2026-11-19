@@ -1,4 +1,4 @@
-import { Code2, Layers, Lightbulb, Compass, ArrowRight, Brain, Globe, Shield } from 'lucide-react';
+import { Code2, Layers, Lightbulb, Compass, ArrowRight, Brain, Globe } from 'lucide-react';
 import { useAiStore } from '../store/ai.store';
 import { AiRotatingIcon } from './AiRotatingIcon';
 
@@ -13,13 +13,13 @@ const SUGGESTIONS = [
   {
     icon: <Layers className="w-4 h-4 text-zinc-900 dark:text-zinc-100" />,
     category: 'System Design',
-    prompt: 'Design a distributed WebRTC signaling architecture supporting 10,000 concurrent calls',
+    prompt: 'Design a WebRTC signaling architecture for group video calls',
     tag: 'High Scale',
   },
   {
     icon: <Lightbulb className="w-4 h-4 text-zinc-900 dark:text-zinc-100" />,
     category: 'Product Strategy',
-    prompt: 'Draft an executive launch checklist and viral feature hooks for LeoChat 2.0',
+    prompt: 'Draft a launch checklist for a new chat app feature',
     tag: 'Product',
   },
   {
@@ -59,15 +59,11 @@ export const AiEmptyState = () => {
       <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
         <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[11px] font-medium text-zinc-700 dark:text-zinc-300 shadow-sm">
           <Brain className="w-3.5 h-3.5" />
-          <span>Deep Reasoning R1</span>
+          <span>Reasoning mode</span>
         </span>
         <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[11px] font-medium text-zinc-700 dark:text-zinc-300 shadow-sm">
           <Globe className="w-3.5 h-3.5" />
-          <span>Live Web Search</span>
-        </span>
-        <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[11px] font-medium text-zinc-700 dark:text-zinc-300 shadow-sm">
-          <Shield className="w-3.5 h-3.5" />
-          <span>Encrypted Workspace</span>
+          <span>Web search</span>
         </span>
       </div>
 

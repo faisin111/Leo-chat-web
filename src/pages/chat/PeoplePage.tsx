@@ -29,11 +29,9 @@ import { useSession } from '@/features/auth';
 type FilterTab = 'ALL' | 'ONLINE' | 'VERIFIED' | 'WITH_BIO';
 type ViewMode = 'GRID' | 'LIST';
 
-const QUICK_DISCOVERY_TAGS = ['admin', 'alex', 'alice', 'john', 'sarah', 'dev', 'support'];
-
 export const PeoplePage = () => {
-  const [searchQuery, setSearchQuery] = useState('admin');
-  const [debouncedQuery, setDebouncedQuery] = useState('admin');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [activeTab, setActiveTab] = useState<FilterTab>('ALL');
   const [viewMode, setViewMode] = useState<ViewMode>('GRID');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -81,11 +79,6 @@ export const PeoplePage = () => {
 
   const handleMessage = (userId: string) => {
     startDm.mutate(userId);
-  };
-
-  const handleSelectQuickTag = (tag: string) => {
-    setSearchQuery(tag);
-    setDebouncedQuery(tag);
   };
 
   return (
@@ -154,7 +147,7 @@ export const PeoplePage = () => {
             >
               <div className="flex items-center space-x-3">
                 <ShieldCheck className="w-4 h-4" />
-                <span>Verified Accounts</span>
+                <span>Active Accounts</span>
               </div>
             </button>
 
@@ -271,24 +264,6 @@ export const PeoplePage = () => {
                   </button>
                 )}
               </div>
-
-              {/* Quick Tags / Discovery Recommendations */}
-              <div className="flex items-center flex-wrap gap-1.5 text-xs">
-                <span className="text-muted-foreground font-medium mr-1">Try searching:</span>
-                {QUICK_DISCOVERY_TAGS.map((tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => handleSelectQuickTag(tag)}
-                    className={`px-2.5 py-1 rounded-full border transition-all text-xs ${
-                      debouncedQuery.toLowerCase() === tag
-                        ? 'bg-primary text-primary-foreground border-primary font-medium shadow-xs'
-                        : 'bg-muted/70 text-muted-foreground border-border hover:bg-muted hover:text-foreground'
-                    }`}
-                  >
-                    @{tag}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* Status & Results Summary Bar */}
@@ -326,19 +301,8 @@ export const PeoplePage = () => {
                   Type 2 or more characters to search
                 </h3>
                 <p className="text-xs text-muted-foreground max-w-sm mx-auto mb-6">
-                  Search across registered users by their handle or display name, or tap a quick tag
-                  above to explore.
+                  Search across registered users by their handle or display name.
                 </p>
-                <div className="flex justify-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="gradient"
-                    onClick={() => handleSelectQuickTag('admin')}
-                    className="rounded-xl"
-                  >
-                    Search Admins
-                  </Button>
-                </div>
               </div>
             ) : filteredUsers.length === 0 ? (
               <div className="bg-card rounded-2xl p-12 border border-border text-center shadow-xs">
@@ -515,7 +479,7 @@ function UserGridCard({
 
         {/* Bio */}
         <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-4">
-          {user.bio || 'LeoChat community member.'}
+          {user.bio || <span className="italic">No bio</span>}
         </p>
       </div>
 
@@ -611,7 +575,7 @@ function UserListRow({
             </span>
           </div>
           <p className="text-xs text-muted-foreground truncate mt-0.5">
-            {user.bio || 'LeoChat member'}
+            {user.bio || <span className="italic">No bio</span>}
           </p>
         </div>
       </div>

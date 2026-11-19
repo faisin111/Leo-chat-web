@@ -110,39 +110,26 @@ export const LoginPage = () => {
           </Link>
         </div>
 
-        {/* Quote / Testimonial Box */}
+        {/* Product summary */}
         <div className="relative z-10 my-auto py-10 max-w-lg">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-white/90 backdrop-blur-md border border-white/15 mb-6">
             <Sparkles className="w-3.5 h-3.5 text-primary" />
-            Next-Gen Team Messenger
+            Team messenger
           </div>
 
-          <blockquote className="text-2xl lg:text-3xl font-bold leading-snug tracking-tight mb-8 text-white/95">
-            &ldquo;LeoChat keeps our decisions close to the work — zero clutter, real momentum, and
-            instant sync across all our devices.&rdquo;
-          </blockquote>
-
-          <div className="flex items-center gap-3.5 p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shadow-xl">
-            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-amber-400 text-white font-bold flex items-center justify-center text-sm shadow-md ring-2 ring-white/20 shrink-0">
-              MC
-            </div>
-            <div>
-              <p className="font-bold text-sm text-white">Maya Chen</p>
-              <p className="text-white/60 text-xs">Head of Product Design, Northstar Studio</p>
-            </div>
-          </div>
+          <p className="text-2xl lg:text-3xl font-bold leading-snug tracking-tight text-white/95">
+            Direct and group chats, voice and video calls, and an AI assistant in one place.
+          </p>
         </div>
 
         {/* Bottom Trust Indicators */}
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 text-xs text-white/60 pt-6 border-t border-white/10">
           <span className="flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-            End-to-end encrypted
+            Encrypted in transit (HTTPS)
           </span>
           <span>•</span>
-          <span>Ultra-low latency STOMP</span>
-          <span>•</span>
-          <span>Zero ad tracking</span>
+          <span>Real-time messaging</span>
         </div>
       </div>
 
@@ -246,20 +233,6 @@ export const LoginPage = () => {
               {errors.password && (
                 <p className="text-xs text-destructive font-medium">{errors.password.message}</p>
               )}
-            </div>
-
-            <div className="flex items-center space-x-2 pt-1">
-              <input
-                type="checkbox"
-                id="remember"
-                className="rounded border-border text-primary focus:ring-primary h-4 w-4 bg-card"
-              />
-              <Label
-                htmlFor="remember"
-                className="font-normal cursor-pointer text-xs text-muted-foreground"
-              >
-                Keep me signed in on this device
-              </Label>
             </div>
 
             <Button

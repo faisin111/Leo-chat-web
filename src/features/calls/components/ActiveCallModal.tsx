@@ -245,7 +245,6 @@ export const ActiveCallModal = () => {
                   <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-mono font-medium">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     <span className="tabular-nums">{formatDuration(durationSeconds)}</span>
-                    <span className="text-slate-400 font-sans text-[11px]">• HD WebRTC</span>
                   </span>
                 ) : isOutgoing ? (
                   <span className="flex items-center gap-1.5 text-xs text-sky-400 font-medium">

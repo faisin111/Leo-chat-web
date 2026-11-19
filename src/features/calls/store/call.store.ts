@@ -1,15 +1,23 @@
 import { create } from 'zustand';
 import { wsService } from '@/shared/api/websocket';
+import { env } from '@/shared/config/env';
 import { toast } from 'sonner';
 import { callSound } from '../lib/sound';
 import type { CallStatus, CallType, CallSignalEvent } from '../types/call.types';
 
+// STUN alone fails behind symmetric NAT (many mobile and corporate networks);
+// a TURN relay from env is added when configured.
 const ICE_SERVERS = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-  { urls: 'stun:stun2.l.google.com:19302' },
-  { urls: 'stun:stun3.l.google.com:19302' },
-  { urls: 'stun:stun4.l.google.com:19302' },
+  { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+  ...(env.TURN_URLS.length > 0
+    ? [
+        {
+          urls: env.TURN_URLS,
+          username: env.TURN_USERNAME,
+          credential: env.TURN_CREDENTIAL,
+        },
+      ]
+    : []),
 ];
 
 let globalPeerConnection: RTCPeerConnection | null = null;

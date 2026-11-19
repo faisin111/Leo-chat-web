@@ -1,11 +1,27 @@
 import { create } from 'zustand';
 import { aiApi } from '../api/ai-api';
 import { conversationsApi } from '@/features/chat';
+import { useSession } from '@/features/auth';
 import type { AiSession, AiMessage, AiModelId, AiAttachment } from '../types/ai.types';
 import { toast } from 'sonner';
 
-const STORAGE_KEY = 'leochat_ai_sessions_v2';
-const ACTIVE_KEY = 'leochat_ai_active_session_v2';
+// AI history is stored per user so a different account on the same browser
+// never sees another user's conversations. Nothing is persisted while signed out.
+const STORAGE_PREFIX = 'leochat_ai_sessions_v2';
+const ACTIVE_PREFIX = 'leochat_ai_active_session_v2';
+// Pre-scoping keys were shared by every account on the browser; drop them.
+const LEGACY_KEYS = [STORAGE_PREFIX, ACTIVE_PREFIX];
+
+let storageOwnerId: string | null = useSession.getState().user?.id ?? null;
+
+const storageKey = (ownerId: string) => `${STORAGE_PREFIX}:${ownerId}`;
+const activeKey = (ownerId: string) => `${ACTIVE_PREFIX}:${ownerId}`;
+
+try {
+  LEGACY_KEYS.forEach((key) => localStorage.removeItem(key));
+} catch {
+  // Ignore storage access errors
+}
 
 const isValidUuid = (id?: string | null): id is string => {
   if (!id) return false;
@@ -27,8 +43,9 @@ const createDefaultSession = (): AiSession => {
 };
 
 const loadInitialSessions = (): AiSession[] => {
+  if (!storageOwnerId) return [createDefaultSession()];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey(storageOwnerId));
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
@@ -47,8 +64,9 @@ const loadInitialSessions = (): AiSession[] => {
 };
 
 const loadInitialActiveId = (sessions: AiSession[]): string => {
+  if (!storageOwnerId) return sessions[0]?.id || 'welcome-session';
   try {
-    const raw = localStorage.getItem(ACTIVE_KEY);
+    const raw = localStorage.getItem(activeKey(storageOwnerId));
     if (raw && sessions.some((s) => s.id === raw)) return raw;
   } catch {
     // Ignore storage parse errors
@@ -57,9 +75,10 @@ const loadInitialActiveId = (sessions: AiSession[]): string => {
 };
 
 const persistState = (sessions: AiSession[], activeId: string | null) => {
+  if (!storageOwnerId) return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-    if (activeId) localStorage.setItem(ACTIVE_KEY, activeId);
+    localStorage.setItem(storageKey(storageOwnerId), JSON.stringify(sessions));
+    if (activeId) localStorage.setItem(activeKey(storageOwnerId), activeId);
   } catch {
     // Ignore storage quota errors
   }
@@ -454,3 +473,17 @@ export const useAiStore = create<AiState>((set, get) => ({
     persistState(nextSessions, activeSessionId);
   },
 }));
+
+// Swap AI history whenever the signed-in user changes (login, logout, expiry).
+useSession.subscribe((state) => {
+  const nextOwnerId = state.user?.id ?? null;
+  if (nextOwnerId === storageOwnerId) return;
+  storageOwnerId = nextOwnerId;
+  const sessions = loadInitialSessions();
+  useAiStore.setState({
+    sessions,
+    activeSessionId: loadInitialActiveId(sessions),
+    isGenerating: false,
+    serverConversationId: null,
+  });
+});

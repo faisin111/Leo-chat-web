@@ -21,6 +21,10 @@ const schema = z.object({
   VITE_APP_ENV: z.enum(['local', 'staging', 'prod']).default('prod'),
   VITE_SENTRY_DSN: z.string().optional(),
   VITE_MAX_UPLOAD_MB: z.coerce.number().default(10),
+  // Comma-separated TURN URLs, e.g. "turn:turn.example.com:3478,turns:turn.example.com:5349"
+  VITE_TURN_URLS: z.string().optional(),
+  VITE_TURN_USERNAME: z.string().optional(),
+  VITE_TURN_CREDENTIAL: z.string().optional(),
 });
 
 const parsed = schema.parse(import.meta.env);
@@ -35,4 +39,10 @@ export const env = {
   SENTRY_DSN: parsed.VITE_SENTRY_DSN,
   MAX_UPLOAD_MB: parsed.VITE_MAX_UPLOAD_MB,
   APP_VERSION: '1.0.0',
+  TURN_URLS: (parsed.VITE_TURN_URLS ?? '')
+    .split(',')
+    .map((u) => u.trim())
+    .filter(Boolean),
+  TURN_USERNAME: parsed.VITE_TURN_USERNAME,
+  TURN_CREDENTIAL: parsed.VITE_TURN_CREDENTIAL,
 };

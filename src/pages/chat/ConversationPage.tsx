@@ -308,8 +308,10 @@ export const ConversationPage = () => {
   }, [isAttachmentMenuOpen]);
 
   useEffect(() => {
+    // `fallbackConversationId` is only set for sources already scoped to this
+    // conversation (its topic). Unscoped events (acks) must name their conversation.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleIncomingMessage = (rawMsg: any) => {
+    const handleIncomingMessage = (rawMsg: any, fallbackConversationId?: string) => {
       const rawObj = rawMsg.payload || rawMsg;
       let msg = rawObj;
       if (typeof rawObj === 'string') {
@@ -335,13 +337,13 @@ export const ConversationPage = () => {
         return;
       }
 
-      const targetId = msg.conversationId || msg.groupId || msg.chatId;
+      const targetId = msg.conversationId || msg.groupId || msg.chatId || fallbackConversationId;
 
-      if (!targetId || targetId === conversationId) {
+      if (conversationId && targetId === conversationId) {
         const normalizedMsg: Message = {
           ...msg,
           id: msg.id || msg.messageId || crypto.randomUUID(),
-          conversationId: targetId || conversationId || '',
+          conversationId: targetId,
           content: msg.content != null ? msg.content || msg.text || msg.message || '' : null,
           senderId: msg.senderId || msg.sender_id || msg.userId || '',
           senderUsername: msg.senderUsername || null,
@@ -387,10 +389,8 @@ export const ConversationPage = () => {
 
     const cleanupMessages = wsService.subscribe(
       `/topic/conversations.${conversationId}`,
-      handleIncomingMessage,
+      (rawMsg: unknown) => handleIncomingMessage(rawMsg, conversationId),
     );
-
-    const cleanupUserQueue = wsService.addMessageListener(handleIncomingMessage);
 
     const cleanupTypingSub = wsService.subscribe(
       `/topic/conversations.${conversationId}.typing`,
@@ -419,10 +419,13 @@ export const ConversationPage = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cleanupAcks = wsService.addAckListener((ack: any) => {
       const ackConvId = ack?.conversationId || ack?.chatId;
-      if (!ackConvId || ackConvId === conversationId) {
+      if (ackConvId && ackConvId === conversationId) {
         if (ack?.id && ack?.clientMessageId) {
           handleIncomingMessage(ack);
         }
+        queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      } else if (!ackConvId) {
+        // Ack names no conversation: never insert it here, just resync from the server.
         queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       }
     });
@@ -443,7 +446,6 @@ export const ConversationPage = () => {
 
     return () => {
       cleanupMessages();
-      cleanupUserQueue();
       cleanupTypingSub();
       cleanupAcks();
       cleanupErrors();

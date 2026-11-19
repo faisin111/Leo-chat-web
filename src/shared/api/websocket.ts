@@ -3,6 +3,13 @@ import SockJS from 'sockjs-client';
 import { env } from '../config/env';
 import { useSession } from '@/features/auth';
 
+// Real-time payloads carry message content, SDP and user data: log them only in dev builds.
+const debugLog = (...args: unknown[]) => {
+  if (import.meta.env.DEV) {
+    debugLog(...args);
+  }
+};
+
 const safeParse = (body: string) => {
   try {
     return JSON.parse(body);
@@ -94,10 +101,6 @@ class WebSocketService {
   private client: Client | null = null;
   public isConnected = false;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private messageListeners = new Set<(msg: any) => void>();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private typingListeners = new Set<(msg: any) => void>();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private ackListeners = new Set<(ack: any) => void>();
   private errorListeners = new Set<(err: WsError) => void>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -147,15 +150,13 @@ class WebSocketService {
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,
       onConnect: (frame) => {
-        // eslint-disable-next-line no-console
-        console.log('✅ Connected to Real-time Chat WebSocket:', frame);
+        debugLog('✅ Connected to Real-time Chat WebSocket:', frame);
         this.isConnected = true;
 
         // 1. Private server acknowledgements
         this.client?.subscribe('/user/queue/acks', (message) => {
           const parsedAck = safeParse(message.body);
-          // eslint-disable-next-line no-console
-          console.log('✅ Message saved:', parsedAck);
+          debugLog('✅ Message saved:', parsedAck);
           this.ackListeners.forEach((listener) => listener(parsedAck));
         });
 
@@ -170,16 +171,14 @@ class WebSocketService {
         // 3. Private server notifications
         this.client?.subscribe('/user/queue/notifications', (message) => {
           const parsedNotif = safeParse(message.body);
-          // eslint-disable-next-line no-console
-          console.log('🔔 Notification:', parsedNotif);
+          debugLog('🔔 Notification:', parsedNotif);
           this.notificationListeners.forEach((listener) => listener(parsedNotif));
         });
 
         // 4. Private WebRTC call signaling
         this.client?.subscribe('/user/queue/calls', (message) => {
           const parsedSignal: CallSignalEvent = safeParse(message.body);
-          // eslint-disable-next-line no-console
-          console.log('📞 Received call signal:', parsedSignal);
+          debugLog('📞 Received call signal:', parsedSignal);
           this.callSignalListeners.forEach((listener) => listener(parsedSignal));
         });
 
@@ -188,8 +187,7 @@ class WebSocketService {
           callbacks.forEach((_, callback) => {
             const subscription = this.client?.subscribe(destination, (msg) => {
               const parsed = safeParse(msg.body);
-              // eslint-disable-next-line no-console
-              console.log(`[STOMP] Received on ${destination}:`, parsed);
+              debugLog(`[STOMP] Received on ${destination}:`, parsed);
               callback(parsed);
             });
             callbacks.set(callback, subscription);
@@ -210,6 +208,12 @@ class WebSocketService {
             }
           });
         }
+      },
+      onWebSocketClose: () => {
+        this.isConnected = false;
+      },
+      onDisconnect: () => {
+        this.isConnected = false;
       },
       onWebSocketError: (error) => {
         // eslint-disable-next-line no-console
@@ -236,13 +240,6 @@ class WebSocketService {
     }
   }
 
-  // Listeners for standard private DMs
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  addMessageListener(listener: (msg: any) => void) {
-    this.messageListeners.add(listener);
-    return () => this.messageListeners.delete(listener);
-  }
-
   // Listeners for acknowledgements
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   addAckListener(listener: (ack: any) => void) {
@@ -261,13 +258,6 @@ class WebSocketService {
   addNotificationListener(listener: (notif: any) => void) {
     this.notificationListeners.add(listener);
     return () => this.notificationListeners.delete(listener);
-  }
-
-  // Listeners for typing indicators
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  addTypingListener(listener: (msg: any) => void) {
-    this.typingListeners.add(listener);
-    return () => this.typingListeners.delete(listener);
   }
 
   // Listeners for WebRTC call signaling
@@ -293,18 +283,15 @@ class WebSocketService {
     if (this.client && this.client.connected) {
       const subscription = this.client.subscribe(destination, (msg) => {
         const parsed = safeParse(msg.body);
-        // eslint-disable-next-line no-console
-        console.log(`[STOMP] Received on ${destination}:`, parsed);
+        debugLog(`[STOMP] Received on ${destination}:`, parsed);
         callback(parsed);
       });
       callbacks.set(callback, subscription);
-      // eslint-disable-next-line no-console
-      console.log(`[STOMP] Subscribed to ${destination}`);
+      debugLog(`[STOMP] Subscribed to ${destination}`);
     } else {
       // Add to map, it will be subscribed onConnect
       callbacks.set(callback, null);
-      // eslint-disable-next-line no-console
-      console.log(`[STOMP] Queued subscription for ${destination} (waiting for connection...)`);
+      debugLog(`[STOMP] Queued subscription for ${destination} (waiting for connection...)`);
     }
 
     return () => {

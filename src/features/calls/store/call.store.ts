@@ -168,15 +168,24 @@ export const useCallStore = create<CallState>((set, get) => ({
 
       pc.ontrack = (event) => {
         if (event.streams && event.streams[0]) {
-          set({ remoteStream: event.streams[0] });
+          set({ remoteStream: new MediaStream(event.streams[0].getTracks()) });
         } else {
           set((state) => {
             const current = state.remoteStream || new MediaStream();
             if (!current.getTracks().some((t) => t.id === event.track.id)) {
               current.addTrack(event.track);
             }
-            return { remoteStream: current };
+            return { remoteStream: new MediaStream(current.getTracks()) };
           });
+        }
+
+        if (event.track) {
+          event.track.onunmute = () => {
+            const current = get().remoteStream;
+            if (current) {
+              set({ remoteStream: new MediaStream(current.getTracks()) });
+            }
+          };
         }
       };
 
@@ -281,15 +290,24 @@ export const useCallStore = create<CallState>((set, get) => ({
 
       pc.ontrack = (event) => {
         if (event.streams && event.streams[0]) {
-          set({ remoteStream: event.streams[0] });
+          set({ remoteStream: new MediaStream(event.streams[0].getTracks()) });
         } else {
           set((state) => {
             const current = state.remoteStream || new MediaStream();
             if (!current.getTracks().some((t) => t.id === event.track.id)) {
               current.addTrack(event.track);
             }
-            return { remoteStream: current };
+            return { remoteStream: new MediaStream(current.getTracks()) };
           });
+        }
+
+        if (event.track) {
+          event.track.onunmute = () => {
+            const current = get().remoteStream;
+            if (current) {
+              set({ remoteStream: new MediaStream(current.getTracks()) });
+            }
+          };
         }
       };
 
@@ -410,7 +428,11 @@ export const useCallStore = create<CallState>((set, get) => ({
         if (newVideoTrack && globalPeerConnection) {
           localStream.addTrack(newVideoTrack);
           globalPeerConnection.addTrack(newVideoTrack, localStream);
-          set({ callType: 'video', isCameraOff: false });
+          set({
+            localStream: new MediaStream(localStream.getTracks()),
+            callType: 'video',
+            isCameraOff: false,
+          });
         }
       } catch {
         toast.error('Unable to access camera');
@@ -420,7 +442,10 @@ export const useCallStore = create<CallState>((set, get) => ({
 
     if (videoTrack) {
       videoTrack.enabled = isCameraOff; // Invert
-      set({ isCameraOff: !isCameraOff });
+      set({
+        localStream: new MediaStream(localStream.getTracks()),
+        isCameraOff: !isCameraOff,
+      });
     }
   },
 

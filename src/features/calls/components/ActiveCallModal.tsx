@@ -13,6 +13,7 @@ import {
   Maximize,
   Minimize,
   Radio,
+  LayoutGrid,
 } from 'lucide-react';
 import { useCallStore } from '../store/call.store';
 import { Avatar } from '@/shared/ui/avatar';
@@ -45,24 +46,66 @@ export const ActiveCallModal = () => {
   } = useCallStore();
 
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'speaker'>('grid');
+  const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
+
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
 
-  // Attach remote stream to remote video/audio element
+  // Monitor live remote video tracks dynamically
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
-      remoteVideoRef.current.play().catch(() => {});
+    const checkTracks = () => {
+      const hasLiveVideo =
+        !!remoteStream &&
+        remoteStream.getVideoTracks().some((t) => t.enabled && t.readyState === 'live');
+      setHasRemoteVideo(hasLiveVideo);
+    };
+
+    checkTracks();
+
+    if (remoteStream) {
+      remoteStream.addEventListener('addtrack', checkTracks);
+      remoteStream.addEventListener('removetrack', checkTracks);
+      const tracks = remoteStream.getVideoTracks();
+      tracks.forEach((t) => {
+        t.addEventListener('unmute', checkTracks);
+        t.addEventListener('mute', checkTracks);
+        t.addEventListener('ended', checkTracks);
+      });
+
+      return () => {
+        remoteStream.removeEventListener('addtrack', checkTracks);
+        remoteStream.removeEventListener('removetrack', checkTracks);
+        tracks.forEach((t) => {
+          t.removeEventListener('unmute', checkTracks);
+          t.removeEventListener('mute', checkTracks);
+          t.removeEventListener('ended', checkTracks);
+        });
+      };
     }
   }, [remoteStream]);
 
+  // Attach remote stream to remote video element
+  useEffect(() => {
+    const el = remoteVideoRef.current;
+    if (el && remoteStream) {
+      if (el.srcObject !== remoteStream) {
+        el.srcObject = remoteStream;
+      }
+      el.play().catch(() => {});
+    }
+  }, [remoteStream, hasRemoteVideo, viewMode]);
+
   // Attach local stream to local preview
   useEffect(() => {
-    if (localVideoRef.current && localStream) {
-      localVideoRef.current.srcObject = localStream;
-      localVideoRef.current.play().catch(() => {});
+    const el = localVideoRef.current;
+    if (el && localStream) {
+      if (el.srcObject !== localStream) {
+        el.srcObject = localStream;
+      }
+      el.play().catch(() => {});
     }
-  }, [localStream]);
+  }, [localStream, isCameraOff, viewMode]);
 
   if (status === 'idle' || status === 'incoming') {
     return null;
@@ -78,11 +121,6 @@ export const ActiveCallModal = () => {
   const isConnected = status === 'connected';
   const isOutgoing = status === 'outgoing';
   const isConnecting = status === 'connecting';
-
-  const hasRemoteVideo =
-    callType === 'video' &&
-    remoteStream &&
-    remoteStream.getVideoTracks().some((t) => t.enabled && t.readyState === 'live');
 
   // Minimized Picture-in-Picture Floating Pill
   if (isMinimized) {
@@ -205,7 +243,7 @@ export const ActiveCallModal = () => {
         className={`w-full bg-slate-900/90 dark:bg-slate-950/90 border border-white/15 shadow-[0_25px_70px_rgba(0,0,0,0.85)] flex flex-col relative overflow-hidden text-white backdrop-blur-2xl transition-all duration-300 ${
           isFullscreen
             ? 'fixed inset-0 w-screen h-screen max-w-none max-h-none rounded-none z-50'
-            : 'max-w-4xl h-[90vh] max-h-[750px] rounded-3xl'
+            : 'max-w-5xl h-[90vh] max-h-[760px] rounded-3xl'
         }`}
       >
         {/* Top Header Bar */}
@@ -263,6 +301,26 @@ export const ActiveCallModal = () => {
 
           {/* Window Action Controls */}
           <div className="flex items-center gap-2">
+            {/* View Mode Switcher for Video Calls (Grid vs Spotlight) */}
+            {callType === 'video' && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setViewMode((prev) => (prev === 'grid' ? 'speaker' : 'grid'))}
+                className="rounded-full w-9 h-9 text-slate-300 hover:text-white hover:bg-white/10 cursor-pointer"
+                title={
+                  viewMode === 'grid' ? 'Switch to Spotlight View' : 'Switch to Dual Grid View'
+                }
+              >
+                {viewMode === 'grid' ? (
+                  <Maximize2 className="w-4 h-4" />
+                ) : (
+                  <LayoutGrid className="w-4 h-4" />
+                )}
+              </Button>
+            )}
+
             <Button
               type="button"
               variant="ghost"
@@ -288,26 +346,217 @@ export const ActiveCallModal = () => {
         </div>
 
         {/* Central Media Canvas */}
-        <div className="flex-1 relative flex items-center justify-center overflow-hidden bg-slate-950/70">
-          {/* Remote video element (muted because audio is permanently handled by CallManager audio element) */}
-          <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            muted
-            className={`w-full h-full object-contain transition-opacity duration-300 ${
-              hasRemoteVideo ? 'opacity-100' : 'opacity-0 pointer-events-none absolute'
-            }`}
-          >
-            <track kind="captions" />
-          </video>
+        <div className="flex-1 relative flex items-center justify-center overflow-hidden bg-slate-950/70 min-h-0">
+          {/* VIDEO CALL LAYOUT: DUAL FRAMES (Calling User & Me) */}
+          {callType === 'video' ? (
+            viewMode === 'grid' ? (
+              /* DUAL GRID VIEW: Both users set side-by-side (desktop) / stacked (mobile) */
+              <div className="w-full h-full p-3 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 overflow-hidden">
+                {/* 1. Calling User (Remote Video Frame) */}
+                <div className="relative w-full h-full min-h-[200px] rounded-2xl overflow-hidden bg-slate-900 border border-white/15 flex items-center justify-center shadow-2xl">
+                  <video
+                    id="remoteVideo"
+                    ref={remoteVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className={`w-full h-full object-cover transition-opacity duration-300 ${
+                      hasRemoteVideo ? 'opacity-100' : 'opacity-0 absolute pointer-events-none'
+                    }`}
+                  >
+                    <track kind="captions" />
+                  </video>
 
-          {/* Audio Canvas or Outgoing Ringing Screen */}
-          {!hasRemoteVideo && (
+                  {/* Remote fallback avatar when video stream is pending */}
+                  {!hasRemoteVideo && (
+                    <div className="flex flex-col items-center justify-center p-6 text-center z-10 animate-in fade-in duration-200">
+                      <div className="relative mb-4 flex items-center justify-center">
+                        {isOutgoing && (
+                          <motion.div
+                            animate={{ scale: [1, 1.4, 1], opacity: [0.6, 0.15, 0.6] }}
+                            transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
+                            className="absolute -inset-4 rounded-full border border-sky-400/40 bg-sky-400/10 pointer-events-none"
+                          />
+                        )}
+                        <Avatar
+                          src={targetAvatarUrl}
+                          alt={targetUserName || 'Participant'}
+                          className="w-24 h-24 sm:w-28 sm:h-28 border-2 border-white/20 shadow-xl"
+                          fallback={
+                            <span className="bg-gradient-to-tr from-primary via-violet-600 to-indigo-600 text-white font-bold text-3xl w-full h-full flex items-center justify-center">
+                              {initials}
+                            </span>
+                          }
+                        />
+                      </div>
+                      <h4 className="text-base sm:text-lg font-bold text-white mb-1">
+                        {targetUserName}
+                      </h4>
+                      <p className="text-xs text-slate-400">
+                        {isOutgoing
+                          ? 'Ringing participant…'
+                          : isConnecting
+                            ? 'Connecting video stream…'
+                            : 'Waiting for camera stream…'}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Remote Frame Identification Badge */}
+                  <div className="absolute bottom-3 left-3 z-20 flex items-center gap-2 px-3 py-1 rounded-xl bg-black/60 backdrop-blur-md text-xs font-medium text-white border border-white/10 shadow-md">
+                    <span className="truncate max-w-[140px]">{targetUserName}</span>
+                    {isConnected && (
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. Me / Calling User (Local Video Frame) */}
+                <div className="relative w-full h-full min-h-[200px] rounded-2xl overflow-hidden bg-slate-900 border border-white/15 flex items-center justify-center shadow-2xl">
+                  <video
+                    id="localVideo"
+                    ref={localVideoRef}
+                    autoPlay
+                    muted
+                    playsInline
+                    className={`w-full h-full object-cover scale-x-[-1] transition-opacity duration-300 ${
+                      !isCameraOff ? 'opacity-100' : 'opacity-0 absolute pointer-events-none'
+                    }`}
+                  >
+                    <track kind="captions" />
+                  </video>
+
+                  {/* Local camera off fallback */}
+                  {isCameraOff && (
+                    <div className="flex flex-col items-center justify-center p-6 text-center text-slate-400 z-10 animate-in fade-in duration-200">
+                      <div className="w-16 h-16 rounded-full bg-slate-800 border border-white/15 flex items-center justify-center mb-3 shadow-inner">
+                        <VideoOff className="w-7 h-7 text-slate-400" />
+                      </div>
+                      <span className="text-sm font-semibold text-slate-200">
+                        Your camera is off
+                      </span>
+                      <span className="text-xs text-slate-400 mt-0.5">
+                        Click the video icon below to turn on
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Local Frame Identification Badge */}
+                  <div className="absolute bottom-3 left-3 z-20 flex items-center gap-2 px-3 py-1 rounded-xl bg-black/60 backdrop-blur-md text-xs font-medium text-white border border-white/10 shadow-md">
+                    <span>You (Me)</span>
+                    {isMuted ? (
+                      <MicOff className="w-3.5 h-3.5 text-rose-400" />
+                    ) : (
+                      <Mic className="w-3.5 h-3.5 text-emerald-400" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* SPOTLIGHT VIEW: Remote video full frame with local floating preview */
+              <div className="w-full h-full relative flex items-center justify-center overflow-hidden">
+                {/* Remote Video Canvas */}
+                <div className="relative w-full h-full flex items-center justify-center bg-slate-950/70">
+                  <video
+                    id="remoteVideo"
+                    ref={remoteVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className={`w-full h-full object-contain transition-opacity duration-300 ${
+                      hasRemoteVideo ? 'opacity-100' : 'opacity-0 absolute pointer-events-none'
+                    }`}
+                  >
+                    <track kind="captions" />
+                  </video>
+
+                  {!hasRemoteVideo && (
+                    <div className="flex flex-col items-center justify-center p-6 text-center z-10 animate-in fade-in duration-200">
+                      <Avatar
+                        src={targetAvatarUrl}
+                        alt={targetUserName || 'Participant'}
+                        className="w-28 h-28 sm:w-36 sm:h-36 border-2 border-white/20 mb-4 shadow-xl"
+                        fallback={
+                          <span className="bg-gradient-to-tr from-primary via-violet-600 to-indigo-600 text-white font-bold text-4xl w-full h-full flex items-center justify-center">
+                            {initials}
+                          </span>
+                        }
+                      />
+                      <h4 className="text-xl font-bold text-white mb-1">{targetUserName}</h4>
+                      <p className="text-xs text-slate-400">
+                        {isOutgoing ? 'Calling…' : 'Waiting for video…'}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/60 backdrop-blur-md text-xs font-medium text-white border border-white/10 shadow-md">
+                    <span className="truncate max-w-[160px]">{targetUserName}</span>
+                    {isConnected && (
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Floating Local User Preview PiP */}
+                <motion.div
+                  drag
+                  dragConstraints={{ left: -120, right: 120, top: -120, bottom: 120 }}
+                  className="absolute top-4 right-4 z-30 w-36 sm:w-52 aspect-video bg-slate-900/90 border border-white/20 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-md cursor-grab active:cursor-grabbing group"
+                >
+                  <video
+                    id="localVideo"
+                    ref={localVideoRef}
+                    autoPlay
+                    muted
+                    playsInline
+                    className={`w-full h-full object-cover scale-x-[-1] ${
+                      isCameraOff ? 'hidden' : 'block'
+                    }`}
+                  >
+                    <track kind="captions" />
+                  </video>
+
+                  {isCameraOff && (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 text-slate-400 text-[11px] p-2">
+                      <VideoOff className="w-5 h-5 mb-1 text-slate-500" />
+                      <span>Camera off</span>
+                    </div>
+                  )}
+
+                  <div className="absolute bottom-1.5 left-2 px-2 py-0.5 rounded bg-black/60 backdrop-blur-sm text-[10px] font-medium text-white/90 flex items-center gap-1">
+                    <span>You (Me)</span>
+                    {isMuted && <MicOff className="w-3 h-3 text-rose-400" />}
+                  </div>
+                </motion.div>
+              </div>
+            )
+          ) : (
+            /* AUDIO-ONLY CALL CANVAS: Radar Rings & Participant Avatar */
             <div className="flex flex-col items-center justify-center p-6 text-center z-10 animate-in fade-in zoom-in-95 duration-200">
+              {/* Keep video elements in DOM for fast camera enablement */}
+              <video
+                id="remoteVideo"
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="opacity-0 pointer-events-none absolute w-1 h-1"
+              >
+                <track kind="captions" />
+              </video>
+              <video
+                id="localVideo"
+                ref={localVideoRef}
+                autoPlay
+                muted
+                playsInline
+                className="opacity-0 pointer-events-none absolute w-1 h-1"
+              >
+                <track kind="captions" />
+              </video>
+
               {/* Central Avatar with Animated Ringing Radar Waves */}
               <div className="relative mb-8 flex items-center justify-center">
-                {/* Outgoing Ringing Expanding Waves */}
                 {isOutgoing && (
                   <>
                     {[0, 0.7, 1.4].map((delay, idx) => (
@@ -327,15 +576,12 @@ export const ActiveCallModal = () => {
                   </>
                 )}
 
-                {/* Connected Audio Aura Wave */}
                 {isConnected && (
-                  <>
-                    <motion.div
-                      animate={{ scale: [1, 1.25, 1], opacity: [0.25, 0.5, 0.25] }}
-                      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                      className="absolute -inset-6 rounded-full bg-gradient-to-tr from-emerald-500/20 to-primary/20 blur-xl pointer-events-none"
-                    />
-                  </>
+                  <motion.div
+                    animate={{ scale: [1, 1.25, 1], opacity: [0.25, 0.5, 0.25] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                    className="absolute -inset-6 rounded-full bg-gradient-to-tr from-emerald-500/20 to-primary/20 blur-xl pointer-events-none"
+                  />
                 )}
 
                 <Avatar
@@ -392,38 +638,6 @@ export const ActiveCallModal = () => {
                 )}
               </div>
             </div>
-          )}
-
-          {/* Local User Preview PiP (for video calls) */}
-          {callType === 'video' && localStream && (
-            <motion.div
-              drag
-              dragConstraints={{ left: -100, right: 100, top: -100, bottom: 100 }}
-              className="absolute top-4 right-4 z-30 w-32 sm:w-44 aspect-video bg-slate-900/90 border border-white/20 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-md cursor-grab active:cursor-grabbing group"
-            >
-              <video
-                ref={localVideoRef}
-                autoPlay
-                playsInline
-                muted
-                className={`w-full h-full object-cover scale-x-[-1] ${
-                  isCameraOff ? 'hidden' : 'block'
-                }`}
-              >
-                <track kind="captions" />
-              </video>
-
-              {isCameraOff && (
-                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 text-slate-400 text-[11px] p-2">
-                  <VideoOff className="w-5 h-5 mb-1 text-slate-500" />
-                  <span>Camera off</span>
-                </div>
-              )}
-
-              <div className="absolute bottom-1.5 left-2 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-sm text-[9px] font-medium text-white/90">
-                You
-              </div>
-            </motion.div>
           )}
         </div>
 

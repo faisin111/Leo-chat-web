@@ -58,7 +58,7 @@ describe('useAiStore', () => {
         clientMessageId: expect.any(String),
         model: 'leo-ultra',
         reasoning: false,
-        webSearch: true,
+        webSearch: false,
       },
       { signal: expect.any(AbortSignal) },
     );

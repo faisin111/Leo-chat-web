@@ -164,7 +164,7 @@ export const useAiStore = create<AiState>((set, get) => ({
   selectedModelId: 'leo-ultra',
   isGenerating: false,
   isDeepThinkEnabled: false,
-  isWebSearchEnabled: true,
+  isWebSearchEnabled: false, // Off by default: Google Search grounding is limited or paid on many Gemini keys
   isSidebarOpen: true,
   serverConversationId: null,
   generatingSessionId: null,

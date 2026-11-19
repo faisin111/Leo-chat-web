@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { aiApi } from '../api/ai-api';
 import { conversationsApi } from '@/features/chat';
+import type { Message } from '@/features/chat';
+import { ApiException } from '@/shared/api/api-error';
 import { useSession } from '@/features/auth';
 import type { AiSession, AiMessage, AiModelId, AiAttachment } from '../types/ai.types';
 import { toast } from 'sonner';
@@ -93,13 +95,14 @@ interface AiState {
   isWebSearchEnabled: boolean;
   isSidebarOpen: boolean;
   serverConversationId: string | null;
+  /** Session whose reply is in flight; the indicator only shows there. */
+  generatingSessionId: string | null;
 
   // Actions
   initServerConversation: () => Promise<string | null>;
-  deleteServerConversation: () => Promise<void>;
   createNewSession: (modelId?: AiModelId) => string;
   selectSession: (id: string) => Promise<void>;
-  deleteSession: (id: string) => void;
+  deleteSession: (id: string) => Promise<void>;
   renameSession: (id: string, newTitle: string) => void;
   togglePinSession: (id: string) => void;
   setModel: (modelId: AiModelId) => void;
@@ -110,8 +113,47 @@ interface AiState {
   sendMessage: (content: string, attachments?: AiAttachment[]) => Promise<void>;
   stopGeneration: () => void;
   regenerateResponse: (messageId: string) => Promise<void>;
+  retryPrompt: (userMessage: AiMessage) => Promise<void>;
   clearActiveSessionMessages: () => void;
 }
+
+const generationOptions = (state: {
+  selectedModelId: AiModelId;
+  isDeepThinkEnabled: boolean;
+  isWebSearchEnabled: boolean;
+}) => ({
+  model: state.selectedModelId,
+  reasoning: state.isDeepThinkEnabled,
+  webSearch: state.isWebSearchEnabled,
+});
+
+const toAssistantMessage = (response: Message, modelId: AiModelId): AiMessage => ({
+  id: response.id || `msg-ai-${Date.now()}`,
+  role: 'assistant',
+  modelId,
+  createdAt: response.createdAt || new Date().toISOString(),
+  content: response.content || '',
+});
+
+const errorMessage = (err: unknown, fallback: string) =>
+  err instanceof Error && err.message ? err.message : fallback;
+
+// One AI request at a time. Stop aborts it; a reply that arrives after Stop
+// (or after a newer request started) is ignored.
+let activeGeneration: AbortController | null = null;
+
+const beginGeneration = () => {
+  activeGeneration?.abort();
+  activeGeneration = new AbortController();
+  return activeGeneration;
+};
+
+/** Returns true if this request is still current, and releases it. */
+const endGeneration = (controller: AbortController) => {
+  if (controller.signal.aborted || activeGeneration !== controller) return false;
+  activeGeneration = null;
+  return true;
+};
 
 const initialSessions = loadInitialSessions();
 const initialActiveId = loadInitialActiveId(initialSessions);
@@ -125,42 +167,44 @@ export const useAiStore = create<AiState>((set, get) => ({
   isWebSearchEnabled: true,
   isSidebarOpen: true,
   serverConversationId: null,
+  generatingSessionId: null,
 
+  // Each chat is its own server AI conversation (its conversationId). Pull in chats that
+  // exist on the server but not in this browser (e.g. started on another device).
   initServerConversation: async () => {
     try {
-      const conv = await aiApi.getOrCreateConversation();
-      if (conv?.id) {
-        set({ serverConversationId: conv.id });
-        const { sessions, activeSessionId } = get();
-        const active = sessions.find((s) => s.id === activeSessionId) || sessions[0];
-        if (active) {
-          const updatedSessions = sessions.map((s) =>
-            s.id === active.id ? { ...s, conversationId: conv.id } : s,
-          );
-          set({ sessions: updatedSessions });
-          persistState(updatedSessions, active.id);
+      const serverConversations = await aiApi.listConversations();
+      const { sessions, activeSessionId } = get();
+      const known = new Set(sessions.map((s) => s.conversationId));
+      const missing: AiSession[] = serverConversations
+        .filter((c) => c.id && !known.has(c.id))
+        .map((c) => ({
+          ...createDefaultSession(),
+          id: crypto.randomUUID(),
+          conversationId: c.id,
+          title: c.title && c.title !== 'LeoChat AI' ? c.title : 'Earlier conversation',
+          createdAt: c.createdAt,
+          updatedAt: c.lastMessageAt || c.createdAt,
+        }));
 
-          if (active.messages.length === 0) {
-            await get().selectSession(active.id);
-          }
-        }
-        return conv.id;
+      let nextSessions = [...sessions, ...missing];
+      // Drop the placeholder empty chat if the server already has chats to show.
+      const active = nextSessions.find((s) => s.id === activeSessionId);
+      let nextActiveId = activeSessionId;
+      if (missing.length > 0 && active && active.messages.length === 0 && sessions.length === 1) {
+        nextSessions = nextSessions.filter((s) => s.id !== active.id);
+        nextActiveId = missing[0]?.id ?? null;
       }
+      if (missing.length > 0) {
+        set({ sessions: nextSessions, activeSessionId: nextActiveId });
+        persistState(nextSessions, nextActiveId);
+      }
+      if (nextActiveId) await get().selectSession(nextActiveId);
+      return nextSessions.find((s) => s.id === nextActiveId)?.conversationId ?? null;
     } catch (err) {
-      console.warn('Could not initialize server AI conversation:', err);
+      console.warn('Could not sync AI conversations from backend:', err);
     }
     return null;
-  },
-
-  deleteServerConversation: async () => {
-    try {
-      await aiApi.deleteConversation();
-      get().clearActiveSessionMessages();
-      toast.success('AI conversation permanently deleted');
-    } catch (err) {
-      console.error('Failed to delete server AI conversation:', err);
-      toast.error('Failed to delete AI conversation');
-    }
   },
 
   createNewSession: (modelId) => {
@@ -200,13 +244,16 @@ export const useAiStore = create<AiState>((set, get) => ({
           const sorted = [...history.items].sort(
             (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
           );
-          const mapped: AiMessage[] = sorted.map((m) => ({
-            id: m.id,
-            role: m.aiGenerated ? 'assistant' : 'user',
-            content: m.content || '',
-            createdAt: m.createdAt,
-            modelId: m.aiGenerated ? session.modelId : undefined,
-          }));
+          // Regenerated answers are soft-deleted on the server; hide them.
+          const mapped: AiMessage[] = sorted
+            .filter((m) => !m.deletedAt && !m.deleted)
+            .map((m) => ({
+              id: m.id,
+              role: m.aiGenerated ? 'assistant' : 'user',
+              content: m.content || '',
+              createdAt: m.createdAt,
+              modelId: m.aiGenerated ? session.modelId : undefined,
+            }));
           const updatedSessions = get().sessions.map((s) =>
             s.id === id ? { ...s, messages: mapped } : s,
           );
@@ -219,7 +266,20 @@ export const useAiStore = create<AiState>((set, get) => ({
     }
   },
 
-  deleteSession: (id) => {
+  deleteSession: async (id) => {
+    const session = get().sessions.find((s) => s.id === id);
+    if (!session) return;
+    if (isValidUuid(session.conversationId)) {
+      try {
+        await aiApi.deleteConversationById(session.conversationId);
+      } catch (err) {
+        // 404: the chat never reached the server (no message sent yet); remove it locally.
+        if (!(err instanceof ApiException && err.status === 404)) {
+          toast.error('Failed to delete AI conversation');
+          return;
+        }
+      }
+    }
     const remaining = get().sessions.filter((s) => s.id !== id);
     const nextActiveId =
       get().activeSessionId === id ? remaining[0]?.id || null : get().activeSessionId;
@@ -229,6 +289,7 @@ export const useAiStore = create<AiState>((set, get) => ({
       activeSessionId: nextActiveId,
     });
     persistState(remaining, nextActiveId);
+    toast.success('AI conversation deleted');
   },
 
   renameSession: (id, newTitle) => {
@@ -300,21 +361,29 @@ export const useAiStore = create<AiState>((set, get) => ({
       }
     }
 
-    const clientMsgId = `ai-user-${Date.now()}`;
+    // File contents go to the model for this turn only; the server stores just the names.
+    const fileTexts = (attachments ?? [])
+      .filter((a): a is AiAttachment & { text: string } => typeof a.text === 'string')
+      .map((a) => ({ name: a.name, text: a.text }));
+    if (!trimmed && fileTexts.length === 0) return;
+
+    const clientMsgId = `ai-user-${crypto.randomUUID()}`;
     const userMessage: AiMessage = {
       id: clientMsgId,
       role: 'user',
       content: trimmed,
       createdAt: new Date().toISOString(),
-      attachments,
+      // Keep file names in history, not their contents.
+      attachments: attachments?.map(({ id, name, size, type }) => ({ id, name, size, type })),
     };
 
     // Optimistically update session with user message and conversationId
     const updatedSessions = get().sessions.map((s) => {
       if (s.id !== activeSessionId) return s;
       const isFirstMessage = s.messages.length === 0;
+      const titleSource = trimmed || attachments?.[0]?.name || 'New Conversation';
       const newTitle = isFirstMessage
-        ? trimmed.slice(0, 36) + (trimmed.length > 36 ? '…' : '')
+        ? titleSource.slice(0, 36) + (titleSource.length > 36 ? '…' : '')
         : s.title;
       return {
         ...s,
@@ -325,19 +394,28 @@ export const useAiStore = create<AiState>((set, get) => ({
       };
     });
 
+    const controller = beginGeneration();
     set({
       sessions: updatedSessions,
       isGenerating: true,
+      generatingSessionId: activeSessionId,
     });
     persistState(updatedSessions, activeSessionId);
 
     try {
       // Call backend Gemini AI integration directly (pure server data)
-      const aiResponse = await aiApi.chat({
-        conversationId: convId,
-        prompt: trimmed,
-        clientMessageId: clientMsgId,
-      });
+      const aiResponse = await aiApi.chat(
+        {
+          conversationId: convId,
+          prompt: trimmed,
+          clientMessageId: clientMsgId,
+          ...generationOptions(get()),
+          ...(fileTexts.length > 0 ? { attachments: fileTexts } : {}),
+        },
+        { signal: controller.signal },
+      );
+      // Stopped, or superseded by a newer request: drop the late reply.
+      if (!endGeneration(controller)) return;
 
       const assistantMessage: AiMessage = {
         id: aiResponse.id || `msg-ai-${Date.now()}`,
@@ -359,9 +437,11 @@ export const useAiStore = create<AiState>((set, get) => ({
       set({
         sessions: finalSessions,
         isGenerating: false,
+        generatingSessionId: null,
       });
       persistState(finalSessions, activeSessionId);
     } catch (err: unknown) {
+      if (!endGeneration(controller)) return;
       const errMsg =
         err &&
         typeof err === 'object' &&
@@ -394,72 +474,110 @@ export const useAiStore = create<AiState>((set, get) => ({
       set({
         sessions: finalSessions,
         isGenerating: false,
+        generatingSessionId: null,
       });
       persistState(finalSessions, activeSessionId);
     }
   },
 
   stopGeneration: () => {
-    set({ isGenerating: false });
+    activeGeneration?.abort();
+    activeGeneration = null;
+    set({ isGenerating: false, generatingSessionId: null });
   },
 
   regenerateResponse: async (messageId: string) => {
     const { activeSessionId, sessions } = get();
-    if (!activeSessionId) return;
+    if (!activeSessionId || get().isGenerating) return;
 
     const session = sessions.find((s) => s.id === activeSessionId);
     const convId = session?.conversationId;
     if (!session || !isValidUuid(convId)) return;
 
-    // Find the user message before this assistant message
-    const msgIndex = session.messages.findIndex((m) => m.id === messageId);
-    const userMessage = session.messages
-      .slice(0, msgIndex >= 0 ? msgIndex : undefined)
-      .reverse()
-      .find((m) => m.role === 'user');
+    // An error placeholder was never stored on the server: resend the prompt instead.
+    if (!isValidUuid(messageId)) {
+      const index = session.messages.findIndex((m) => m.id === messageId);
+      const userMessage = session.messages
+        .slice(0, index >= 0 ? index : undefined)
+        .reverse()
+        .find((m) => m.role === 'user');
+      if (!userMessage) return;
+      const withoutError = get().sessions.map((s) =>
+        s.id === activeSessionId
+          ? { ...s, messages: s.messages.filter((m) => m.id !== messageId) }
+          : s,
+      );
+      set({ sessions: withoutError });
+      persistState(withoutError, activeSessionId);
+      await get().retryPrompt(userMessage);
+      return;
+    }
 
-    if (!userMessage) return;
-
-    set({ isGenerating: true });
+    const controller = beginGeneration();
+    set({ isGenerating: true, generatingSessionId: activeSessionId });
 
     try {
-      const aiResponse = await aiApi.chat({
-        conversationId: convId,
-        prompt: userMessage.content,
-      });
+      const aiResponse = await aiApi.regenerate(
+        { conversationId: convId, messageId, ...generationOptions(get()) },
+        { signal: controller.signal },
+      );
+      if (!endGeneration(controller)) return;
 
       const updatedSessions = get().sessions.map((s) => {
         if (s.id !== activeSessionId) return s;
-        const updated = [...s.messages];
-        const targetIndex = updated.findIndex((m) => m.id === messageId);
-        if (targetIndex !== -1) {
-          updated[targetIndex] = {
-            ...updated[targetIndex]!,
-            content: aiResponse.content || '',
-            createdAt: aiResponse.createdAt || new Date().toISOString(),
-          };
-        }
-        return { ...s, messages: updated };
+        return {
+          ...s,
+          updatedAt: new Date().toISOString(),
+          messages: s.messages.map((m) =>
+            m.id === messageId ? toAssistantMessage(aiResponse, get().selectedModelId) : m,
+          ),
+        };
       });
 
-      set({
-        sessions: updatedSessions,
-        isGenerating: false,
-      });
+      set({ sessions: updatedSessions, isGenerating: false, generatingSessionId: null });
       persistState(updatedSessions, activeSessionId);
     } catch (err: unknown) {
-      const errMsg =
-        err &&
-        typeof err === 'object' &&
-        'response' in err &&
-        (err as { response?: { data?: { message?: string } } }).response?.data?.message
-          ? (err as { response?: { data?: { message?: string } } }).response!.data!.message!
-          : err instanceof Error
-            ? err.message
-            : 'Failed to regenerate response from server';
+      if (!endGeneration(controller)) return;
+      toast.error(errorMessage(err, 'Failed to regenerate response from server'));
+      set({ isGenerating: false, generatingSessionId: null });
+    }
+  },
 
-      toast.error(errMsg);
-      set({ isGenerating: false });
+  retryPrompt: async (userMessage: AiMessage) => {
+    const { activeSessionId } = get();
+    const session = get().sessions.find((s) => s.id === activeSessionId);
+    const convId = session?.conversationId;
+    if (!activeSessionId || !isValidUuid(convId)) return;
+
+    const controller = beginGeneration();
+    set({ isGenerating: true, generatingSessionId: activeSessionId });
+    try {
+      // Same clientMessageId: the server reuses the stored prompt (and answer, if any).
+      const aiResponse = await aiApi.chat(
+        {
+          conversationId: convId,
+          prompt: userMessage.content,
+          clientMessageId: userMessage.id,
+          ...generationOptions(get()),
+        },
+        { signal: controller.signal },
+      );
+      if (!endGeneration(controller)) return;
+      const updatedSessions = get().sessions.map((s) =>
+        s.id === activeSessionId
+          ? {
+              ...s,
+              updatedAt: new Date().toISOString(),
+              messages: [...s.messages, toAssistantMessage(aiResponse, get().selectedModelId)],
+            }
+          : s,
+      );
+      set({ sessions: updatedSessions, isGenerating: false, generatingSessionId: null });
+      persistState(updatedSessions, activeSessionId);
+    } catch (err: unknown) {
+      if (!endGeneration(controller)) return;
+      toast.error(errorMessage(err, 'Failed to get a response from the server'));
+      set({ isGenerating: false, generatingSessionId: null });
     }
   },
 
@@ -484,6 +602,9 @@ useSession.subscribe((state) => {
     sessions,
     activeSessionId: loadInitialActiveId(sessions),
     isGenerating: false,
+    generatingSessionId: null,
     serverConversationId: null,
   });
+  activeGeneration?.abort();
+  activeGeneration = null;
 });

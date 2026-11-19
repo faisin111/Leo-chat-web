@@ -22,12 +22,16 @@ export interface AiAttachment {
   name: string;
   size: string;
   type: string;
+  /** File text sent to the AI with the prompt. Not persisted in history. */
+  text?: string;
 }
 
 export interface AiMessage {
   id: string;
   role: AiMessageRole;
   content: string;
+  /** Full prompt sent to the server when it differs from `content` (attached files). */
+  prompt?: string;
   createdAt: string;
   modelId?: AiModelId;
   thinkingContent?: string;

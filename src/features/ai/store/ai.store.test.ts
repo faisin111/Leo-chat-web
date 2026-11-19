@@ -51,11 +51,17 @@ describe('useAiStore', () => {
     // ensureAiConversation on the backend handles conversation initialization;
     // client should not make extra createGroupMessage calls
     expect(createGroupSpy).not.toHaveBeenCalled();
-    expect(chatSpy).toHaveBeenCalledWith({
-      conversationId: sessionId,
-      prompt: 'Explain React 19',
-      clientMessageId: expect.any(String),
-    });
+    expect(chatSpy).toHaveBeenCalledWith(
+      {
+        conversationId: sessionId,
+        prompt: 'Explain React 19',
+        clientMessageId: expect.any(String),
+        model: 'leo-ultra',
+        reasoning: false,
+        webSearch: true,
+      },
+      { signal: expect.any(AbortSignal) },
+    );
 
     const session = useAiStore.getState().sessions.find((s) => s.id === sessionId);
     expect(session?.messages).toHaveLength(2);
@@ -89,29 +95,88 @@ describe('useAiStore', () => {
     expect(useAiStore.getState().isGenerating).toBe(false);
   });
 
-  it('initializes server AI conversation via initServerConversation', async () => {
-    vi.spyOn(aiApi, 'getOrCreateConversation').mockResolvedValueOnce({
-      id: 'server-ai-uuid',
-      type: 'AI',
-      title: 'LeoChat AI',
-      createdBy: 'user-1',
-      lastSeq: 0,
-      createdAt: new Date().toISOString(),
-      status: 'ACTIVE',
-      avatarUrl: null,
-      directKey: 'ai:user-1',
-      lastMessageAt: null,
-    });
+  it('adds server AI conversations missing from this browser on init', async () => {
+    const serverId = '22222222-2222-4222-8222-222222222222';
+    vi.spyOn(aiApi, 'listConversations').mockResolvedValueOnce([
+      { id: serverId, title: 'LeoChat AI', createdAt: new Date().toISOString() } as never,
+    ]);
 
-    const convId = await useAiStore.getState().initServerConversation();
-    expect(convId).toBe('server-ai-uuid');
-    expect(useAiStore.getState().serverConversationId).toBe('server-ai-uuid');
+    await useAiStore.getState().initServerConversation();
+
+    const sessions = useAiStore.getState().sessions;
+    expect(sessions.filter((s) => s.conversationId === serverId)).toHaveLength(1);
   });
 
-  it('permanently deletes server AI conversation via deleteServerConversation', async () => {
-    const deleteSpy = vi.spyOn(aiApi, 'deleteConversation').mockResolvedValueOnce();
+  it('deletes a chat on the server by its conversation id', async () => {
+    const sessionId = useAiStore.getState().createNewSession();
+    const deleteSpy = vi.spyOn(aiApi, 'deleteConversationById').mockResolvedValueOnce();
 
-    await useAiStore.getState().deleteServerConversation();
-    expect(deleteSpy).toHaveBeenCalled();
+    await useAiStore.getState().deleteSession(sessionId);
+
+    expect(deleteSpy).toHaveBeenCalledWith(sessionId);
+    expect(useAiStore.getState().sessions.some((s) => s.id === sessionId)).toBe(false);
+  });
+
+  it('regenerates through the regenerate endpoint and replaces the answer in place', async () => {
+    const sessionId = useAiStore.getState().createNewSession();
+    const oldAnswerId = '33333333-3333-4333-8333-333333333333';
+    useAiStore.setState((state) => ({
+      sessions: state.sessions.map((s) =>
+        s.id === sessionId
+          ? {
+              ...s,
+              messages: [
+                { id: 'ai-user-1', role: 'user', content: 'q', createdAt: '' },
+                { id: oldAnswerId, role: 'assistant', content: 'old', createdAt: '' },
+              ],
+            }
+          : s,
+      ),
+    }));
+    const regenSpy = vi.spyOn(aiApi, 'regenerate').mockResolvedValueOnce({
+      id: 'new-answer',
+      content: 'new',
+      createdAt: new Date().toISOString(),
+    } as Message);
+
+    await useAiStore.getState().regenerateResponse(oldAnswerId);
+
+    expect(regenSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ conversationId: sessionId, messageId: oldAnswerId }),
+      { signal: expect.any(AbortSignal) },
+    );
+    const messages = useAiStore.getState().sessions.find((s) => s.id === sessionId)?.messages;
+    expect(messages?.map((m) => m.content)).toEqual(['q', 'new']);
+  });
+
+  it('drops a reply that arrives after Stop', async () => {
+    const sessionId = useAiStore.getState().createNewSession();
+    let resolveChat: (m: Message) => void = () => {};
+    vi.spyOn(aiApi, 'chat').mockImplementationOnce(
+      () => new Promise<Message>((resolve) => (resolveChat = resolve)),
+    );
+
+    const pending = useAiStore.getState().sendMessage('long question');
+    expect(useAiStore.getState().generatingSessionId).toBe(sessionId);
+    useAiStore.getState().stopGeneration();
+    resolveChat({
+      id: 'late',
+      conversationId: sessionId,
+      senderId: null,
+      aiGenerated: true,
+      seq: 2,
+      clientMessageId: null,
+      type: 'TEXT',
+      content: 'late reply',
+      replyToId: null,
+      createdAt: new Date().toISOString(),
+      editedAt: null,
+      deletedAt: null,
+    } as Message);
+    await pending;
+
+    const session = useAiStore.getState().sessions.find((s) => s.id === sessionId);
+    expect(session?.messages.map((m) => m.content)).toEqual(['long question']);
+    expect(useAiStore.getState().isGenerating).toBe(false);
   });
 });

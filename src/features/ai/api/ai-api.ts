@@ -4,18 +4,57 @@ import type { Message, Conversation } from '@/features/chat';
 import type { AiActionRequest, AiActionResponse } from '../types/ai.types';
 import { showApiError } from '@/shared/api/api-error';
 
-export type AiChatRequest = {
-  conversationId: string;
-  prompt: string;
-  clientMessageId?: string;
+export type AiGenerationOptions = {
+  /** Client model id: leo-ultra | leo-reasoner | leo-coder | leo-fast */
+  model?: string;
+  reasoning?: boolean;
+  webSearch?: boolean;
 };
 
+export type AiChatRequest = AiGenerationOptions & {
+  conversationId: string;
+  /** Saved as the user's message (max 4000 chars). May be empty when attachments are sent. */
+  prompt: string;
+  clientMessageId?: string;
+  /** Text files sent to the model for this turn only; the server stores just their names. */
+  attachments?: { name: string; text: string }[];
+};
+
+export type AiRegenerateRequest = AiGenerationOptions & {
+  conversationId: string;
+  /** Server id of the AI answer to replace. */
+  messageId: string;
+};
+
+const AI_TIMEOUT_MS = 90_000;
+
 export const aiApi = {
-  chat: async (data: AiChatRequest): Promise<Message> => {
+  chat: async (data: AiChatRequest, options?: { signal?: AbortSignal }): Promise<Message> => {
     const response = await http.post('/ai/chat', data, {
-      timeout: 90_000,
+      timeout: AI_TIMEOUT_MS,
+      ...(options?.signal ? { signal: options.signal } : {}),
     });
     return response.data;
+  },
+
+  regenerate: async (
+    data: AiRegenerateRequest,
+    options?: { signal?: AbortSignal },
+  ): Promise<Message> => {
+    const response = await http.post('/ai/chat/regenerate', data, {
+      timeout: AI_TIMEOUT_MS,
+      ...(options?.signal ? { signal: options.signal } : {}),
+    });
+    return response.data;
+  },
+
+  listConversations: async (): Promise<Conversation[]> => {
+    const response = await http.get('/ai/conversations');
+    return response.data;
+  },
+
+  deleteConversationById: async (conversationId: string): Promise<void> => {
+    await http.delete(`/ai/conversations/${conversationId}`);
   },
 
   getOrCreateConversation: async (): Promise<Conversation> => {

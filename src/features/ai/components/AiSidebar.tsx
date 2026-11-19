@@ -22,9 +22,11 @@ import { AiRotatingIcon } from './AiRotatingIcon';
 
 interface AiSidebarProps {
   isMobile?: boolean;
+  /** Closes the mobile drawer. Mobile actions must not touch the desktop sidebar state. */
+  onClose?: () => void;
 }
 
-export const AiSidebar = ({ isMobile = false }: AiSidebarProps) => {
+export const AiSidebar = ({ isMobile = false, onClose }: AiSidebarProps) => {
   const {
     sessions,
     activeSessionId,
@@ -37,8 +39,11 @@ export const AiSidebar = ({ isMobile = false }: AiSidebarProps) => {
     togglePinSession,
     setModel,
     toggleSidebar,
-    setSidebarOpen,
   } = useAiStore();
+
+  const closeIfMobile = () => {
+    if (isMobile) onClose?.();
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -110,7 +115,7 @@ export const AiSidebar = ({ isMobile = false }: AiSidebarProps) => {
           type="button"
           onClick={() => {
             if (isMobile) {
-              setSidebarOpen(false);
+              onClose?.();
             } else {
               toggleSidebar();
             }
@@ -191,7 +196,7 @@ export const AiSidebar = ({ isMobile = false }: AiSidebarProps) => {
           type="button"
           onClick={() => {
             createNewSession();
-            if (isMobile) setSidebarOpen(false);
+            closeIfMobile();
           }}
           className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-black text-white dark:bg-white dark:text-black hover:opacity-90 text-xs font-medium shadow-sm transition-all active:scale-[0.99] cursor-pointer"
         >
@@ -231,7 +236,7 @@ export const AiSidebar = ({ isMobile = false }: AiSidebarProps) => {
                   editTitle={editTitle}
                   onSelect={() => {
                     selectSession(session.id);
-                    if (isMobile) setSidebarOpen(false);
+                    closeIfMobile();
                   }}
                   onDelete={() => deleteSession(session.id)}
                   onTogglePin={() => togglePinSession(session.id)}
@@ -269,7 +274,7 @@ export const AiSidebar = ({ isMobile = false }: AiSidebarProps) => {
                   editTitle={editTitle}
                   onSelect={() => {
                     selectSession(session.id);
-                    if (isMobile) setSidebarOpen(false);
+                    closeIfMobile();
                   }}
                   onDelete={() => deleteSession(session.id)}
                   onTogglePin={() => togglePinSession(session.id)}
@@ -422,7 +427,9 @@ const SessionItem = ({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              onDelete();
+              if (window.confirm('Permanently delete this AI conversation and all its messages?')) {
+                onDelete();
+              }
             }}
             className="p-1 rounded text-zinc-400 hover:text-rose-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer"
             title="Delete conversation"

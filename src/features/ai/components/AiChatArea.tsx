@@ -30,13 +30,14 @@ export const AiChatArea = ({ onOpenMobileSidebar }: AiChatAreaProps) => {
     activeSessionId,
     selectedModelId,
     isGenerating,
+    generatingSessionId,
     isSidebarOpen,
     isDeepThinkEnabled,
     isWebSearchEnabled,
     toggleSidebar,
     createNewSession,
     setModel,
-    deleteServerConversation,
+    deleteSession,
   } = useAiStore();
 
   const [isHeaderModelOpen, setIsHeaderModelOpen] = useState(false);
@@ -45,15 +46,31 @@ export const AiChatArea = ({ onOpenMobileSidebar }: AiChatAreaProps) => {
   const activeSession = sessions.find((s) => s.id === activeSessionId);
   const selectedModel = getModelById(selectedModelId);
   const messages = activeSession?.messages || [];
+  const isGeneratingHere = isGenerating && generatingSessionId === activeSessionId;
 
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length, isGenerating]);
+  }, [messages.length, isGeneratingHere]);
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    toast.success('Conversation link copied to clipboard');
+  // There is no shareable conversation URL, so copy the transcript instead.
+  const handleShare = async () => {
+    const transcript = messages
+      .map((m) => `${m.role === 'user' ? 'You' : 'LeoChat AI'}:\n${m.content}`)
+      .join('\n\n');
+    try {
+      await navigator.clipboard.writeText(transcript);
+      toast.success('Conversation copied to clipboard');
+    } catch {
+      toast.error('Could not copy conversation');
+    }
+  };
+
+  const handleDelete = () => {
+    if (!activeSessionId) return;
+    if (window.confirm('Permanently delete this AI conversation and all its messages?')) {
+      deleteSession(activeSessionId);
+    }
   };
 
   const getModelIcon = (iconName: string) => {
@@ -184,8 +201,9 @@ export const AiChatArea = ({ onOpenMobileSidebar }: AiChatAreaProps) => {
           <button
             type="button"
             onClick={handleShare}
-            className="p-2 rounded-xl text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
-            title="Share conversation"
+            disabled={messages.length === 0}
+            className="p-2 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
+            title="Copy conversation"
           >
             <Share2 className="w-4 h-4" />
           </button>
@@ -193,13 +211,7 @@ export const AiChatArea = ({ onOpenMobileSidebar }: AiChatAreaProps) => {
           {messages.length > 0 && (
             <button
               type="button"
-              onClick={() => {
-                if (
-                  window.confirm('Permanently delete this AI conversation and all its messages?')
-                ) {
-                  deleteServerConversation();
-                }
-              }}
+              onClick={handleDelete}
               className="p-2 rounded-xl text-zinc-500 hover:text-rose-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
               title="Delete conversation"
             >
@@ -220,7 +232,7 @@ export const AiChatArea = ({ onOpenMobileSidebar }: AiChatAreaProps) => {
             ))}
 
             {/* Modern AI Generation & Thinking State Indicator */}
-            {isGenerating && <AiGeneratingIndicator />}
+            {isGeneratingHere && <AiGeneratingIndicator />}
 
             <div ref={messagesEndRef} />
           </div>

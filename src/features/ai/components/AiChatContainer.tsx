@@ -49,7 +49,7 @@ export const AiChatContainer = () => {
 
           {/* Drawer Content */}
           <div className="relative z-50 h-full animate-in slide-in-from-left duration-200">
-            <AiSidebar isMobile />
+            <AiSidebar isMobile onClose={() => setIsMobileDrawerOpen(false)} />
           </div>
         </div>
       )}

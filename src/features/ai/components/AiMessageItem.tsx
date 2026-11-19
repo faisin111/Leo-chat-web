@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   Copy,
   Check,
@@ -29,6 +29,33 @@ export const AiMessageItem = ({ message, isLatest }: AiMessageItemProps) => {
   const [feedback, setFeedback] = useState<'like' | 'dislike' | null>(null);
 
   const regenerateResponse = useAiStore((s) => s.regenerateResponse);
+  const isGenerating = useAiStore((s) => s.isGenerating);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Stop speech if this message unmounts mid-utterance.
+  useEffect(() => {
+    return () => {
+      if (isSpeaking) window.speechSynthesis?.cancel();
+    };
+  }, [isSpeaking]);
+
+  const handleReadAloud = () => {
+    if (!('speechSynthesis' in window)) {
+      toast.error('Read aloud is not supported in this browser');
+      return;
+    }
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(toPlainText(message.content));
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
 
   const handleCopyContent = () => {
     navigator.clipboard.writeText(message.content);
@@ -133,7 +160,7 @@ export const AiMessageItem = ({ message, isLatest }: AiMessageItemProps) => {
                 {message.sources.map((src, i) => (
                   <a
                     key={i}
-                    href={src.url}
+                    href={safeUrl(src.url) ?? undefined}
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-[11px] transition-colors"
@@ -188,7 +215,7 @@ export const AiMessageItem = ({ message, isLatest }: AiMessageItemProps) => {
               <ThumbsDown className="w-3.5 h-3.5" />
             </button>
 
-            {isLatest && (
+            {isLatest && !isGenerating && (
               <button
                 type="button"
                 onClick={() => regenerateResponse(message.id)}
@@ -202,9 +229,12 @@ export const AiMessageItem = ({ message, isLatest }: AiMessageItemProps) => {
 
             <button
               type="button"
-              onClick={() => toast.info('Read aloud feature initialized')}
-              className="p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-              title="Read aloud"
+              onClick={handleReadAloud}
+              aria-pressed={isSpeaking}
+              className={`p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer hover:text-zinc-900 dark:hover:text-white ${
+                isSpeaking ? 'text-zinc-900 dark:text-white' : 'text-zinc-600 dark:text-zinc-400'
+              }`}
+              title={isSpeaking ? 'Stop reading' : 'Read aloud'}
             >
               <Volume2 className="w-3.5 h-3.5" />
             </button>
@@ -214,6 +244,25 @@ export const AiMessageItem = ({ message, isLatest }: AiMessageItemProps) => {
     </div>
   );
 };
+
+// AI output is untrusted: only allow http(s) targets (blocks javascript:, data:, etc.).
+function safeUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url.trim());
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.href : null;
+  } catch {
+    return null;
+  }
+}
+
+function toPlainText(markdown: string): string {
+  return markdown
+    .replace(/```[\s\S]*?```/g, ' code block ')
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/[`*_#>]/g, '')
+    .trim();
+}
 
 function renderInlineMarkdown(text: string): ReactNode {
   // Regex to match inline markdown:
@@ -255,11 +304,15 @@ function renderInlineMarkdown(text: string): ReactNode {
     }
 
     const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-    if (linkMatch && linkMatch[1] && linkMatch[2]) {
+    const linkHref = linkMatch?.[2] ? safeUrl(linkMatch[2]) : null;
+    if (linkMatch && linkMatch[1] && !linkHref) {
+      return <span key={idx}>{linkMatch[1]}</span>;
+    }
+    if (linkMatch && linkMatch[1] && linkHref) {
       return (
         <a
           key={idx}
-          href={linkMatch[2]}
+          href={linkHref}
           target="_blank"
           rel="noreferrer"
           className="text-primary hover:underline font-medium inline-flex items-center gap-0.5 mx-0.5"
@@ -297,9 +350,10 @@ const FormattedMarkdown = ({ content }: { content: string }) => {
 
               // Check for markdown image: ![alt](url)
               const imgMatch = trimmedP.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
-              if (imgMatch && imgMatch[2]) {
+              const imgUrl = imgMatch?.[2] ? safeUrl(imgMatch[2]) : null;
+              if (imgMatch && imgUrl) {
                 const alt = imgMatch[1] || 'Generated image preview';
-                const url = imgMatch[2];
+                const url = imgUrl;
                 return (
                   <div
                     key={pIdx}

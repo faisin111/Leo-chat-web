@@ -48,6 +48,7 @@ interface CallState {
   callType: CallType;
   isCaller: boolean;
   isMuted: boolean;
+  isNoiseSuppressionEnabled: boolean;
   isCameraOff: boolean;
   isScreenSharing: boolean;
   isMinimized: boolean;
@@ -68,6 +69,7 @@ interface CallState {
   rejectCall: () => void;
   endCall: () => void;
   toggleMute: () => void;
+  toggleNoiseSuppression: () => Promise<void>;
   toggleCamera: () => Promise<void>;
   toggleScreenShare: () => Promise<void>;
   toggleMinimize: () => void;
@@ -85,6 +87,7 @@ export const useCallStore = create<CallState>((set, get) => ({
   callType: 'audio',
   isCaller: false,
   isMuted: false,
+  isNoiseSuppressionEnabled: true,
   isCameraOff: false,
   isScreenSharing: false,
   isMinimized: false,
@@ -118,6 +121,7 @@ export const useCallStore = create<CallState>((set, get) => ({
       callType,
       isCaller: true,
       isMuted: false,
+      isNoiseSuppressionEnabled: true,
       isCameraOff: false,
       isScreenSharing: false,
       isMinimized: false,
@@ -412,6 +416,20 @@ export const useCallStore = create<CallState>((set, get) => ({
     }
   },
 
+  toggleNoiseSuppression: async () => {
+    const { localStream, isNoiseSuppressionEnabled } = get();
+    const audioTrack = localStream?.getAudioTracks()[0];
+    if (!audioTrack) return;
+
+    const nextEnabled = !isNoiseSuppressionEnabled;
+    try {
+      await audioTrack.applyConstraints({ noiseSuppression: nextEnabled });
+      set({ isNoiseSuppressionEnabled: nextEnabled });
+    } catch {
+      toast.error('Noise reduction is not supported by this browser');
+    }
+  },
+
   toggleCamera: async () => {
     const { localStream, isCameraOff, callType } = get();
     if (!localStream) return;
@@ -520,6 +538,7 @@ export const useCallStore = create<CallState>((set, get) => ({
           targetUserId: event.fromUserId,
           targetUserName: event.fromUsername || 'Incoming Call',
           callType: isVideo ? 'video' : 'audio',
+          isNoiseSuppressionEnabled: true,
           pendingOfferSdp: event.sdp || null,
           isCaller: false,
           isMuted: false,
@@ -676,6 +695,7 @@ export const useCallStore = create<CallState>((set, get) => ({
       callType: 'audio',
       isCaller: false,
       isMuted: false,
+      isNoiseSuppressionEnabled: true,
       isCameraOff: false,
       isScreenSharing: false,
       isMinimized: false,

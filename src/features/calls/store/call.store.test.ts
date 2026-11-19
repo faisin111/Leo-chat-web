@@ -22,6 +22,7 @@ describe('useCallStore', () => {
       kind: 'audio',
       enabled: true,
       stop: vi.fn(),
+      applyConstraints: vi.fn().mockResolvedValue(undefined),
       readyState: 'live',
     } as unknown as MediaStreamTrack;
 
@@ -109,6 +110,19 @@ describe('useCallStore', () => {
         sdp: 'mock-sdp-offer',
       }),
     );
+  });
+
+  it('enables noise suppression by default and toggles it on the live track', async () => {
+    await useCallStore.getState().startCall('conv-1', 'user-target-1', 'Alice', null, false);
+
+    expect(useCallStore.getState().isNoiseSuppressionEnabled).toBe(true);
+    const audioTrack = useCallStore.getState().localStream?.getAudioTracks()[0];
+
+    await useCallStore.getState().toggleNoiseSuppression();
+
+    expect(audioTrack?.applyConstraints).toHaveBeenCalledWith({ noiseSuppression: false });
+    expect(useCallStore.getState().isNoiseSuppressionEnabled).toBe(false);
+    useCallStore.getState().cleanUp();
   });
 
   it('handles incoming OFFER signal and switches to incoming state', async () => {

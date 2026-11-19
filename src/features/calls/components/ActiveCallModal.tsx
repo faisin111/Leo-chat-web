@@ -14,6 +14,8 @@ import {
   Minimize,
   Radio,
   LayoutGrid,
+  AudioLines,
+  AudioWaveform,
 } from 'lucide-react';
 import { useCallStore } from '../store/call.store';
 import { Avatar } from '@/shared/ui/avatar';
@@ -32,6 +34,7 @@ export const ActiveCallModal = () => {
     targetAvatarUrl,
     callType,
     isMuted,
+    isNoiseSuppressionEnabled,
     isCameraOff,
     isScreenSharing,
     isMinimized,
@@ -39,6 +42,7 @@ export const ActiveCallModal = () => {
     localStream,
     remoteStream,
     toggleMute,
+    toggleNoiseSuppression,
     toggleCamera,
     toggleScreenShare,
     toggleMinimize,
@@ -672,6 +676,29 @@ export const ActiveCallModal = () => {
               title={isCameraOff ? 'Turn camera on' : 'Turn camera off'}
             >
               {isCameraOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+            </button>
+
+            {/* Noise Reduction Button */}
+            <button
+              type="button"
+              onClick={() => void toggleNoiseSuppression()}
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                isNoiseSuppressionEnabled
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.25)] hover:bg-emerald-500/30'
+                  : 'bg-white/10 text-white border border-white/15 hover:bg-white/20'
+              }`}
+              title={
+                isNoiseSuppressionEnabled ? 'Turn off noise reduction' : 'Turn on noise reduction'
+              }
+              aria-label={
+                isNoiseSuppressionEnabled ? 'Turn off noise reduction' : 'Turn on noise reduction'
+              }
+            >
+              {isNoiseSuppressionEnabled ? (
+                <AudioLines className="w-5 h-5" />
+              ) : (
+                <AudioWaveform className="w-5 h-5" />
+              )}
             </button>
 
             {/* Screen Share Button */}

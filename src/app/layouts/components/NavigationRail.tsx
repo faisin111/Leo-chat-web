@@ -46,12 +46,13 @@ export function NavigationRail() {
   };
 
   const isConversationDetail = location.pathname.startsWith('/app/c/');
+  const showAdminTab = isAdminRole(user?.role) || location.pathname.startsWith('/app/admin');
 
   return (
     <aside
       className={`${
         isConversationDetail ? 'hidden md:flex' : 'flex'
-      } w-full md:w-16 h-16 md:h-full bg-slate-950 dark:bg-slate-950/95 flex-row md:flex-col items-center justify-around md:justify-between py-2 md:py-4 px-3 md:px-0 border-t md:border-t-0 md:border-r border-slate-900 z-30 shrink-0 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:pb-4 order-last md:order-first backdrop-blur-md`}
+      } fixed md:relative bottom-0 left-0 right-0 md:bottom-auto md:left-auto md:right-auto w-full md:w-16 h-16 md:h-full bg-card/95 md:bg-card border-t md:border-t-0 md:border-r border-border z-50 md:z-30 flex-row md:flex-col items-center justify-between py-1.5 md:py-4 px-2 sm:px-3 md:px-0 shrink-0 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:pb-4 order-last md:order-first backdrop-blur-xl shadow-lg md:shadow-none transition-colors duration-200`}
     >
       {/* App Logo (Desktop only) */}
       <Link
@@ -63,10 +64,10 @@ export function NavigationRail() {
       </Link>
 
       {/* Primary Nav Items: horizontal on mobile, vertical column on desktop */}
-      <nav className="flex flex-row md:flex-col items-center justify-around md:justify-start gap-1 md:gap-4 w-full flex-1">
+      <nav className="flex flex-row md:flex-col items-center justify-around md:justify-start gap-1 sm:gap-1.5 md:gap-4 flex-1 md:flex-initial md:w-full">
         <NavItem
           to="/app"
-          icon={<MessageSquare className="w-5 h-5" />}
+          icon={<MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />}
           active={location.pathname === '/app' || location.pathname.startsWith('/app/c/')}
           badge={unreadData?.unreadCount}
           label="Chats"
@@ -79,7 +80,7 @@ export function NavigationRail() {
         />
         <NavItem
           to="/app/people"
-          icon={<Users className="w-5 h-5" />}
+          icon={<Users className="w-4 h-4 sm:w-5 sm:h-5" />}
           active={
             location.pathname === '/app/people' ||
             location.pathname === '/app/new' ||
@@ -89,14 +90,14 @@ export function NavigationRail() {
         />
         <NavItem
           to="/app/settings"
-          icon={<Settings className="w-5 h-5" />}
+          icon={<Settings className="w-4 h-4 sm:w-5 sm:h-5" />}
           active={location.pathname.startsWith('/app/settings')}
           label="Settings"
         />
-        {isAdminRole(user?.role) && (
+        {showAdminTab && (
           <NavItem
             to="/app/admin"
-            icon={<Shield className="w-5 h-5" />}
+            icon={<Shield className="w-4 h-4 sm:w-5 sm:h-5" />}
             active={location.pathname.startsWith('/app/admin')}
             label="Admin"
           />
@@ -104,40 +105,48 @@ export function NavigationRail() {
       </nav>
 
       {/* Bottom Nav Items / Profile */}
-      <div className="flex flex-row md:flex-col items-center gap-2 md:gap-3 shrink-0">
-        {/* Quick Theme Switcher (Desktop) */}
+      <div className="flex flex-row md:flex-col items-center gap-1 sm:gap-1.5 md:gap-3 shrink-0">
+        {/* Quick Theme Switcher (Available on both Mobile & Desktop) */}
         <button
+          type="button"
           onClick={toggleTheme}
-          className="hidden md:flex w-10 h-10 items-center justify-center rounded-xl text-slate-400 hover:text-amber-300 hover:bg-slate-900/80 active:scale-90 transition-all duration-200 cursor-pointer"
+          className="flex w-9 h-9 sm:w-10 sm:h-10 items-center justify-center rounded-xl text-muted-foreground hover:text-amber-500 hover:bg-muted active:scale-90 transition-all duration-200 cursor-pointer"
           title={`Switch to ${resolvedTheme === 'dark' ? 'Light' : 'Dark'} mode`}
           aria-label="Toggle theme"
         >
           {resolvedTheme === 'dark' ? (
-            <Sun className="w-5 h-5 transition-transform hover:rotate-45" />
+            <Sun className="w-4 h-4 sm:w-5 sm:h-5 transition-transform hover:rotate-45 text-amber-400" />
           ) : (
-            <Moon className="w-5 h-5 transition-transform hover:-rotate-12" />
+            <Moon className="w-4 h-4 sm:w-5 sm:h-5 transition-transform hover:-rotate-12 text-slate-700 dark:text-slate-300" />
           )}
         </button>
 
+        {/* Quick Logout (Available on both Mobile & Desktop) */}
         <button
+          type="button"
           onClick={() => logoutMutation.mutate()}
-          className="hidden md:flex w-10 h-10 items-center justify-center rounded-xl text-slate-400 hover:text-red-400 hover:bg-slate-900/80 active:scale-90 transition-all duration-200 cursor-pointer"
+          disabled={logoutMutation.isPending}
+          className="flex w-9 h-9 sm:w-10 sm:h-10 items-center justify-center rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 active:scale-90 transition-all duration-200 cursor-pointer"
           title="Log out"
+          aria-label="Log out"
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
         <button
-          className="hidden md:flex w-10 h-10 items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-900/80 active:scale-90 transition-all duration-200 cursor-pointer"
+          type="button"
+          className="hidden md:flex w-10 h-10 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted active:scale-90 transition-all duration-200 cursor-pointer"
           title="Help"
+          aria-label="Help"
         >
           <HelpCircle className="w-5 h-5" />
         </button>
 
         <Link
           to="/app/settings/profile"
-          className="relative w-10 h-10 bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-700 text-slate-900 dark:text-slate-100 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ring-2 ring-primary/40 hover:ring-primary hover:scale-105 active:scale-95 transition-all duration-200 shadow-sm"
+          className="relative w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-muted text-foreground border border-border rounded-full flex items-center justify-center font-bold text-xs sm:text-sm shrink-0 ring-2 ring-primary/30 hover:ring-primary hover:scale-105 active:scale-95 transition-all duration-200 shadow-xs"
           title={user?.displayName || 'Profile'}
+          aria-label="Profile"
         >
           {user?.displayName ? getInitials(user.displayName) : 'U'}
         </Link>
@@ -164,23 +173,23 @@ function NavItem({
       to={to}
       title={label}
       aria-label={label}
-      className={`relative w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-all duration-200 active:scale-95 ${
+      className={`relative w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 flex items-center justify-center rounded-xl transition-all duration-200 active:scale-95 ${
         active
-          ? 'bg-gradient-to-br from-primary/25 to-primary/10 text-primary border border-primary/20 shadow-sm shadow-primary/20'
-          : 'text-slate-400 hover:text-white hover:bg-slate-900/80'
+          ? 'bg-gradient-to-br from-primary/25 to-primary/10 text-primary border border-primary/20 shadow-xs shadow-primary/20'
+          : 'text-muted-foreground hover:text-foreground hover:bg-muted/70'
       }`}
     >
       {/* Desktop active pill (left edge) with glow */}
       {active && (
-        <div className="hidden md:block absolute -left-[16px] top-1/2 -translate-y-1/2 w-1.5 h-6 bg-gradient-to-b from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] rounded-r-full shadow-sm shadow-primary" />
+        <div className="hidden md:block absolute -left-[16px] top-1/2 -translate-y-1/2 w-1.5 h-6 bg-gradient-to-b from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] rounded-r-full shadow-xs shadow-primary" />
       )}
       {/* Mobile active indicator (top edge) */}
       {active && (
-        <div className="md:hidden absolute -top-1 left-1/2 -translate-x-1/2 w-6 h-1 bg-gradient-to-r from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] rounded-full shadow-sm shadow-primary" />
+        <div className="md:hidden absolute -top-1 left-1/2 -translate-x-1/2 w-5 sm:w-6 h-1 bg-gradient-to-r from-primary to-[hsl(var(--primary-gradient-to,var(--primary)))] rounded-full shadow-xs shadow-primary" />
       )}
       {icon}
       {!!badge && badge > 0 && (
-        <div className="absolute -top-1 -right-1 bg-gradient-to-r from-rose-500 to-red-600 text-white text-[10px] font-bold px-1.5 min-w-[18px] h-[18px] rounded-full flex items-center justify-center border-2 border-slate-950 shadow-md shadow-rose-500/40 animate-pulse">
+        <div className="absolute -top-1 -right-1 bg-gradient-to-r from-rose-500 to-red-600 text-white text-[10px] font-bold px-1 min-w-[16px] sm:min-w-[18px] h-4 sm:h-[18px] rounded-full flex items-center justify-center border-2 border-background shadow-xs shadow-rose-500/40 animate-pulse">
           {badge > 99 ? '99+' : badge}
         </div>
       )}

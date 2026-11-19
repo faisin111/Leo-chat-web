@@ -67,13 +67,13 @@ export const ReportDetailPage = () => {
 
   if (isError || !report) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50/60 h-full text-center">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-background text-foreground h-full text-center">
         <AlertTriangle className="w-12 h-12 text-amber-500 mb-3" />
-        <h2 className="text-xl font-bold text-slate-900 mb-1">Report Not Found</h2>
-        <p className="text-sm text-slate-500 mb-6 max-w-sm">
+        <h2 className="text-xl font-bold text-foreground mb-1">Report Not Found</h2>
+        <p className="text-sm text-muted-foreground mb-6 max-w-sm">
           The requested moderation report does not exist or may have been deleted.
         </p>
-        <Button asChild variant="outline" className="rounded-xl">
+        <Button asChild variant="outline" className="rounded-xl border-border hover:bg-muted">
           <Link to="/app/admin/reports">Return to Reports</Link>
         </Button>
       </div>
@@ -83,7 +83,7 @@ export const ReportDetailPage = () => {
   const isResolved = report.status === 'RESOLVED' || report.status === 'DISMISSED';
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50/60 h-full">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-background text-foreground h-full transition-colors duration-200">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
@@ -91,7 +91,7 @@ export const ReportDetailPage = () => {
             variant="ghost"
             size="icon"
             asChild
-            className="rounded-xl text-slate-500 hover:text-slate-900"
+            className="rounded-xl text-muted-foreground hover:text-foreground"
           >
             <Link to="/app/admin/reports">
               <ArrowLeft className="w-5 h-5" />
@@ -99,20 +99,20 @@ export const ReportDetailPage = () => {
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Report Review</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">Report Review</h1>
               <span
                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                   report.status === 'RESOLVED'
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                     : report.status === 'DISMISSED'
-                      ? 'bg-slate-100 text-slate-600'
-                      : 'bg-red-50 text-red-700 border border-red-200'
+                      ? 'bg-muted text-muted-foreground'
+                      : 'bg-destructive/15 text-destructive border border-destructive/30'
                 }`}
               >
                 {report.status}
               </span>
             </div>
-            <p className="text-xs text-slate-400 font-mono mt-0.5">ID: {report.id}</p>
+            <p className="text-xs text-muted-foreground font-mono mt-0.5">ID: {report.id}</p>
           </div>
         </div>
       </div>
@@ -120,46 +120,48 @@ export const ReportDetailPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Report Details */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6">
-            <h2 className="text-base font-semibold text-slate-900 mb-4 flex items-center gap-2">
-              <Flag className="w-4 h-4 text-red-500" />
+          <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-xs p-6">
+            <h2 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Flag className="w-4 h-4 text-destructive" />
               Report Particulars
             </h2>
 
             <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-muted/40 border border-border/80 text-xs">
                 <div>
-                  <span className="text-slate-400 block mb-0.5">Violation Reason</span>
-                  <span className="font-bold text-slate-900 text-sm">{report.reason}</span>
+                  <span className="text-muted-foreground block mb-0.5">Violation Reason</span>
+                  <span className="font-bold text-foreground text-sm">{report.reason}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block mb-0.5">Target Entity</span>
-                  <span className="font-bold text-slate-900 text-sm">{report.targetType}</span>
+                  <span className="text-muted-foreground block mb-0.5">Target Entity</span>
+                  <span className="font-bold text-foreground text-sm">{report.targetType}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block mb-0.5">Reporter UUID</span>
-                  <span className="font-mono text-slate-700 truncate block">
+                  <span className="text-muted-foreground block mb-0.5">Reporter UUID</span>
+                  <span className="font-mono text-foreground truncate block">
                     {report.reporterId}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block mb-0.5">Target UUID</span>
-                  <span className="font-mono text-slate-700 truncate block">{report.targetId}</span>
+                  <span className="text-muted-foreground block mb-0.5">Target UUID</span>
+                  <span className="font-mono text-foreground truncate block">
+                    {report.targetId}
+                  </span>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-xs font-semibold text-slate-700 mb-1.5">Submitted Details</h3>
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 text-sm text-slate-700 leading-relaxed">
+                <h3 className="text-xs font-semibold text-foreground mb-1.5">Submitted Details</h3>
+                <div className="p-4 rounded-xl bg-muted/40 border border-border/80 text-sm text-foreground leading-relaxed">
                   {report.details || (
-                    <span className="text-slate-400 italic">
+                    <span className="text-muted-foreground italic">
                       No additional explanation provided by reporter.
                     </span>
                   )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-slate-400 pt-2">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2">
                 <Clock className="w-3.5 h-3.5" />
                 Submitted on {report.createdAt ? format(new Date(report.createdAt), 'PPP p') : '—'}
               </div>
@@ -168,15 +170,15 @@ export const ReportDetailPage = () => {
 
           {/* If already resolved banner */}
           {isResolved && (
-            <div className="bg-emerald-50/60 rounded-2xl border border-emerald-200/80 p-6">
-              <div className="flex items-center gap-2.5 mb-3 text-emerald-800 font-bold">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            <div className="bg-emerald-500/10 rounded-2xl border border-emerald-500/30 p-6">
+              <div className="flex items-center gap-2.5 mb-3 text-emerald-600 dark:text-emerald-400 font-bold">
+                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                 Resolved by Administration
               </div>
-              <p className="text-sm text-emerald-950 mb-3 leading-relaxed">
+              <p className="text-sm text-foreground mb-3 leading-relaxed">
                 {report.resolution || 'Report reviewed and marked resolved.'}
               </p>
-              <div className="text-xs text-emerald-700/80 flex items-center gap-4">
+              <div className="text-xs text-emerald-600/80 dark:text-emerald-400/80 flex items-center gap-4">
                 {report.resolvedBy && <span>Resolver: {report.resolvedBy}</span>}
                 {report.resolvedAt && (
                   <span>Completed: {format(new Date(report.resolvedAt), 'MMM d, yyyy HH:mm')}</span>
@@ -188,8 +190,8 @@ export const ReportDetailPage = () => {
 
         {/* Right Column: Moderation Workbench */}
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6">
-            <h3 className="text-base font-semibold text-slate-900 mb-4 flex items-center gap-2">
+          <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-xs p-6">
+            <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
               <Shield className="w-4 h-4 text-primary" />
               Action Workbench
             </h3>
@@ -197,7 +199,7 @@ export const ReportDetailPage = () => {
             {!isResolved ? (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">
                     Resolution Note (Required)
                   </label>
                   <textarea
@@ -206,21 +208,21 @@ export const ReportDetailPage = () => {
                     placeholder="Document your findings and reason for resolution..."
                     rows={4}
                     maxLength={2000}
-                    className="w-full text-sm rounded-xl border border-slate-200 p-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                    className="w-full text-sm rounded-xl border border-border bg-muted/20 text-foreground p-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none placeholder:text-muted-foreground"
                   />
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-[10px] text-muted-foreground">
                     {resolutionText.length}/2000 chars
                   </span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">
                     Moderator Action
                   </label>
                   <select
                     value={actionChoice}
                     onChange={(e) => setActionChoice(e.target.value)}
-                    className="w-full text-sm rounded-xl border border-slate-200 p-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    className="w-full text-sm rounded-xl border border-border p-2.5 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   >
                     <option value="NONE">No Action (Mark Reviewed)</option>
                     <option value="DELETE_MESSAGE">DELETE_MESSAGE</option>
@@ -247,8 +249,8 @@ export const ReportDetailPage = () => {
                 </Button>
 
                 {report.targetType === 'MESSAGE' && (
-                  <div className="pt-4 border-t border-slate-100">
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  <div className="pt-4 border-t border-border">
+                    <label className="block text-xs font-semibold text-foreground mb-1.5">
                       Delete Reported Message
                     </label>
                     <input
@@ -256,7 +258,7 @@ export const ReportDetailPage = () => {
                       value={deleteReason}
                       onChange={(e) => setDeleteReason(e.target.value)}
                       placeholder="Deletion audit reason..."
-                      className="w-full text-xs rounded-xl border border-slate-200 p-2.5 mb-2 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400"
+                      className="w-full text-xs rounded-xl border border-border bg-muted/20 text-foreground p-2.5 mb-2 focus:outline-none focus:ring-2 focus:ring-destructive/30 focus:border-destructive placeholder:text-muted-foreground"
                     />
                     <Button
                       variant="outline"
@@ -268,7 +270,7 @@ export const ReportDetailPage = () => {
                           reason: deleteReason.trim(),
                         })
                       }
-                      className="w-full rounded-xl text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200 text-xs"
+                      className="w-full rounded-xl text-destructive hover:bg-destructive/10 border-destructive/30 text-xs"
                     >
                       <Trash2 className="w-3.5 h-3.5 mr-1.5" />
                       Remove Reported Message
@@ -277,7 +279,7 @@ export const ReportDetailPage = () => {
                 )}
               </div>
             ) : (
-              <p className="text-xs text-slate-500 leading-relaxed">
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 This report is marked complete. No further administrative action is pending.
               </p>
             )}

@@ -109,32 +109,32 @@ export const UsersPage = () => {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50/60 h-full">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-background text-foreground h-full transition-colors duration-200">
       {/* Page Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">User Management</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">User Management</h1>
+          <p className="text-sm text-muted-foreground">
             View profiles, moderate account statuses, and oversee platform members.
           </p>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 mb-6 space-y-4">
+      <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-xs p-4 mb-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 h-10 bg-slate-50/50 border-slate-200 rounded-xl text-sm"
+              className="pl-9 h-10 bg-muted/40 border-border text-foreground placeholder:text-muted-foreground rounded-xl text-sm"
               placeholder="Search by username, display name, email..."
             />
           </div>
 
           {/* Status Tabs */}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-medium overflow-x-auto hide-scrollbar">
+          <div className="flex items-center gap-1 bg-muted p-1 rounded-xl text-xs font-medium overflow-x-auto hide-scrollbar">
             {(['ALL', 'ACTIVE', 'DISABLED', 'BANNED'] as const).map((st) => (
               <button
                 key={st}
@@ -145,8 +145,8 @@ export const UsersPage = () => {
                 }}
                 className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-all ${
                   statusFilter === st
-                    ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                    : 'text-slate-500 hover:text-slate-800'
+                    ? 'bg-background text-foreground shadow-xs font-semibold'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {st}
@@ -157,10 +157,10 @@ export const UsersPage = () => {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50/80 border-b border-slate-200/80 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <thead className="bg-muted/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               <tr>
                 <th className="px-5 py-3.5">User</th>
                 <th className="px-5 py-3.5">Role</th>
@@ -169,13 +169,13 @@ export const UsersPage = () => {
                 <th className="px-5 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border/60">
               {isLoading ? (
                 <UserTableSkeleton rows={6} />
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center text-slate-400">
-                    <UserX className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                  <td colSpan={5} className="px-5 py-12 text-center text-muted-foreground">
+                    <UserX className="w-8 h-8 mx-auto mb-2 text-muted-foreground opacity-60" />
                     No users match your criteria.
                   </td>
                 </tr>
@@ -186,19 +186,19 @@ export const UsersPage = () => {
                   const initials = name.substring(0, 2).toUpperCase();
 
                   return (
-                    <tr key={u.id} className="hover:bg-slate-50/60 transition-colors group">
+                    <tr key={u.id} className="hover:bg-muted/40 transition-colors group">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <Avatar
                             src={u.profilePictureUrl}
                             alt={name}
-                            className="w-9 h-9 bg-slate-100 text-slate-700 font-bold text-xs shrink-0"
+                            className="w-9 h-9 bg-muted text-foreground border border-border font-bold text-xs shrink-0"
                             fallback={initials}
                           />
                           <div className="min-w-0">
                             <Link
                               to={`/app/admin/users/${u.id}`}
-                              className="font-semibold text-slate-900 hover:text-primary transition-colors flex items-center gap-1.5 truncate"
+                              className="font-semibold text-foreground hover:text-primary transition-colors flex items-center gap-1.5 truncate"
                             >
                               {name}
                               {isAdmin && (
@@ -207,7 +207,7 @@ export const UsersPage = () => {
                                 </span>
                               )}
                             </Link>
-                            <div className="text-xs text-slate-400 truncate">{u.email}</div>
+                            <div className="text-xs text-muted-foreground truncate">{u.email}</div>
                           </div>
                         </div>
                       </td>
@@ -216,8 +216,8 @@ export const UsersPage = () => {
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                             isAdmin
-                              ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                              : 'bg-slate-100 text-slate-600'
+                              ? 'bg-primary/10 text-primary border border-primary/20'
+                              : 'bg-muted text-muted-foreground'
                           }`}
                         >
                           {isAdmin ? 'ADMIN' : 'USER'}
@@ -228,10 +228,10 @@ export const UsersPage = () => {
                         <span
                           className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             u.status === 'ACTIVE'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                               : u.status === 'BANNED'
-                                ? 'bg-red-50 text-red-700 border border-red-200'
-                                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                ? 'bg-destructive/15 text-destructive border border-destructive/30'
+                                : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
                           }`}
                         >
                           <span
@@ -239,7 +239,7 @@ export const UsersPage = () => {
                               u.status === 'ACTIVE'
                                 ? 'bg-emerald-500'
                                 : u.status === 'BANNED'
-                                  ? 'bg-red-500'
+                                  ? 'bg-destructive'
                                   : 'bg-amber-500'
                             }`}
                           />
@@ -247,7 +247,7 @@ export const UsersPage = () => {
                         </span>
                       </td>
 
-                      <td className="px-5 py-4 whitespace-nowrap text-xs text-slate-500">
+                      <td className="px-5 py-4 whitespace-nowrap text-xs text-muted-foreground">
                         {u.createdAt ? format(new Date(u.createdAt), 'MMM d, yyyy') : '—'}
                       </td>
 
@@ -257,7 +257,7 @@ export const UsersPage = () => {
                             asChild
                             variant="ghost"
                             size="sm"
-                            className="h-8 px-2 text-slate-500 hover:text-primary"
+                            className="h-8 px-2 text-muted-foreground hover:text-primary"
                           >
                             <Link to={`/app/admin/users/${u.id}`} title="View Details">
                               <Eye className="w-4 h-4" />
@@ -274,7 +274,7 @@ export const UsersPage = () => {
                                   setNewStatus((u.status as AdminUserStatus) || 'ACTIVE');
                                   setStatusReason('');
                                 }}
-                                className="h-8 px-2 text-slate-500 hover:text-amber-600"
+                                className="h-8 px-2 text-muted-foreground hover:text-amber-500"
                                 title="Change Status"
                               >
                                 <Ban className="w-4 h-4" />
@@ -284,7 +284,7 @@ export const UsersPage = () => {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setSelectedUserForDelete(u)}
-                                className="h-8 px-2 text-slate-500 hover:text-red-600"
+                                className="h-8 px-2 text-muted-foreground hover:text-destructive"
                                 title="Anonymize / Delete"
                               >
                                 <UserX className="w-4 h-4" />
@@ -302,7 +302,7 @@ export const UsersPage = () => {
         </div>
 
         {/* Pagination Footer */}
-        <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <div className="p-4 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
           <span>Showing {users.length} accounts</span>
           <div className="flex items-center gap-2">
             <Button
@@ -310,7 +310,7 @@ export const UsersPage = () => {
               size="sm"
               onClick={handlePrevPage}
               disabled={cursorHistory.length <= 1}
-              className="rounded-xl h-8 px-3"
+              className="rounded-xl h-8 px-3 border-border hover:bg-muted"
             >
               <ChevronLeft className="w-3.5 h-3.5 mr-1" />
               Previous
@@ -320,7 +320,7 @@ export const UsersPage = () => {
               size="sm"
               onClick={handleNextPage}
               disabled={!data?.hasMore}
-              className="rounded-xl h-8 px-3"
+              className="rounded-xl h-8 px-3 border-border hover:bg-muted"
             >
               Next
               <ChevronRight className="w-3.5 h-3.5 ml-1" />
@@ -331,28 +331,28 @@ export const UsersPage = () => {
 
       {/* Change Status Modal */}
       {selectedUserForStatus && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-card text-card-foreground rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-slate-900">Change Account Status</h3>
+              <h3 className="text-lg font-bold text-foreground">Change Account Status</h3>
               <button
                 onClick={() => setSelectedUserForStatus(null)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+                className="text-muted-foreground hover:text-foreground p-1 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-500 mb-4">
+            <p className="text-xs text-muted-foreground mb-4">
               Updating status for{' '}
-              <span className="font-semibold text-slate-800">
+              <span className="font-semibold text-foreground">
                 @{selectedUserForStatus.username}
               </span>
             </p>
 
             <div className="space-y-4 mb-6">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs font-semibold text-foreground mb-1.5">
                   Select Status
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -364,7 +364,7 @@ export const UsersPage = () => {
                       className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
                         newStatus === st
                           ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                          : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground'
                       }`}
                     >
                       {st}
@@ -374,7 +374,7 @@ export const UsersPage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs font-semibold text-foreground mb-1.5">
                   Reason for Status Change (Required)
                 </label>
                 <textarea
@@ -383,9 +383,11 @@ export const UsersPage = () => {
                   placeholder="e.g. Terms violation, spam reports, or account restoration..."
                   rows={3}
                   maxLength={500}
-                  className="w-full text-sm rounded-xl border border-slate-200 p-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                  className="w-full text-sm rounded-xl border border-border bg-muted/20 text-foreground p-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none placeholder:text-muted-foreground"
                 />
-                <span className="text-[10px] text-slate-400">{statusReason.length}/500 chars</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {statusReason.length}/500 chars
+                </span>
               </div>
             </div>
 
@@ -394,7 +396,7 @@ export const UsersPage = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedUserForStatus(null)}
-                className="rounded-xl"
+                className="rounded-xl border-border hover:bg-muted"
               >
                 Cancel
               </Button>
@@ -422,21 +424,23 @@ export const UsersPage = () => {
 
       {/* Delete / Anonymize Modal */}
       {selectedUserForDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center gap-3 mb-4 text-red-600">
-              <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-card text-card-foreground rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-4 text-destructive">
+              <div className="w-10 h-10 rounded-xl bg-destructive/15 flex items-center justify-center">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Soft Delete User</h3>
-                <p className="text-xs text-slate-500">This action will anonymize account data.</p>
+                <h3 className="text-lg font-bold text-foreground">Soft Delete User</h3>
+                <p className="text-xs text-muted-foreground">
+                  This action will anonymize account data.
+                </p>
               </div>
             </div>
 
-            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
               Are you sure you want to delete and anonymize user{' '}
-              <strong className="text-slate-900">@{selectedUserForDelete.username}</strong>?
+              <strong className="text-foreground">@{selectedUserForDelete.username}</strong>?
               Messages and account references will be sanitized in compliance with platform
               retention policies.
             </p>
@@ -447,7 +451,7 @@ export const UsersPage = () => {
                 size="sm"
                 onClick={() => setSelectedUserForDelete(null)}
                 disabled={isDeleting}
-                className="rounded-xl"
+                className="rounded-xl border-border hover:bg-muted"
               >
                 Cancel
               </Button>
@@ -459,7 +463,7 @@ export const UsersPage = () => {
                   setIsDeleting(true);
                   deleteMutation.mutate(selectedUserForDelete.id);
                 }}
-                className="rounded-xl bg-red-600 hover:bg-red-700"
+                className="rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               >
                 {isDeleting ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : null}
                 Confirm Deletion

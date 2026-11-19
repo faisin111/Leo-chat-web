@@ -83,12 +83,12 @@ export const AuditLogsPage = () => {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50/60 h-full">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-background text-foreground h-full transition-colors duration-200">
       {/* Page Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">System Audit Logs</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">System Audit Logs</h1>
+          <p className="text-sm text-muted-foreground">
             Immutable record of all administrative modifications, bans, and security operations.
           </p>
         </div>
@@ -97,7 +97,7 @@ export const AuditLogsPage = () => {
           variant="outline"
           size="sm"
           onClick={handleExportCSV}
-          className="rounded-xl bg-white shadow-xs self-start sm:self-auto"
+          className="rounded-xl bg-card border-border hover:bg-muted text-foreground shadow-xs self-start sm:self-auto"
         >
           <Download className="w-3.5 h-3.5 mr-1.5" />
           Export CSV
@@ -105,9 +105,9 @@ export const AuditLogsPage = () => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-xs p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={actorSearch}
             onChange={(e) => {
@@ -115,12 +115,12 @@ export const AuditLogsPage = () => {
               setCursor(0);
               setCursorHistory([0]);
             }}
-            className="pl-9 h-10 bg-slate-50/50 border-slate-200 rounded-xl text-sm"
+            className="pl-9 h-10 bg-muted/40 border-border text-foreground placeholder:text-muted-foreground rounded-xl text-sm"
             placeholder="Filter by Actor UUID..."
           />
         </div>
 
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-medium overflow-x-auto hide-scrollbar">
+        <div className="flex items-center gap-1 bg-muted p-1 rounded-xl text-xs font-medium overflow-x-auto hide-scrollbar">
           {(
             [
               'ALL',
@@ -139,8 +139,8 @@ export const AuditLogsPage = () => {
               }}
               className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-all ${
                 actionFilter === act
-                  ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? 'bg-background text-foreground shadow-xs font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {act === 'ALL' ? 'All Actions' : act.replace(/_/g, ' ')}
@@ -150,10 +150,10 @@ export const AuditLogsPage = () => {
       </div>
 
       {/* Audit Logs Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50/80 border-b border-slate-200/80 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <thead className="bg-muted/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               <tr>
                 <th className="px-5 py-3.5">Timestamp</th>
                 <th className="px-5 py-3.5">Actor</th>
@@ -163,13 +163,13 @@ export const AuditLogsPage = () => {
                 <th className="px-5 py-3.5 text-right">Details</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border/60">
               {isLoading ? (
                 <AuditLogTableSkeleton rows={6} />
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-12 text-center text-slate-400">
-                    <FileText className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                  <td colSpan={6} className="px-5 py-12 text-center text-muted-foreground">
+                    <FileText className="w-8 h-8 mx-auto mb-2 text-muted-foreground opacity-60" />
                     No audit records found matching your filters.
                   </td>
                 </tr>
@@ -180,16 +180,16 @@ export const AuditLogsPage = () => {
                   const isReport = log.action.includes('REPORT');
 
                   return (
-                    <tr key={log.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="px-5 py-4 whitespace-nowrap text-xs text-slate-500">
+                    <tr key={log.id} className="hover:bg-muted/40 transition-colors">
+                      <td className="px-5 py-4 whitespace-nowrap text-xs text-muted-foreground">
                         {log.createdAt
                           ? format(new Date(log.createdAt), 'MMM d, yyyy HH:mm:ss')
                           : '—'}
                       </td>
 
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5 font-mono text-xs font-semibold text-slate-900">
-                          <User className="w-3.5 h-3.5 text-slate-400" />
+                        <div className="flex items-center gap-1.5 font-mono text-xs font-semibold text-foreground">
+                          <User className="w-3.5 h-3.5 text-muted-foreground" />
                           <span className="truncate max-w-[140px]">{actor}</span>
                         </div>
                       </td>
@@ -198,28 +198,28 @@ export const AuditLogsPage = () => {
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold font-mono ${
                             isUserStatus
-                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
                               : isReport
-                                ? 'bg-red-50 text-red-700 border border-red-200'
-                                : 'bg-slate-100 text-slate-700'
+                                ? 'bg-destructive/15 text-destructive border border-destructive/30'
+                                : 'bg-muted text-muted-foreground'
                           }`}
                         >
                           {log.action}
                         </span>
                       </td>
 
-                      <td className="px-5 py-4 whitespace-nowrap text-xs text-slate-600">
+                      <td className="px-5 py-4 whitespace-nowrap text-xs text-muted-foreground">
                         <div className="font-mono">
-                          <span className="text-[10px] text-slate-400 font-bold block">
+                          <span className="text-[10px] text-muted-foreground font-bold block">
                             {log.targetType || 'ENTITY'}
                           </span>
-                          <span className="truncate max-w-[120px] block">
+                          <span className="truncate max-w-[120px] block text-foreground">
                             {log.targetId || '—'}
                           </span>
                         </div>
                       </td>
 
-                      <td className="px-5 py-4 whitespace-nowrap text-xs font-mono text-slate-500">
+                      <td className="px-5 py-4 whitespace-nowrap text-xs font-mono text-muted-foreground">
                         {log.ipAddress || '—'}
                       </td>
 
@@ -228,7 +228,7 @@ export const AuditLogsPage = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => setSelectedLog(log)}
-                          className="h-8 px-2 text-slate-500 hover:text-primary text-xs"
+                          className="h-8 px-2 text-muted-foreground hover:text-primary text-xs"
                         >
                           <Code className="w-3.5 h-3.5 mr-1" />
                           Inspect
@@ -243,7 +243,7 @@ export const AuditLogsPage = () => {
         </div>
 
         {/* Pagination Footer */}
-        <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <div className="p-4 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
           <span>Showing {logs.length} audit records</span>
           <div className="flex items-center gap-2">
             <Button
@@ -251,7 +251,7 @@ export const AuditLogsPage = () => {
               size="sm"
               onClick={handlePrevPage}
               disabled={cursorHistory.length <= 1}
-              className="rounded-xl h-8 px-3"
+              className="rounded-xl h-8 px-3 border-border hover:bg-muted"
             >
               <ChevronLeft className="w-3.5 h-3.5 mr-1" />
               Previous
@@ -261,7 +261,7 @@ export const AuditLogsPage = () => {
               size="sm"
               onClick={handleNextPage}
               disabled={!data?.hasMore}
-              className="rounded-xl h-8 px-3"
+              className="rounded-xl h-8 px-3 border-border hover:bg-muted"
             >
               Next
               <ChevronRight className="w-3.5 h-3.5 ml-1" />
@@ -272,47 +272,47 @@ export const AuditLogsPage = () => {
 
       {/* Inspect Details Modal */}
       {selectedLog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-card text-card-foreground rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-border">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
                 <Code className="w-5 h-5 text-primary" />
                 Audit Log Details
               </h3>
               <button
                 onClick={() => setSelectedLog(null)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+                className="text-muted-foreground hover:text-foreground p-1 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-3 mb-4 text-xs">
-              <div className="flex items-center justify-between py-1.5 border-b border-slate-100">
-                <span className="text-slate-400 font-medium">Record ID</span>
-                <span className="font-mono text-slate-800">{selectedLog.id}</span>
+              <div className="flex items-center justify-between py-1.5 border-b border-border/60">
+                <span className="text-muted-foreground font-medium">Record ID</span>
+                <span className="font-mono text-foreground">{selectedLog.id}</span>
               </div>
-              <div className="flex items-center justify-between py-1.5 border-b border-slate-100">
-                <span className="text-slate-400 font-medium">Action</span>
-                <span className="font-mono font-bold text-slate-800">{selectedLog.action}</span>
+              <div className="flex items-center justify-between py-1.5 border-b border-border/60">
+                <span className="text-muted-foreground font-medium">Action</span>
+                <span className="font-mono font-bold text-foreground">{selectedLog.action}</span>
               </div>
-              <div className="flex items-center justify-between py-1.5 border-b border-slate-100">
-                <span className="text-slate-400 font-medium">Actor</span>
-                <span className="font-mono text-slate-800">
+              <div className="flex items-center justify-between py-1.5 border-b border-border/60">
+                <span className="text-muted-foreground font-medium">Actor</span>
+                <span className="font-mono text-foreground">
                   {selectedLog.actorId || selectedLog.actor || 'System'}
                 </span>
               </div>
-              <div className="flex items-center justify-between py-1.5 border-b border-slate-100">
-                <span className="text-slate-400 font-medium">IP Address</span>
-                <span className="font-mono text-slate-800">{selectedLog.ipAddress || '—'}</span>
+              <div className="flex items-center justify-between py-1.5 border-b border-border/60">
+                <span className="text-muted-foreground font-medium">IP Address</span>
+                <span className="font-mono text-foreground">{selectedLog.ipAddress || '—'}</span>
               </div>
             </div>
 
             <div className="mb-6">
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label className="block text-xs font-semibold text-foreground mb-1.5">
                 Raw Event Payload
               </label>
-              <pre className="p-3 rounded-xl bg-slate-900 text-slate-200 font-mono text-xs overflow-x-auto max-h-48 leading-relaxed">
+              <pre className="p-3 rounded-xl bg-muted/60 text-foreground border border-border font-mono text-xs overflow-x-auto max-h-48 leading-relaxed">
                 {(() => {
                   try {
                     return JSON.stringify(JSON.parse(selectedLog.details || '{}'), null, 2);
@@ -328,7 +328,7 @@ export const AuditLogsPage = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedLog(null)}
-                className="rounded-xl"
+                className="rounded-xl border-border hover:bg-muted"
               >
                 Close
               </Button>

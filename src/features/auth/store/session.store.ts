@@ -39,5 +39,14 @@ export const useSession = create<SessionState>()((set) => ({
 export const isAdminRole = (role?: string | null): boolean => {
   if (!role) return false;
   const normalized = role.trim().toUpperCase();
-  return normalized === 'ADMIN' || normalized === 'ROLE_ADMIN';
+  return (
+    normalized === 'ADMIN' ||
+    normalized === 'ROLE_ADMIN' ||
+    normalized === 'SUPER_ADMIN' ||
+    normalized === 'ROLE_SUPER_ADMIN' ||
+    normalized === 'OWNER' ||
+    normalized === 'ROLE_OWNER' ||
+    normalized === 'MODERATOR' ||
+    normalized === 'ROLE_MODERATOR'
+  );
 };

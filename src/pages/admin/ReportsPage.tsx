@@ -97,20 +97,20 @@ export const ReportsPage = () => {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50/60 h-full">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-background text-foreground h-full transition-colors duration-200">
       {/* Page Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Moderation Queue</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Moderation Queue</h1>
+          <p className="text-sm text-muted-foreground">
             Investigate reported messages, enforce guidelines, and resolve complaints.
           </p>
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-medium overflow-x-auto hide-scrollbar">
+      <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-xs p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-1 bg-muted p-1 rounded-xl text-xs font-medium overflow-x-auto hide-scrollbar">
           {(['OPEN', 'INVESTIGATING', 'RESOLVED', 'DISMISSED', 'ALL'] as const).map((st) => (
             <button
               key={st}
@@ -121,8 +121,8 @@ export const ReportsPage = () => {
               }}
               className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-all ${
                 statusFilter === st
-                  ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? 'bg-background text-foreground shadow-xs font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {st}
@@ -132,10 +132,10 @@ export const ReportsPage = () => {
       </div>
 
       {/* Reports Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50/80 border-b border-slate-200/80 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <thead className="bg-muted/50 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               <tr>
                 <th className="px-5 py-3.5">Target</th>
                 <th className="px-5 py-3.5">Reason</th>
@@ -145,15 +145,15 @@ export const ReportsPage = () => {
                 <th className="px-5 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border/60">
               {isLoading ? (
                 <ReportTableSkeleton rows={6} />
               ) : reports.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-5 py-16 text-center">
                     <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-                    <h3 className="font-semibold text-slate-800 mb-1">Queue is clear!</h3>
-                    <p className="text-xs text-slate-400">
+                    <h3 className="font-semibold text-foreground mb-1">Queue is clear!</h3>
+                    <p className="text-xs text-muted-foreground">
                       No reports found for status &quot;{statusFilter}&quot;.
                     </p>
                   </td>
@@ -163,10 +163,10 @@ export const ReportsPage = () => {
                   const isResolved = report.status === 'RESOLVED' || report.status === 'DISMISSED';
 
                   return (
-                    <tr key={report.id} className="hover:bg-slate-50/60 transition-colors">
+                    <tr key={report.id} className="hover:bg-muted/40 transition-colors">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2">
-                          <span className="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                          <span className="w-7 h-7 rounded-lg bg-muted text-muted-foreground flex items-center justify-center shrink-0">
                             {report.targetType === 'MESSAGE' ? (
                               <MessageSquare className="w-3.5 h-3.5" />
                             ) : (
@@ -174,10 +174,10 @@ export const ReportsPage = () => {
                             )}
                           </span>
                           <div>
-                            <span className="text-xs font-bold text-slate-900 uppercase">
+                            <span className="text-xs font-bold text-foreground uppercase">
                               {report.targetType}
                             </span>
-                            <p className="text-[11px] text-slate-400 font-mono truncate max-w-[120px]">
+                            <p className="text-[11px] text-muted-foreground font-mono truncate max-w-[120px]">
                               {report.targetId}
                             </p>
                           </div>
@@ -185,15 +185,17 @@ export const ReportsPage = () => {
                       </td>
 
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-destructive/15 text-destructive border border-destructive/30">
                           {report.reason}
                         </span>
                       </td>
 
                       <td className="px-5 py-4 max-w-xs">
-                        <p className="text-xs text-slate-600 truncate">
+                        <p className="text-xs text-foreground truncate">
                           {report.details || (
-                            <span className="text-slate-400 italic">No details provided</span>
+                            <span className="text-muted-foreground italic">
+                              No details provided
+                            </span>
                           )}
                         </p>
                       </td>
@@ -202,10 +204,10 @@ export const ReportsPage = () => {
                         <span
                           className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             report.status === 'RESOLVED'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                               : report.status === 'DISMISSED'
-                                ? 'bg-slate-100 text-slate-600'
-                                : 'bg-red-50 text-red-700 border border-red-200'
+                                ? 'bg-muted text-muted-foreground'
+                                : 'bg-destructive/15 text-destructive border border-destructive/30'
                           }`}
                         >
                           <span
@@ -213,15 +215,15 @@ export const ReportsPage = () => {
                               report.status === 'RESOLVED'
                                 ? 'bg-emerald-500'
                                 : report.status === 'DISMISSED'
-                                  ? 'bg-slate-400'
-                                  : 'bg-red-500'
+                                  ? 'bg-muted-foreground'
+                                  : 'bg-destructive'
                             }`}
                           />
                           {report.status}
                         </span>
                       </td>
 
-                      <td className="px-5 py-4 whitespace-nowrap text-xs text-slate-500">
+                      <td className="px-5 py-4 whitespace-nowrap text-xs text-muted-foreground">
                         {report.createdAt
                           ? format(new Date(report.createdAt), 'MMM d, HH:mm')
                           : '—'}
@@ -233,7 +235,7 @@ export const ReportsPage = () => {
                             asChild
                             variant="ghost"
                             size="sm"
-                            className="h-8 px-2 text-slate-500 hover:text-primary"
+                            className="h-8 px-2 text-muted-foreground hover:text-primary"
                           >
                             <Link to={`/app/admin/reports/${report.id}`} title="Inspect Report">
                               <Eye className="w-4 h-4" />
@@ -250,7 +252,7 @@ export const ReportsPage = () => {
                                   setResolutionText('');
                                   setActionChoice('NONE');
                                 }}
-                                className="h-8 px-2 text-slate-500 hover:text-emerald-600"
+                                className="h-8 px-2 text-muted-foreground hover:text-emerald-500"
                                 title="Resolve Report"
                               >
                                 <Check className="w-4 h-4" />
@@ -266,7 +268,7 @@ export const ReportsPage = () => {
                                       reportId: report.id,
                                     })
                                   }
-                                  className="h-8 px-2 text-slate-500 hover:text-red-600"
+                                  className="h-8 px-2 text-muted-foreground hover:text-destructive"
                                   title="Delete Message"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -285,7 +287,7 @@ export const ReportsPage = () => {
         </div>
 
         {/* Pagination Footer */}
-        <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <div className="p-4 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
           <span>Showing {reports.length} reports</span>
           <div className="flex items-center gap-2">
             <Button
@@ -293,7 +295,7 @@ export const ReportsPage = () => {
               size="sm"
               onClick={handlePrevPage}
               disabled={cursorHistory.length <= 1}
-              className="rounded-xl h-8 px-3"
+              className="rounded-xl h-8 px-3 border-border hover:bg-muted"
             >
               <ChevronLeft className="w-3.5 h-3.5 mr-1" />
               Previous
@@ -303,7 +305,7 @@ export const ReportsPage = () => {
               size="sm"
               onClick={handleNextPage}
               disabled={!data?.hasMore}
-              className="rounded-xl h-8 px-3"
+              className="rounded-xl h-8 px-3 border-border hover:bg-muted"
             >
               Next
               <ChevronRight className="w-3.5 h-3.5 ml-1" />
@@ -314,26 +316,26 @@ export const ReportsPage = () => {
 
       {/* Quick Resolve Modal */}
       {selectedReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-card text-card-foreground rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-slate-900">Resolve Moderation Report</h3>
+              <h3 className="text-lg font-bold text-foreground">Resolve Moderation Report</h3>
               <button
                 onClick={() => setSelectedReport(null)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+                className="text-muted-foreground hover:text-foreground p-1 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-500 mb-4">
-              Reason: <span className="font-semibold text-slate-800">{selectedReport.reason}</span>{' '}
+            <p className="text-xs text-muted-foreground mb-4">
+              Reason: <span className="font-semibold text-foreground">{selectedReport.reason}</span>{' '}
               ({selectedReport.targetType})
             </p>
 
             <div className="space-y-4 mb-6">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs font-semibold text-foreground mb-1.5">
                   Resolution Decision (Required)
                 </label>
                 <textarea
@@ -342,18 +344,18 @@ export const ReportsPage = () => {
                   placeholder="Document resolution outcome (e.g. Warning issued, message removed, report rejected as spam)..."
                   rows={3}
                   maxLength={2000}
-                  className="w-full text-sm rounded-xl border border-slate-200 p-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                  className="w-full text-sm rounded-xl border border-border bg-muted/20 text-foreground p-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none placeholder:text-muted-foreground"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs font-semibold text-foreground mb-1.5">
                   Administrative Action
                 </label>
                 <select
                   value={actionChoice}
                   onChange={(e) => setActionChoice(e.target.value)}
-                  className="w-full text-sm rounded-xl border border-slate-200 p-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="w-full text-sm rounded-xl border border-border p-2.5 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 >
                   <option value="NONE">No Action (Mark Reviewed)</option>
                   <option value="DELETE_MESSAGE">DELETE_MESSAGE</option>
@@ -369,7 +371,7 @@ export const ReportsPage = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedReport(null)}
-                className="rounded-xl"
+                className="rounded-xl border-border hover:bg-muted"
               >
                 Cancel
               </Button>
@@ -397,20 +399,20 @@ export const ReportsPage = () => {
 
       {/* Delete Message Confirmation Modal */}
       {messageToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200">
-            <div className="flex items-center gap-3 mb-4 text-red-600">
-              <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-card text-card-foreground rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border">
+            <div className="flex items-center gap-3 mb-4 text-destructive">
+              <div className="w-10 h-10 rounded-xl bg-destructive/15 flex items-center justify-center">
                 <Trash2 className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Delete Reported Message</h3>
-                <p className="text-xs text-slate-500">Remove content from chat channels.</p>
+                <h3 className="text-lg font-bold text-foreground">Delete Reported Message</h3>
+                <p className="text-xs text-muted-foreground">Remove content from chat channels.</p>
               </div>
             </div>
 
             <div className="mb-4">
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label className="block text-xs font-semibold text-foreground mb-1.5">
                 Audit Reason (1–500 chars)
               </label>
               <input
@@ -418,7 +420,7 @@ export const ReportsPage = () => {
                 value={deleteReason}
                 onChange={(e) => setDeleteReason(e.target.value)}
                 maxLength={500}
-                className="w-full text-sm rounded-xl border border-slate-200 p-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="w-full text-sm rounded-xl border border-border bg-muted/20 text-foreground p-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary placeholder:text-muted-foreground"
               />
             </div>
 
@@ -427,7 +429,7 @@ export const ReportsPage = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setMessageToDelete(null)}
-                className="rounded-xl"
+                className="rounded-xl border-border hover:bg-muted"
               >
                 Cancel
               </Button>
@@ -441,7 +443,7 @@ export const ReportsPage = () => {
                     reason: deleteReason.trim(),
                   })
                 }
-                className="rounded-xl bg-red-600 hover:bg-red-700"
+                className="rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               >
                 {deleteMessageMutation.isPending ? (
                   <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />

@@ -22,6 +22,8 @@ import {
   Pencil,
   Check,
   CheckCheck,
+  Clock,
+  AlertCircle,
   X,
   FileText,
   ExternalLink,
@@ -50,7 +52,7 @@ import {
   useArchiveConversation,
   useTypingStore,
 } from '@/features/chat';
-import type { Message, MessageType } from '@/features/chat';
+import type { Message, MessageType, MessageReaction, MessageReactionUser } from '@/features/chat';
 import { useSession } from '@/features/auth';
 import { format } from 'date-fns';
 import { AddMembersModal } from './components/AddMembersModal';
@@ -71,6 +73,21 @@ import { useCallStore } from '@/features/calls';
 
 const QUICK_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
+const normalizeMessageReactions = (
+  reactions?: MessageReaction[] | Record<string, string[]>,
+): MessageReaction[] => {
+  if (!reactions) return [];
+  if (Array.isArray(reactions)) return reactions;
+  if (typeof reactions === 'object') {
+    return Object.entries(reactions).map(([emoji, userIds]) => ({
+      emoji,
+      count: userIds.length,
+      users: userIds.map((id) => ({ id, username: null, displayName: null })),
+    }));
+  }
+  return [];
+};
+
 const ChatMessageImage = ({
   msg,
   onPreview,
@@ -87,7 +104,8 @@ const ChatMessageImage = ({
       ? msg.content.substring(msg.content.indexOf('\n') + 1)
       : null;
 
-  const displayUrl = url || fallbackUrl;
+  const displayUrl = msg.localPreviewUrl || url || fallbackUrl;
+  const isSending = msg.status === 'sending';
 
   return (
     <div className="space-y-1">
@@ -96,18 +114,27 @@ const ChatMessageImage = ({
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
         </div>
       ) : displayUrl ? (
-        <button
-          type="button"
-          onClick={() => onPreview(displayUrl)}
-          className="block p-0 bg-transparent border-none cursor-pointer rounded-xl overflow-hidden hover:opacity-95 transition-opacity"
-          title="Click to view full image"
-        >
-          <img
-            src={displayUrl}
-            alt={attachment?.fileName || 'Shared attachment'}
-            className="max-w-xs sm:max-w-sm rounded-xl object-cover max-h-60"
-          />
-        </button>
+        <div className="relative inline-block overflow-hidden rounded-xl">
+          <button
+            type="button"
+            onClick={() => onPreview(displayUrl)}
+            className="block p-0 bg-transparent border-none cursor-pointer rounded-xl overflow-hidden hover:opacity-95 transition-opacity"
+            title="Click to view full image"
+          >
+            <img
+              src={displayUrl}
+              alt={attachment?.fileName || 'Shared attachment'}
+              className="max-w-xs sm:max-w-sm rounded-xl object-cover max-h-60"
+            />
+          </button>
+          {isSending && (
+            <div className="absolute inset-0 bg-black/35 backdrop-blur-[1px] flex items-center justify-center rounded-xl pointer-events-none transition-all">
+              <div className="bg-black/60 text-white rounded-full p-2 flex items-center justify-center shadow-md">
+                <Loader2 className="w-5 h-5 animate-spin text-white" />
+              </div>
+            </div>
+          )}
+        </div>
       ) : (
         <div className="text-xs italic text-muted-foreground">Image unavailable</div>
       )}
@@ -126,13 +153,15 @@ const ChatMessageVoice = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) => {
       ? msg.content.substring(msg.content.indexOf('\n') + 1)
       : null;
 
+  const audioUrl = msg.localPreviewUrl || url || fallbackUrl;
+
   return (
     <VoiceMessagePlayer
-      audioUrl={url || fallbackUrl}
+      audioUrl={audioUrl}
       storageKey={attachment?.storageKey}
       isOwn={isOwn}
       caption={caption}
-      isLoadingUrl={isLoading && !url && !fallbackUrl}
+      isLoadingUrl={isLoading && !audioUrl}
     />
   );
 };
@@ -151,7 +180,8 @@ const ChatMessageFile = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) => {
     decodeURIComponent((fallbackUrl.split('?')[0] || '').split('/').pop() || 'Document');
   const fileCaption = attachment ? msg.content : captionParts.join('\n');
   const sizeText = attachment?.sizeBytes ? formatFileSize(attachment.sizeBytes) : null;
-  const targetHref = url || fallbackUrl;
+  const targetHref = msg.localPreviewUrl || url || fallbackUrl;
+  const isSending = msg.status === 'sending';
 
   return (
     <div className="space-y-1.5">
@@ -166,20 +196,30 @@ const ChatMessageFile = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) => {
             : 'bg-card hover:bg-muted text-card-foreground border border-border shadow-2xs'
         }`}
       >
-        <FileText className={`w-6 h-6 shrink-0 ${isOwn ? 'text-white' : 'text-primary'}`} />
+        {isSending ? (
+          <Loader2
+            className={`w-6 h-6 shrink-0 animate-spin ${isOwn ? 'text-white' : 'text-primary'}`}
+          />
+        ) : (
+          <FileText className={`w-6 h-6 shrink-0 ${isOwn ? 'text-white' : 'text-primary'}`} />
+        )}
         <div className="min-w-0 pr-2">
           <span className="text-xs font-semibold block truncate max-w-[170px]">
             {cleanFileName}
           </span>
           <span className="text-[10px] opacity-75">
-            {isLoading
-              ? 'Loading link...'
-              : sizeText
-                ? `${sizeText} • Click to download`
-                : 'Click to view or download'}
+            {isSending
+              ? 'Uploading...'
+              : isLoading
+                ? 'Loading link...'
+                : sizeText
+                  ? `${sizeText} • Click to download`
+                  : 'Click to view or download'}
           </span>
         </div>
-        {isLoading ? (
+        {isSending ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin opacity-60 shrink-0" />
+        ) : isLoading ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin opacity-60 shrink-0" />
         ) : (
           <ExternalLink className="w-3.5 h-3.5 opacity-60 shrink-0" />
@@ -221,10 +261,8 @@ export const ConversationPage = () => {
   // Image preview modal state
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
-  // Local reaction state: messageId -> emoji -> userIds[]
-  const [reactionsState, setReactionsState] = useState<Record<string, Record<string, string[]>>>(
-    {},
-  );
+  // Optimistic reaction overrides: messageId -> MessageReaction[]
+  const [reactionOverrides, setReactionOverrides] = useState<Record<string, MessageReaction[]>>({});
 
   const typingUsersRecord = useTypingStore((s) =>
     conversationId ? s.typingByConversation[conversationId] : undefined,
@@ -775,50 +813,172 @@ export const ConversationPage = () => {
     }
   };
 
-  // Sending voice message
+  // Sending image or file attachment asynchronously in background (WhatsApp style)
+  const handleSendAttachmentFile = async (file: File, type: MessageType, caption?: string) => {
+    if (!conversationId) return;
+    const optimisticId = crypto.randomUUID();
+    const trimmedCaption = caption?.trim() || null;
+    const replyId = replyingTo?.id || null;
+    const localUrl = URL.createObjectURL(file);
+
+    const optimisticMsg: Message = {
+      id: optimisticId,
+      conversationId,
+      senderId: currentUser?.id || '',
+      seq: 0,
+      clientMessageId: optimisticId,
+      type,
+      content: trimmedCaption,
+      replyToId: replyId,
+      createdAt: new Date().toISOString(),
+      editedAt: null,
+      deletedAt: null,
+      status: 'sending',
+      localPreviewUrl: localUrl,
+      attachments: [
+        {
+          id: crypto.randomUUID(),
+          storageKey: `local-${optimisticId}`,
+          fileName: file.name,
+          mimeType: file.type || (type === 'IMAGE' ? 'image/jpeg' : 'application/octet-stream'),
+          sizeBytes: file.size,
+        },
+      ],
+    };
+
+    setLiveMessages((prev) => [optimisticMsg, ...prev]);
+    setReplyingTo(null);
+
+    try {
+      const confirmData = await mediaApi.uploadFile(file);
+
+      // Pre-populate query cache with immediate download url
+      queryClient.setQueryData(['media-download', confirmData.storageKey], {
+        bucket: confirmData.bucket || 'images',
+        storageKey: confirmData.storageKey,
+        url: confirmData.url || localUrl,
+        expiresIn: confirmData.expiresIn || 900,
+      });
+
+      setLiveMessages((prev) =>
+        prev.map((m) =>
+          m.id === optimisticId
+            ? {
+                ...m,
+                status: 'sent',
+                attachments: [
+                  {
+                    id: m.attachments?.[0]?.id || crypto.randomUUID(),
+                    storageKey: confirmData.storageKey,
+                    fileName: file.name,
+                    mimeType: confirmData.contentType || file.type,
+                    sizeBytes: file.size,
+                  },
+                ],
+              }
+            : m,
+        ),
+      );
+
+      const sentViaWs = wsService.sendChatMessage({
+        conversationId,
+        clientMessageId: optimisticId,
+        content: trimmedCaption,
+        type,
+        replyToId: replyId,
+        storageKey: confirmData.storageKey,
+        fileName: file.name,
+        mimeType: confirmData.contentType || file.type,
+        sizeBytes: file.size,
+      });
+
+      if (!sentViaWs) {
+        sendMessage.mutate({
+          content: trimmedCaption,
+          type,
+          clientMessageId: optimisticId,
+          replyToId: replyId,
+          storageKey: confirmData.storageKey,
+          fileName: file.name,
+          mimeType: confirmData.contentType || file.type,
+          sizeBytes: file.size,
+        });
+      }
+    } catch (err: unknown) {
+      showApiError(err, 'Failed to upload attachment');
+      setLiveMessages((prev) =>
+        prev.map((m) => (m.id === optimisticId ? { ...m, status: 'failed' } : m)),
+      );
+    }
+  };
+
+  // Sending voice message asynchronously in background (WhatsApp style)
   const handleSendVoiceMessage = async (audioFile: File) => {
     if (!conversationId) return;
 
-    setIsVoiceUploading(true);
+    const optimisticId = crypto.randomUUID();
+    const replyId = replyingTo?.id || null;
+    const localUrl = URL.createObjectURL(audioFile);
+
+    const optimisticMsg: Message = {
+      id: optimisticId,
+      conversationId,
+      senderId: currentUser?.id || '',
+      seq: 0,
+      clientMessageId: optimisticId,
+      type: 'VOICE',
+      content: null,
+      replyToId: replyId,
+      createdAt: new Date().toISOString(),
+      editedAt: null,
+      deletedAt: null,
+      status: 'sending',
+      localPreviewUrl: localUrl,
+      attachments: [
+        {
+          id: crypto.randomUUID(),
+          storageKey: `local-${optimisticId}`,
+          fileName: audioFile.name,
+          mimeType: audioFile.type || 'audio/webm',
+          sizeBytes: audioFile.size,
+        },
+      ],
+    };
+
+    setLiveMessages((prev) => [optimisticMsg, ...prev]);
+    setReplyingTo(null);
+    setIsVoiceRecording(false);
+
     try {
       const confirmData = await mediaApi.uploadFile(audioFile);
-      const optimisticId = crypto.randomUUID();
-      const replyId = replyingTo?.id || null;
 
       // Seed query cache with immediate playback URL
       queryClient.setQueryData(['media-download', confirmData.storageKey], {
         bucket: confirmData.bucket || 'images',
         storageKey: confirmData.storageKey,
-        url: confirmData.url,
+        url: confirmData.url || localUrl,
         expiresIn: confirmData.expiresIn || 900,
       });
 
-      const optimisticMsg: Message = {
-        id: optimisticId,
-        conversationId,
-        senderId: currentUser?.id || '',
-        seq: 0,
-        clientMessageId: optimisticId,
-        type: 'VOICE',
-        content: null,
-        replyToId: replyId,
-        createdAt: new Date().toISOString(),
-        editedAt: null,
-        deletedAt: null,
-        attachments: [
-          {
-            id: crypto.randomUUID(),
-            storageKey: confirmData.storageKey,
-            fileName: audioFile.name,
-            mimeType: audioFile.type || confirmData.contentType || 'audio/webm',
-            sizeBytes: audioFile.size,
-          },
-        ],
-      };
-
-      setLiveMessages((prev) => [optimisticMsg, ...prev]);
-      setReplyingTo(null);
-      setIsVoiceRecording(false);
+      setLiveMessages((prev) =>
+        prev.map((m) =>
+          m.id === optimisticId
+            ? {
+                ...m,
+                status: 'sent',
+                attachments: [
+                  {
+                    id: m.attachments?.[0]?.id || crypto.randomUUID(),
+                    storageKey: confirmData.storageKey,
+                    fileName: audioFile.name,
+                    mimeType: audioFile.type || confirmData.contentType || 'audio/webm',
+                    sizeBytes: audioFile.size,
+                  },
+                ],
+              }
+            : m,
+        ),
+      );
 
       const sentViaWs = wsService.sendChatMessage({
         conversationId,
@@ -845,9 +1005,10 @@ export const ConversationPage = () => {
         });
       }
     } catch (err: unknown) {
-      showApiError(err, 'Failed to upload voice message');
-    } finally {
-      setIsVoiceUploading(false);
+      showApiError(err, 'Failed to send voice message');
+      setLiveMessages((prev) =>
+        prev.map((m) => (m.id === optimisticId ? { ...m, status: 'failed' } : m)),
+      );
     }
   };
 
@@ -877,81 +1038,81 @@ export const ConversationPage = () => {
     );
   };
 
-  // Reactions toggle
+  // Reactions toggle (instant WhatsApp-style optimistic updates)
   const handleToggleReaction = (messageId: string, emoji: string) => {
     if (!currentUser?.id || !conversationId) return;
 
-    // Check if user already reacted
     const targetMsg = allMessagesMap.get(messageId);
-    let hasReacted = false;
-    if (targetMsg?.reactions && Array.isArray(targetMsg.reactions)) {
-      const match = targetMsg.reactions.find((r) => r.emoji === emoji);
-      hasReacted = !!match?.users.some((u) => u.id === currentUser.id);
-    } else if (reactionsState[messageId]?.[emoji]?.includes(currentUser.id)) {
-      hasReacted = true;
+    const currentReactions: MessageReaction[] =
+      reactionOverrides[messageId] ?? normalizeMessageReactions(targetMsg?.reactions);
+
+    const existingIndex = currentReactions.findIndex((r) => r.emoji === emoji);
+    const existing = existingIndex >= 0 ? currentReactions[existingIndex] : undefined;
+    const hasReacted = existing?.users.some((u) => u.id === currentUser.id) ?? false;
+
+    let nextReactions: MessageReaction[];
+    if (hasReacted) {
+      const remainingUsers = (existing?.users || []).filter((u) => u.id !== currentUser.id);
+      if (remainingUsers.length === 0) {
+        nextReactions = currentReactions.filter((r) => r.emoji !== emoji);
+      } else {
+        nextReactions = currentReactions.map((r) =>
+          r.emoji === emoji ? { ...r, count: remainingUsers.length, users: remainingUsers } : r,
+        );
+      }
+    } else {
+      const userObj: MessageReactionUser = {
+        id: currentUser.id,
+        username: currentUser.username || null,
+        displayName: currentUser.displayName || null,
+      };
+      if (existing) {
+        nextReactions = currentReactions.map((r) =>
+          r.emoji === emoji
+            ? {
+                ...r,
+                count: r.users.some((u) => u.id === currentUser.id) ? r.count : r.count + 1,
+                users: r.users.some((u) => u.id === currentUser.id)
+                  ? r.users
+                  : [...r.users, userObj],
+              }
+            : r,
+        );
+      } else {
+        nextReactions = [...currentReactions, { emoji, count: 1, users: [userObj] }];
+      }
     }
 
+    // Update locally in < 1ms
+    setReactionOverrides((prev) => ({ ...prev, [messageId]: nextReactions }));
+    setLiveMessages((prev) =>
+      prev.map((m) => (m.id === messageId ? { ...m, reactions: nextReactions } : m)),
+    );
+
+    // Asynchronously call API with rollback on error
     if (hasReacted) {
-      removeReaction({ messageId, emoji, conversationId });
-      setReactionsState((prev) => {
-        const msgR = { ...(prev[messageId] || {}) };
-        msgR[emoji] = (msgR[emoji] || []).filter((id) => id !== currentUser.id);
-        if (msgR[emoji].length === 0) delete msgR[emoji];
-        return { ...prev, [messageId]: msgR };
-      });
-      // Optimistic reaction update
-      setLiveMessages((prev) =>
-        prev.map((m) => {
-          if (m.id !== messageId || !Array.isArray(m.reactions)) return m;
-          const updated = m.reactions
-            .map((r) => {
-              if (r.emoji !== emoji) return r;
-              const remainingUsers = r.users.filter((u) => u.id !== currentUser.id);
-              return {
-                ...r,
-                count: remainingUsers.length,
-                users: remainingUsers,
-              };
-            })
-            .filter((r) => r.count > 0);
-          return { ...m, reactions: updated };
-        }),
+      removeReaction(
+        { messageId, emoji, conversationId },
+        {
+          onError: () => {
+            setReactionOverrides((prev) => ({ ...prev, [messageId]: currentReactions }));
+            setLiveMessages((prev) =>
+              prev.map((m) => (m.id === messageId ? { ...m, reactions: currentReactions } : m)),
+            );
+          },
+        },
       );
     } else {
-      addReaction({ messageId, emoji, conversationId });
-      setReactionsState((prev) => {
-        const msgR = { ...(prev[messageId] || {}) };
-        msgR[emoji] = [...(msgR[emoji] || []), currentUser.id];
-        return { ...prev, [messageId]: msgR };
-      });
-      // Optimistic reaction update
-      setLiveMessages((prev) =>
-        prev.map((m) => {
-          if (m.id !== messageId || !Array.isArray(m.reactions)) return m;
-          const existing = m.reactions.find((r) => r.emoji === emoji);
-          const currentUserObj = {
-            id: currentUser.id,
-            username: currentUser.username || null,
-            displayName: currentUser.displayName || null,
-          };
-          let updated;
-          if (existing) {
-            updated = m.reactions.map((r) =>
-              r.emoji === emoji
-                ? {
-                    ...r,
-                    count: r.users.some((u) => u.id === currentUser.id) ? r.count : r.count + 1,
-                    users: r.users.some((u) => u.id === currentUser.id)
-                      ? r.users
-                      : [...r.users, currentUserObj],
-                  }
-                : r,
+      addReaction(
+        { messageId, emoji, conversationId },
+        {
+          onError: () => {
+            setReactionOverrides((prev) => ({ ...prev, [messageId]: currentReactions }));
+            setLiveMessages((prev) =>
+              prev.map((m) => (m.id === messageId ? { ...m, reactions: currentReactions } : m)),
             );
-          } else {
-            updated = [...m.reactions, { emoji, count: 1, users: [currentUserObj] }];
-          }
-          return { ...m, reactions: updated };
-        }),
+          },
+        },
       );
     }
   };
@@ -1056,6 +1217,7 @@ export const ConversationPage = () => {
             setPendingAttachmentFile(null);
           }}
           onSendAttachment={handleSendAttachment}
+          onSendAttachmentFile={handleSendAttachmentFile}
           isSending={sendMessage.isPending}
           initialFile={pendingAttachmentFile}
         />
@@ -1398,30 +1560,8 @@ export const ConversationPage = () => {
                   targetMember?.lastReadSeq != null &&
                   msg.seq <= targetMember.lastReadSeq;
 
-                const localReactions = reactionsState[msg.id];
-                const normalizedReactions: Array<{
-                  emoji: string;
-                  count: number;
-                  users: Array<{
-                    id: string;
-                    username?: string | null;
-                    displayName?: string | null;
-                  }>;
-                }> = Array.isArray(msg.reactions)
-                  ? msg.reactions
-                  : msg.reactions && typeof msg.reactions === 'object'
-                    ? Object.entries(msg.reactions).map(([emoji, userIds]) => ({
-                        emoji,
-                        count: userIds.length,
-                        users: userIds.map((id) => ({ id, username: null, displayName: null })),
-                      }))
-                    : localReactions
-                      ? Object.entries(localReactions).map(([emoji, userIds]) => ({
-                          emoji,
-                          count: userIds.length,
-                          users: userIds.map((id) => ({ id, username: null, displayName: null })),
-                        }))
-                      : [];
+                const normalizedReactions =
+                  reactionOverrides[msg.id] ?? normalizeMessageReactions(msg.reactions);
 
                 return (
                   <div
@@ -1622,9 +1762,21 @@ export const ConversationPage = () => {
                           {isOwn && !isDeleted && (
                             <span
                               className="inline-flex items-center ml-2 float-right mt-1 opacity-80"
-                              title={isRead ? 'Read' : 'Delivered'}
+                              title={
+                                msg.status === 'sending'
+                                  ? 'Sending...'
+                                  : msg.status === 'failed'
+                                    ? 'Failed to send'
+                                    : isRead
+                                      ? 'Read'
+                                      : 'Delivered'
+                              }
                             >
-                              {isRead ? (
+                              {msg.status === 'sending' ? (
+                                <Clock className="w-3 h-3 text-white/70 animate-pulse" />
+                              ) : msg.status === 'failed' ? (
+                                <AlertCircle className="w-3 h-3 text-red-300" />
+                              ) : isRead ? (
                                 <CheckCheck className="w-3 h-3 text-white" />
                               ) : (
                                 <Check className="w-3 h-3 text-white/70" />

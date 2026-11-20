@@ -31,6 +31,7 @@ interface AttachmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSendAttachment: (type: MessageType, attachment: AttachmentData, caption?: string) => void;
+  onSendAttachmentFile?: (file: File, type: MessageType, caption?: string) => void;
   isSending?: boolean;
   initialFile?: File | null;
 }
@@ -75,6 +76,7 @@ export const AttachmentModal = ({
   isOpen,
   onClose,
   onSendAttachment,
+  onSendAttachmentFile,
   isSending = false,
   initialFile = null,
 }: AttachmentModalProps) => {
@@ -171,6 +173,17 @@ export const AttachmentModal = ({
   const handleSend = async (e: FormEvent) => {
     e.preventDefault();
     if (!selectedFile) return;
+
+    if (onSendAttachmentFile) {
+      const fileToSend = selectedFile;
+      const typeToSend = activeTab;
+      const captionToSend = caption.trim() || undefined;
+      handleClearFile();
+      setCaption('');
+      onClose();
+      onSendAttachmentFile(fileToSend, typeToSend, captionToSend);
+      return;
+    }
 
     setIsUploading(true);
     try {

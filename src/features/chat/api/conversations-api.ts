@@ -85,6 +85,8 @@ export type Message = {
   deleted?: boolean;
   reactions?: MessageReaction[] | Record<string, string[]>;
   attachments?: MessageAttachment[];
+  status?: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
+  localPreviewUrl?: string;
 };
 
 export type SendMessageRequest = {

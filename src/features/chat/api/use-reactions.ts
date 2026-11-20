@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { showApiError } from '@/shared/api/api-error';
 import { conversationsApi } from './conversations-api';
 
@@ -8,18 +8,10 @@ type ReactionPayload = {
   conversationId?: string;
 };
 
-export function useMessageReactions(conversationId?: string) {
-  const queryClient = useQueryClient();
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function useMessageReactions(_conversationId?: string) {
   const addReactionMutation = useMutation<void, Error, ReactionPayload>({
     mutationFn: ({ messageId, emoji }) => conversationsApi.addReaction(messageId, emoji),
-    onSuccess: (_, { messageId, conversationId: convId }) => {
-      const activeConvId = convId || conversationId;
-      if (activeConvId) {
-        queryClient.invalidateQueries({ queryKey: ['messages', activeConvId] });
-      }
-      queryClient.invalidateQueries({ queryKey: ['message', messageId] });
-    },
     onError: (error) => {
       showApiError(error, 'Failed to add reaction');
     },
@@ -27,13 +19,6 @@ export function useMessageReactions(conversationId?: string) {
 
   const removeReactionMutation = useMutation<void, Error, ReactionPayload>({
     mutationFn: ({ messageId, emoji }) => conversationsApi.removeReaction(messageId, emoji),
-    onSuccess: (_, { messageId, conversationId: convId }) => {
-      const activeConvId = convId || conversationId;
-      if (activeConvId) {
-        queryClient.invalidateQueries({ queryKey: ['messages', activeConvId] });
-      }
-      queryClient.invalidateQueries({ queryKey: ['message', messageId] });
-    },
     onError: (error) => {
       showApiError(error, 'Failed to remove reaction');
     },

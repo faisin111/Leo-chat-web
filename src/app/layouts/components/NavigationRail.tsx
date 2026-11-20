@@ -9,9 +9,9 @@ import {
   LogOut,
   Sun,
   Moon,
-  QrCode,
 } from 'lucide-react';
 import { AiRotatingIcon } from '@/features/ai';
+import { WebQrNavIcon } from '@/pages/qr';
 import { useSession, authSession, authApi, isAdminRole } from '@/features/auth';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -91,7 +91,12 @@ export function NavigationRail() {
         />
         <NavItem
           to="/app/qr"
-          icon={<QrCode className="w-4 h-4 sm:w-5 sm:h-5" />}
+          icon={
+            <WebQrNavIcon
+              className="w-4 h-4 sm:w-5 sm:h-5"
+              active={location.pathname === '/app/qr'}
+            />
+          }
           active={location.pathname === '/app/qr'}
           label="Web QR Code"
         />

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="leoGradient" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="50%" stop-color="#6366F1" />
+      <stop offset="100%" stop-color="#8B5CF6" />
+    </linearGradient>
+    <linearGradient id="innerGlow" x1="16" y1="6" x2="16" y2="26" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.8" />
+    </linearGradient>
+  </defs>
+
+  <!-- Squircle Base with Gradient Fill -->
+  <rect x="2" y="2" width="28" height="28" rx="8" fill="url(#leoGradient)" />
+
+  <!-- Subtle Rim Light -->
+  <rect x="2.5" y="2.5" width="27" height="27" rx="7.5" stroke="#FFFFFF" stroke-opacity="0.25" stroke-width="1" />
+
+  <!-- Leo Chat Bubble with Stem -->
+  <path
+    d="M9 11.5C9 9 11 7 13.5 7H18.5C21 7 23 9 23 11.5V16.5C23 19 21 21 18.5 21H13.8L10 24V21H9.5C9.22 21 9 20.78 9 20.5V11.5Z"
+    stroke="url(#innerGlow)"
+    stroke-width="1.8"
+    stroke-linejoin="round"
+  />
+
+  <!-- Three Dynamic Chat Pulse Dots -->
+  <circle cx="13" cy="14" r="1.35" fill="white" />
+  <circle cx="16" cy="14" r="1.35" fill="white" />
+  <circle cx="19" cy="14" r="1.35" fill="white" />
+</svg>

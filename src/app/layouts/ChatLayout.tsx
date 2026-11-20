@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { AnimatedOutlet } from './AnimatedOutlet';
-import { Search, PenSquare, Hash, X, Pin, BellOff, Users, QrCode } from 'lucide-react';
+import { Search, PenSquare, Hash, X, Pin, BellOff, Users } from 'lucide-react';
+import { WebQrNavIcon } from '@/pages/qr';
 import { Input } from '@/shared/ui/input';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Avatar } from '@/shared/ui/avatar';
@@ -81,7 +82,7 @@ export default function ChatLayout() {
                 className="w-9 h-9 rounded-xl bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground border border-border flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xs"
                 title="Web QR Code & Connect"
               >
-                <QrCode className="w-4 h-4" />
+                <WebQrNavIcon className="w-4 h-4" />
               </Link>
               <Link
                 to="/app/new"
@@ -99,7 +100,7 @@ export default function ChatLayout() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-8 bg-muted/60 dark:bg-muted/40 border-border/70 rounded-xl h-10 text-sm placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/30"
+              className="!pl-10 !pr-8 pl-10 pr-8 bg-muted/60 dark:bg-muted/40 border-border/70 rounded-xl h-10 text-sm placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/30"
               placeholder="Search conversations & users"
             />
             {searchQuery && (

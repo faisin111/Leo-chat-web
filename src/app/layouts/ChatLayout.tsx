@@ -86,11 +86,11 @@ export default function ChatLayout() {
 
           {/* Search Bar with Debounce & Clear */}
           <div className="relative mb-3.5">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9.5 pr-8 bg-muted/60 dark:bg-muted/40 border-border/70 rounded-xl h-10 text-sm placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/30"
+              className="pl-10 pr-8 bg-muted/60 dark:bg-muted/40 border-border/70 rounded-xl h-10 text-sm placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/30"
               placeholder="Search conversations & users"
             />
             {searchQuery && (

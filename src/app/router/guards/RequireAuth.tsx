@@ -7,7 +7,16 @@ export function RequireAuth() {
 
   // 'unknown' resolves instantly now – render null to avoid any flash
   if (status === 'unknown') return null;
-  if (status === 'anonymous') return <Navigate to="/login" replace state={{ from: location }} />;
+  if (status === 'anonymous') {
+    const fullPath = `${location.pathname}${location.search}${location.hash}`;
+    return (
+      <Navigate
+        to={`/login?redirect=${encodeURIComponent(fullPath)}`}
+        replace
+        state={{ from: location }}
+      />
+    );
+  }
 
   return <Outlet />;
 }

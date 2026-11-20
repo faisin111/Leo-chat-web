@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useLocation } from 'react-router-dom';
 
 import AppRoot from '../layouts/AppRoot';
 import AuthLayout from '../layouts/AuthLayout';
@@ -42,6 +42,11 @@ import { OwnershipPage } from '../../pages/admin/OwnershipPage';
 import { ForbiddenPage } from '../../pages/system/ForbiddenPage';
 import { NotFoundPage } from '../../pages/system/NotFoundPage';
 
+function ConnectAliasRedirect() {
+  const location = useLocation();
+  return <Navigate to={`/app/connect${location.search}`} replace />;
+}
+
 export const router = createBrowserRouter([
   {
     element: <AppRoot />,
@@ -49,6 +54,10 @@ export const router = createBrowserRouter([
       {
         path: '/',
         element: <LandingPage />,
+      },
+      {
+        path: '/connect',
+        element: <ConnectAliasRedirect />,
       },
       {
         element: <RequireGuest />,

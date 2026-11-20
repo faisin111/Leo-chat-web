@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSession } from '@/features/auth';
 import { useStartDirectMessage } from '@/features/chat';
+import { usersApi } from '@/features/users';
 import { Button } from '@/shared/ui/button';
 import { Avatar } from '@/shared/ui/avatar';
 import { QrCodeRenderer } from './components/QrCodeRenderer';
@@ -13,11 +14,14 @@ import {
   Smartphone,
   CheckCircle2,
   ExternalLink,
+  Info,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 type QrTab = 'my-code' | 'web-access' | 'scan';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function QrCodePage() {
   const [activeTab, setActiveTab] = useState<QrTab>('my-code');
@@ -25,74 +29,100 @@ export function QrCodePage() {
   const navigate = useNavigate();
   const startDm = useStartDirectMessage();
 
-  const baseUrl = window.location.origin;
-  const profileConnectUrl = user?.id ? `${baseUrl}/app/connect?user=${user.id}` : `${baseUrl}/app`;
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const isLocalhost =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+  const profileConnectUrl = user?.id
+    ? `${baseUrl}/app/connect?user=${encodeURIComponent(user.id)}`
+    : user?.username
+      ? `${baseUrl}/app/connect?user=${encodeURIComponent(user.username)}`
+      : `${baseUrl}/app`;
   const webAppUrl = `${baseUrl}/app`;
 
   const getInitials = (name?: string | null) => (name || 'User').substring(0, 2).toUpperCase();
 
-  const handleDecodedScan = (decodedText: string) => {
+  const handleDecodedScan = async (decodedText: string) => {
     try {
-      // 1. Check if the scanned string is a LeoChat URL containing ?user=<userId>
-      if (decodedText.includes('connect?user=') || decodedText.includes('?user=')) {
-        const url = new URL(decodedText, baseUrl);
-        const targetUserId = url.searchParams.get('user');
+      const trimmed = decodedText.trim();
+
+      // 1. Check if the scanned string is a LeoChat URL containing ?user=<userId> or ?u= or ?id=
+      if (
+        trimmed.includes('connect?user=') ||
+        trimmed.includes('?user=') ||
+        trimmed.includes('?u=') ||
+        trimmed.includes('?id=') ||
+        trimmed.includes('?userId=')
+      ) {
+        const url = new URL(trimmed, baseUrl);
+        const targetUserId =
+          url.searchParams.get('user') ||
+          url.searchParams.get('u') ||
+          url.searchParams.get('id') ||
+          url.searchParams.get('userId');
+
         if (targetUserId) {
-          if (targetUserId === user?.id) {
+          if (
+            targetUserId === user?.id ||
+            (user?.username && targetUserId.toLowerCase() === user.username.toLowerCase())
+          ) {
             toast.info('This is your own profile QR code!');
             return;
           }
           toast.success('User QR code recognized! Opening conversation...');
-          startDm.mutate(targetUserId);
-          return;
-        }
-      }
 
-      // 2. Check if the scanned string is a relative route like /app/c/123 or /app/connect?user=123
-      if (decodedText.startsWith('/app/connect?user=')) {
-        const url = new URL(decodedText, baseUrl);
-        const targetUserId = url.searchParams.get('user');
-        if (targetUserId) {
-          if (targetUserId === user?.id) {
-            toast.info('This is your own profile QR code!');
-            return;
+          if (UUID_REGEX.test(targetUserId)) {
+            startDm.mutate(targetUserId);
+          } else {
+            // Resolve username
+            try {
+              const results = await usersApi.searchUsers(targetUserId, 0, 5);
+              const found = results.find(
+                (u) =>
+                  (u.username || '').toLowerCase() === targetUserId.toLowerCase() ||
+                  (u.displayName || '').toLowerCase() === targetUserId.toLowerCase(),
+              );
+              const resolvedId = found?.id;
+              if (resolvedId) {
+                startDm.mutate(resolvedId);
+              } else {
+                toast.error(`User @${targetUserId} not found.`);
+              }
+            } catch {
+              toast.error(`Could not find user @${targetUserId}.`);
+            }
           }
-          toast.success('User QR code recognized! Opening conversation...');
-          startDm.mutate(targetUserId);
           return;
         }
       }
 
-      // 3. Check if it's a UUID (direct user ID)
-      const isUuid =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-          decodedText,
-        );
-      if (isUuid) {
-        if (decodedText === user?.id) {
+      // 2. Direct UUID check
+      if (UUID_REGEX.test(trimmed)) {
+        if (trimmed === user?.id) {
           toast.info('This is your own profile QR code!');
           return;
         }
         toast.success('User ID recognized! Starting chat...');
-        startDm.mutate(decodedText);
+        startDm.mutate(trimmed);
         return;
       }
 
-      // 4. If it's a LeoChat app URL, navigate internally
-      if (decodedText.startsWith(baseUrl)) {
-        const path = decodedText.replace(baseUrl, '');
+      // 3. If it's a LeoChat app URL, navigate internally
+      if (trimmed.startsWith(baseUrl)) {
+        const path = trimmed.replace(baseUrl, '');
         navigate(path || '/app');
         return;
       }
 
-      // 5. If it's any other web link
-      if (decodedText.startsWith('http://') || decodedText.startsWith('https://')) {
-        toast.info(`Scanned external link: ${decodedText}`);
-        window.open(decodedText, '_blank', 'noopener,noreferrer');
+      // 4. External link
+      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+        toast.info(`Scanned external link: ${trimmed}`);
+        window.open(trimmed, '_blank', 'noopener,noreferrer');
         return;
       }
 
-      toast.info(`Scanned content: ${decodedText}`);
+      toast.info(`Scanned content: ${trimmed}`);
     } catch {
       toast.error('Could not process the scanned QR code');
     }
@@ -193,6 +223,19 @@ export function QrCodePage() {
               }
             />
 
+            {/* Localhost developer hint */}
+            {isLocalhost && (
+              <div className="mt-4 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 max-w-sm w-full text-center flex items-start gap-2.5">
+                <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-amber-700 dark:text-amber-300 text-left leading-relaxed">
+                  <strong>Scanning from a separate phone?</strong> A phone cannot resolve{' '}
+                  <code>localhost</code>. To test scanning with your mobile device, open LeoChat on
+                  your local Wi-Fi IP (e.g. <code>http://192.168.x.x:5173</code>) or on the deployed
+                  Vercel domain.
+                </p>
+              </div>
+            )}
+
             {/* Feature Callout */}
             <div className="mt-8 p-4 rounded-2xl bg-card border border-border/70 max-w-sm w-full text-center space-y-2">
               <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center justify-center gap-1.5">
@@ -221,6 +264,18 @@ export function QrCodePage() {
                 </div>
               }
             />
+
+            {/* Localhost developer hint */}
+            {isLocalhost && (
+              <div className="mt-4 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 max-w-sm w-full text-center flex items-start gap-2.5">
+                <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-amber-700 dark:text-amber-300 text-left leading-relaxed">
+                  <strong>Scanning from a separate phone?</strong> A phone cannot resolve{' '}
+                  <code>localhost</code>. To test scanning with your mobile device, open LeoChat on
+                  your local Wi-Fi IP or on the deployed Vercel domain.
+                </p>
+              </div>
+            )}
 
             {/* Steps Guide */}
             <div className="mt-8 p-5 rounded-2xl bg-card border border-border max-w-md w-full space-y-3">
@@ -254,4 +309,5 @@ export function QrCodePage() {
     </div>
   );
 }
+
 export default QrCodePage;

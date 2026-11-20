@@ -72,9 +72,17 @@ export const LoginPage = () => {
 
       toast.success('Successfully logged in!', { duration: 3000 });
 
-      const from =
-        (location.state as { from?: { pathname: string } } | null)?.from?.pathname || '/app';
-      navigate(from, { replace: true });
+      const searchParams = new URLSearchParams(location.search);
+      const redirectQuery = searchParams.get('redirect');
+      const sessionRedirect = sessionStorage.getItem('leochat_post_auth_redirect');
+      const stateFrom = (location.state as { from?: { pathname: string; search?: string } } | null)
+        ?.from;
+      const stateFromUrl = stateFrom ? `${stateFrom.pathname}${stateFrom.search || ''}` : null;
+
+      const destination = redirectQuery || sessionRedirect || stateFromUrl || '/app';
+      sessionStorage.removeItem('leochat_post_auth_redirect');
+
+      navigate(destination, { replace: true });
     },
     onError: (error) => {
       toast.error(formatApiError(error, 'Invalid username or password.'));
@@ -163,7 +171,7 @@ export const LoginPage = () => {
 
             <span className="hidden sm:inline text-muted-foreground">New to LeoChat?</span>
             <Button variant="outline" size="sm" asChild className="rounded-xl">
-              <Link to="/register">Create account</Link>
+              <Link to={{ pathname: '/register', search: location.search }}>Create account</Link>
             </Button>
           </div>
         </div>

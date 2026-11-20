@@ -115,9 +115,17 @@ export const RegisterPage = () => {
         duration: 5000,
       });
 
-      const from =
-        (location.state as { from?: { pathname: string } } | null)?.from?.pathname || '/app';
-      navigate(from, { replace: true });
+      const searchParams = new URLSearchParams(location.search);
+      const redirectQuery = searchParams.get('redirect');
+      const sessionRedirect = sessionStorage.getItem('leochat_post_auth_redirect');
+      const stateFrom = (location.state as { from?: { pathname: string; search?: string } } | null)
+        ?.from;
+      const stateFromUrl = stateFrom ? `${stateFrom.pathname}${stateFrom.search || ''}` : null;
+
+      const destination = redirectQuery || sessionRedirect || stateFromUrl || '/app';
+      sessionStorage.removeItem('leochat_post_auth_redirect');
+
+      navigate(destination, { replace: true });
     },
     onError: (error) => {
       toast.error(formatApiError(error, 'Registration failed. Please try again.'));
@@ -164,7 +172,7 @@ export const RegisterPage = () => {
 
             <span className="hidden sm:inline text-muted-foreground">Already registered?</span>
             <Button variant="outline" size="sm" asChild className="rounded-xl">
-              <Link to="/login">Sign in</Link>
+              <Link to={{ pathname: '/login', search: location.search }}>Sign in</Link>
             </Button>
           </div>
         </div>

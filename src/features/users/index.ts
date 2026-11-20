@@ -10,6 +10,7 @@ export type {
 export { useMe } from './api/use-me';
 export { useUserById } from './api/use-user-by-id';
 export { useUpdateProfile } from './api/use-update-profile';
+export { useDeleteProfilePicture } from './api/use-delete-profile-picture';
 export { useDeactivateAccount } from './api/use-deactivate-account';
 export { useSearchUsers } from './api/use-search-users';
 export { usePresence } from './api/use-presence';

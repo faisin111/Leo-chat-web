@@ -45,6 +45,7 @@ export type UserProfile = {
 };
 
 export type ProfileUpdateBody = {
+  profilePictureStorageKey?: string;
   profilePictureUrl?: string;
   phoneNumber?: string;
   bio?: string;
@@ -73,6 +74,11 @@ export const usersApi = {
 
   updateProfile: async (data: ProfileUpdateBody): Promise<{ message: string }> => {
     const response = await http.patch('/users/me/profile', data);
+    return response.data;
+  },
+
+  deleteProfilePicture: async (): Promise<{ message: string }> => {
+    const response = await http.delete('/users/me/profile-picture');
     return response.data;
   },
 

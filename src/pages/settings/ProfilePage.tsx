@@ -9,6 +9,7 @@ import {
   X,
   Loader2,
   Upload,
+  Trash2,
   AlertTriangle,
   ShieldAlert,
 } from 'lucide-react';
@@ -19,7 +20,12 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { showApiError } from '@/shared/api/api-error';
 import { Link } from 'react-router-dom';
-import { useUpdateProfile, useDeactivateAccount, useSessions } from '@/features/users';
+import {
+  useUpdateProfile,
+  useDeleteProfilePicture,
+  useDeactivateAccount,
+  useSessions,
+} from '@/features/users';
 // eslint-disable-next-line no-restricted-imports
 import { useResendVerification } from '@/features/auth/api/use-resend-verification';
 import { mediaApi } from '@/features/media';
@@ -46,6 +52,7 @@ export const ProfilePage = () => {
   const [deactivateConfirmText, setDeactivateConfirmText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const updateProfile = useUpdateProfile();
+  const deleteProfilePicture = useDeleteProfilePicture();
   const deactivateAccount = useDeactivateAccount();
   const resendVerification = useResendVerification();
   const isAdmin = isAdminRole(user?.role);
@@ -89,7 +96,7 @@ export const ProfilePage = () => {
         setPreviewPhotoUrl(null);
         await updateProfile.mutateAsync({
           ...data,
-          profilePictureUrl: res.url,
+          profilePictureStorageKey: res.storageKey,
         });
         setIsEditing(false);
       } catch (err: unknown) {
@@ -235,6 +242,19 @@ export const ProfilePage = () => {
                   <Upload className="w-4 h-4 mr-2" />
                   {pendingPhotoFile ? 'Change selected photo' : 'Choose new photo'}
                 </Button>
+                {user?.profilePictureUrl && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full mb-1 ml-2 text-destructive"
+                    disabled={!isEditing || deleteProfilePicture.isPending || isUploadingPhoto}
+                    onClick={() => deleteProfilePicture.mutate()}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Remove photo
+                  </Button>
+                )}
                 <div className="flex items-center gap-2">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
                     JPEG, PNG, WEBP, GIF, AVIF - 10 MB max

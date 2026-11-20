@@ -111,6 +111,11 @@ export const mediaApi = {
     return response.data;
   },
 
+  delete: async (storageKey: string): Promise<{ message: string }> => {
+    const response = await http.delete('/media', { params: { storageKey } });
+    return response.data;
+  },
+
   uploadToPresignedUrl: async (
     uploadUrl: string,
     file: File | Blob,

@@ -111,7 +111,9 @@ export const RegisterPage = () => {
         useSession.getState().setSession(data.accessToken, data.user as CurrentUser);
       }
 
-      toast.success('Welcome to LeoChat! Your account is ready.', { duration: 3000 });
+      toast.success('Welcome to LeoChat! A verification email has been sent to your inbox.', {
+        duration: 5000,
+      });
 
       const from =
         (location.state as { from?: { pathname: string } } | null)?.from?.pathname || '/app';

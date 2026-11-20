@@ -101,6 +101,7 @@ export default function ChatLayout() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="!pl-10 !pr-8 pl-10 pr-8 bg-muted/60 dark:bg-muted/40 border-border/70 rounded-xl h-10 text-sm placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/30"
+              style={{ paddingLeft: '2.6rem', paddingRight: '2.25rem' }}
               placeholder="Search conversations & users"
             />
             {searchQuery && (

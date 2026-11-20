@@ -6,6 +6,14 @@ import { ApiException } from '@/shared/api/api-error';
 import { useSession } from '@/features/auth';
 import type { AiSession, AiMessage, AiModelId, AiAttachment } from '../types/ai.types';
 import { toast } from 'sonner';
+import { queryClient } from '@/app/providers/AppProviders';
+import { useCallStore } from '@/features/calls';
+import {
+  parseNaturalLanguageAction,
+  isConfirmationPrompt,
+  isCancellationPrompt,
+  resolveTargetUserAndConversation,
+} from '../lib/ai-action-parser';
 
 // AI history is stored per user so a different account on the same browser
 // never sees another user's conversations. Nothing is persisted while signed out.
@@ -111,6 +119,8 @@ interface AiState {
   toggleSidebar: () => void;
   setSidebarOpen: (isOpen: boolean) => void;
   sendMessage: (content: string, attachments?: AiAttachment[]) => Promise<void>;
+  confirmAction: (cardId: string) => Promise<void>;
+  cancelAction: (cardId: string) => void;
   stopGeneration: () => void;
   regenerateResponse: (messageId: string) => Promise<void>;
   retryPrompt: (userMessage: AiMessage) => Promise<void>;
@@ -362,6 +372,338 @@ export const useAiStore = create<AiState>((set, get) => ({
       }
     }
 
+    // 1. Check if there is an active pending confirmation card awaiting user confirmation
+    const activeSession = get().sessions.find((s) => s.id === activeSessionId);
+    const pendingCardMessage = activeSession?.messages
+      .slice()
+      .reverse()
+      .find((m) => m.actionCard?.status === 'pending_confirmation');
+
+    if (pendingCardMessage?.actionCard && (!attachments || attachments.length === 0)) {
+      if (isConfirmationPrompt(trimmed)) {
+        const userMsg: AiMessage = {
+          id: `ai-user-${crypto.randomUUID()}`,
+          role: 'user',
+          content: trimmed,
+          createdAt: new Date().toISOString(),
+        };
+        const nextSessions = get().sessions.map((s) =>
+          s.id === activeSessionId
+            ? { ...s, updatedAt: new Date().toISOString(), messages: [...s.messages, userMsg] }
+            : s,
+        );
+        set({ sessions: nextSessions });
+        persistState(nextSessions, activeSessionId);
+        await get().confirmAction(pendingCardMessage.actionCard.id);
+        return;
+      }
+      if (isCancellationPrompt(trimmed)) {
+        const userMsg: AiMessage = {
+          id: `ai-user-${crypto.randomUUID()}`,
+          role: 'user',
+          content: trimmed,
+          createdAt: new Date().toISOString(),
+        };
+        const nextSessions = get().sessions.map((s) =>
+          s.id === activeSessionId
+            ? { ...s, updatedAt: new Date().toISOString(), messages: [...s.messages, userMsg] }
+            : s,
+        );
+        set({ sessions: nextSessions });
+        persistState(nextSessions, activeSessionId);
+        get().cancelAction(pendingCardMessage.actionCard.id);
+        return;
+      }
+    }
+
+    // 2. Check if the message is a recognized natural language action
+    const actionMatch =
+      !attachments || attachments.length === 0 ? parseNaturalLanguageAction(trimmed) : null;
+
+    if (actionMatch) {
+      const userMessage: AiMessage = {
+        id: `ai-user-${crypto.randomUUID()}`,
+        role: 'user',
+        content: trimmed,
+        createdAt: new Date().toISOString(),
+      };
+
+      const updatedSessions = get().sessions.map((s) => {
+        if (s.id !== activeSessionId) return s;
+        const isFirstMessage = s.messages.length === 0;
+        const newTitle = isFirstMessage
+          ? trimmed.slice(0, 36) + (trimmed.length > 36 ? '…' : '')
+          : s.title;
+        return {
+          ...s,
+          title: newTitle,
+          conversationId: convId,
+          updatedAt: new Date().toISOString(),
+          messages: [...s.messages, userMessage],
+        };
+      });
+
+      set({
+        sessions: updatedSessions,
+        isGenerating: true,
+        generatingSessionId: activeSessionId,
+      });
+      persistState(updatedSessions, activeSessionId);
+
+      try {
+        let assistantMessage: AiMessage;
+        const cardId = `card-${crypto.randomUUID()}`;
+
+        switch (actionMatch.action) {
+          case 'GET_MY_PROFILE': {
+            const res = await aiApi.executeAction({ action: 'GET_MY_PROFILE' });
+            assistantMessage = {
+              id: `msg-ai-${Date.now()}`,
+              role: 'assistant',
+              modelId: selectedModelId,
+              createdAt: new Date().toISOString(),
+              content: 'Here are your account details and profile information:',
+              actionCard: {
+                id: cardId,
+                action: 'GET_MY_PROFILE',
+                status: 'executed',
+                resultData: res.data,
+              },
+            };
+            break;
+          }
+
+          case 'LIST_CONVERSATIONS': {
+            const res = await aiApi.executeAction({ action: 'LIST_CONVERSATIONS' });
+            const count = Array.isArray(res.data) ? res.data.length : 0;
+            assistantMessage = {
+              id: `msg-ai-${Date.now()}`,
+              role: 'assistant',
+              modelId: selectedModelId,
+              createdAt: new Date().toISOString(),
+              content: `Found ${count} conversation${count === 1 ? '' : 's'} in your inbox:`,
+              actionCard: {
+                id: cardId,
+                action: 'LIST_CONVERSATIONS',
+                status: 'executed',
+                resultData: res.data,
+              },
+            };
+            break;
+          }
+
+          case 'GET_BLOCKED_USERS': {
+            const res = await aiApi.executeAction({ action: 'GET_BLOCKED_USERS' });
+            const count = Array.isArray(res.data) ? res.data.length : 0;
+            assistantMessage = {
+              id: `msg-ai-${Date.now()}`,
+              role: 'assistant',
+              modelId: selectedModelId,
+              createdAt: new Date().toISOString(),
+              content:
+                count === 0
+                  ? 'You currently have no blocked users.'
+                  : `You have ${count} blocked user${count === 1 ? '' : 's'}:`,
+              actionCard: {
+                id: cardId,
+                action: 'GET_BLOCKED_USERS',
+                status: 'executed',
+                resultData: res.data,
+              },
+            };
+            break;
+          }
+
+          case 'SEARCH_USERS': {
+            const res = await aiApi.executeAction({
+              action: 'SEARCH_USERS',
+              query: actionMatch.query,
+            });
+            const count = Array.isArray(res.data) ? res.data.length : 0;
+            assistantMessage = {
+              id: `msg-ai-${Date.now()}`,
+              role: 'assistant',
+              modelId: selectedModelId,
+              createdAt: new Date().toISOString(),
+              content:
+                count === 0
+                  ? `No users found matching "${actionMatch.query}".`
+                  : `Found ${count} user${count === 1 ? '' : 's'} matching "${actionMatch.query}":`,
+              actionCard: {
+                id: cardId,
+                action: 'SEARCH_USERS',
+                status: 'executed',
+                resultData: res.data,
+              },
+            };
+            break;
+          }
+
+          case 'GET_USER': {
+            const resolved = await resolveTargetUserAndConversation(actionMatch.targetName!);
+            if (!resolved) {
+              assistantMessage = {
+                id: `msg-ai-${Date.now()}`,
+                role: 'assistant',
+                modelId: selectedModelId,
+                createdAt: new Date().toISOString(),
+                content: `Could not find any user named "${actionMatch.targetName}". Please check the spelling or username.`,
+              };
+            } else {
+              const res = await aiApi.executeAction({
+                action: 'GET_USER',
+                targetUserId: resolved.id,
+              });
+              assistantMessage = {
+                id: `msg-ai-${Date.now()}`,
+                role: 'assistant',
+                modelId: selectedModelId,
+                createdAt: new Date().toISOString(),
+                content: `Here are the details for @${resolved.username}:`,
+                actionCard: {
+                  id: cardId,
+                  action: 'GET_USER',
+                  status: 'executed',
+                  targetUser: resolved,
+                  resultData: res.data,
+                },
+              };
+            }
+            break;
+          }
+
+          case 'SEND_MESSAGE': {
+            const resolved = await resolveTargetUserAndConversation(actionMatch.targetName!);
+            if (!resolved) {
+              assistantMessage = {
+                id: `msg-ai-${Date.now()}`,
+                role: 'assistant',
+                modelId: selectedModelId,
+                createdAt: new Date().toISOString(),
+                content: `Could not find a user named "${actionMatch.targetName}". Please check the username or display name and try again.`,
+              };
+            } else {
+              const backendRes = await aiApi.executeAction({
+                action: 'SEND_MESSAGE',
+                conversationId: resolved.conversationId,
+                message: actionMatch.messageText,
+                confirmed: false,
+              });
+
+              assistantMessage = {
+                id: `msg-ai-${Date.now()}`,
+                role: 'assistant',
+                modelId: selectedModelId,
+                createdAt: new Date().toISOString(),
+                content: `I prepared your message to **${resolved.displayName || resolved.username}**. Please review and confirm below:`,
+                actionCard: {
+                  id: cardId,
+                  action: 'SEND_MESSAGE',
+                  status: 'pending_confirmation',
+                  targetUser: resolved,
+                  conversationId: resolved.conversationId,
+                  messageText: actionMatch.messageText,
+                  confirmationMessage:
+                    backendRes.message ||
+                    (backendRes.data as { message?: string })?.message ||
+                    'Confirm sending this message',
+                },
+              };
+            }
+            break;
+          }
+
+          case 'START_CALL': {
+            const resolved = await resolveTargetUserAndConversation(actionMatch.targetName!);
+            if (!resolved) {
+              assistantMessage = {
+                id: `msg-ai-${Date.now()}`,
+                role: 'assistant',
+                modelId: selectedModelId,
+                createdAt: new Date().toISOString(),
+                content: `Could not find a user named "${actionMatch.targetName}" to start a call.`,
+              };
+            } else {
+              const backendRes = await aiApi.executeAction({
+                action: 'START_CALL',
+                conversationId: resolved.conversationId,
+                targetUserId: resolved.id,
+                confirmed: false,
+              });
+
+              assistantMessage = {
+                id: `msg-ai-${Date.now()}`,
+                role: 'assistant',
+                modelId: selectedModelId,
+                createdAt: new Date().toISOString(),
+                content: `Ready to initiate a ${actionMatch.isVideo ? 'video' : 'voice'} call with **${resolved.displayName || resolved.username}**. Please confirm below:`,
+                actionCard: {
+                  id: cardId,
+                  action: 'START_CALL',
+                  status: 'pending_confirmation',
+                  targetUser: resolved,
+                  conversationId: resolved.conversationId,
+                  isVideo: actionMatch.isVideo,
+                  confirmationMessage:
+                    backendRes.message ||
+                    (backendRes.data as { message?: string })?.message ||
+                    'Confirm starting this call',
+                },
+              };
+            }
+            break;
+          }
+
+          default:
+            throw new Error(
+              `Unsupported action type: ${(actionMatch as { action: string }).action}`,
+            );
+        }
+
+        const finalSessions = get().sessions.map((s) => {
+          if (s.id !== activeSessionId) return s;
+          return {
+            ...s,
+            updatedAt: new Date().toISOString(),
+            messages: [...s.messages, assistantMessage],
+          };
+        });
+
+        set({
+          sessions: finalSessions,
+          isGenerating: false,
+          generatingSessionId: null,
+        });
+        persistState(finalSessions, activeSessionId);
+        return;
+      } catch (err: unknown) {
+        const errMsg = errorMessage(err, 'Failed to process AI action');
+        toast.error(errMsg);
+        const errMessage: AiMessage = {
+          id: `err-${Date.now()}`,
+          role: 'assistant',
+          modelId: selectedModelId,
+          createdAt: new Date().toISOString(),
+          content: `⚠️ **Action Error:** ${errMsg}`,
+        };
+        const finalSessions = get().sessions.map((s) => {
+          if (s.id !== activeSessionId) return s;
+          return {
+            ...s,
+            updatedAt: new Date().toISOString(),
+            messages: [...s.messages, errMessage],
+          };
+        });
+        set({
+          sessions: finalSessions,
+          isGenerating: false,
+          generatingSessionId: null,
+        });
+        persistState(finalSessions, activeSessionId);
+        return;
+      }
+    }
+
     // File contents go to the model for this turn only; the server stores just the names.
     const fileTexts = (attachments ?? [])
       .filter((a): a is AiAttachment & { text: string } => typeof a.text === 'string')
@@ -479,6 +821,142 @@ export const useAiStore = create<AiState>((set, get) => ({
       });
       persistState(finalSessions, activeSessionId);
     }
+  },
+
+  confirmAction: async (cardId: string) => {
+    const { activeSessionId, sessions } = get();
+    if (!activeSessionId) return;
+    const session = sessions.find((s) => s.id === activeSessionId);
+    const targetMessage = session?.messages.find((m) => m.actionCard?.id === cardId);
+    if (
+      !targetMessage ||
+      !targetMessage.actionCard ||
+      targetMessage.actionCard.status !== 'pending_confirmation'
+    ) {
+      return;
+    }
+
+    const card = targetMessage.actionCard;
+
+    // Set status to executing
+    const executingSessions = get().sessions.map((s) => {
+      if (s.id !== activeSessionId) return s;
+      return {
+        ...s,
+        messages: s.messages.map((m) =>
+          m.id === targetMessage.id
+            ? { ...m, actionCard: { ...card, status: 'executing' as const } }
+            : m,
+        ),
+      };
+    });
+    set({ sessions: executingSessions });
+    persistState(executingSessions, activeSessionId);
+
+    try {
+      let resultData: unknown = null;
+      if (card.action === 'SEND_MESSAGE') {
+        const res = await aiApi.executeAction({
+          action: 'SEND_MESSAGE',
+          conversationId: card.conversationId,
+          message: card.messageText,
+          confirmed: true,
+        });
+        resultData = res.data;
+        if (card.conversationId) {
+          queryClient.invalidateQueries({ queryKey: ['messages', card.conversationId] });
+        }
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        toast.success(`Message sent to @${card.targetUser?.username || 'user'}`);
+      } else if (card.action === 'START_CALL') {
+        const res = await aiApi.executeAction({
+          action: 'START_CALL',
+          conversationId: card.conversationId,
+          targetUserId: card.targetUser?.id,
+          confirmed: true,
+        });
+        resultData = res.data;
+        if (card.conversationId && card.targetUser?.id) {
+          useCallStore
+            .getState()
+            .startCall(
+              card.conversationId,
+              card.targetUser.id,
+              card.targetUser.displayName || card.targetUser.username,
+              card.targetUser.avatarUrl || null,
+              card.isVideo ?? false,
+            );
+        }
+        toast.success(`Call started with @${card.targetUser?.username || 'user'}`);
+      }
+
+      const executedSessions = get().sessions.map((s) => {
+        if (s.id !== activeSessionId) return s;
+        return {
+          ...s,
+          messages: s.messages.map((m) =>
+            m.id === targetMessage.id
+              ? { ...m, actionCard: { ...card, status: 'executed' as const, resultData } }
+              : m,
+          ),
+        };
+      });
+      set({ sessions: executedSessions });
+      persistState(executedSessions, activeSessionId);
+    } catch (error) {
+      const errorMsg = errorMessage(error, 'Action execution failed');
+      toast.error(errorMsg);
+      const failedSessions = get().sessions.map((s) => {
+        if (s.id !== activeSessionId) return s;
+        return {
+          ...s,
+          messages: s.messages.map((m) =>
+            m.id === targetMessage.id
+              ? {
+                  ...m,
+                  actionCard: {
+                    ...card,
+                    status: 'failed' as const,
+                    confirmationMessage: errorMsg,
+                  },
+                }
+              : m,
+          ),
+        };
+      });
+      set({ sessions: failedSessions });
+      persistState(failedSessions, activeSessionId);
+    }
+  },
+
+  cancelAction: (cardId: string) => {
+    const { activeSessionId, sessions } = get();
+    if (!activeSessionId) return;
+    const session = sessions.find((s) => s.id === activeSessionId);
+    const targetMessage = session?.messages.find((m) => m.actionCard?.id === cardId);
+    if (
+      !targetMessage ||
+      !targetMessage.actionCard ||
+      targetMessage.actionCard.status !== 'pending_confirmation'
+    ) {
+      return;
+    }
+
+    const card = targetMessage.actionCard;
+    const cancelledSessions = sessions.map((s) => {
+      if (s.id !== activeSessionId) return s;
+      return {
+        ...s,
+        messages: s.messages.map((m) =>
+          m.id === targetMessage.id
+            ? { ...m, actionCard: { ...card, status: 'cancelled' as const } }
+            : m,
+        ),
+      };
+    });
+    set({ sessions: cancelledSessions });
+    persistState(cancelledSessions, activeSessionId);
+    toast('Action cancelled');
   },
 
   stopGeneration: () => {

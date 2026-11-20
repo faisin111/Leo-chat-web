@@ -6,7 +6,7 @@ import { showApiError } from '@/shared/api/api-error';
 import { ThemeSync } from '@/shared/theme';
 import { ModernToaster } from '@/shared/ui/toaster';
 
-const queryClient = new QueryClient({
+export const queryClient = new QueryClient({
   mutationCache: new MutationCache({
     onError: (error, _variables, _context, mutation) => {
       // Surface unhandled mutation errors globally with clear backend details

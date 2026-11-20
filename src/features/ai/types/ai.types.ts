@@ -25,6 +25,25 @@ export interface AiAttachment {
   text?: string;
 }
 
+export interface AiActionCardData {
+  id: string;
+  action: AiActionType;
+  status: 'pending_confirmation' | 'executing' | 'executed' | 'cancelled' | 'failed';
+  targetUser?: {
+    id: string;
+    username: string;
+    displayName?: string;
+    avatarUrl?: string;
+  };
+  conversationId?: string;
+  messageText?: string;
+  query?: string;
+  isVideo?: boolean;
+  confirmationMessage?: string;
+  resultData?: unknown;
+  errorMessage?: string;
+}
+
 export interface AiMessage {
   id: string;
   role: AiMessageRole;
@@ -37,6 +56,7 @@ export interface AiMessage {
   thinkingDurationSecs?: number;
   sources?: AiWebSource[];
   attachments?: AiAttachment[];
+  actionCard?: AiActionCardData;
 }
 
 export interface AiSession {
@@ -55,6 +75,7 @@ export type AiActionType =
   | 'LIST_CONVERSATIONS'
   | 'GET_BLOCKED_USERS'
   | 'GET_USER'
+  | 'GET_MY_PROFILE'
   | 'SEND_MESSAGE'
   | 'START_CALL';
 

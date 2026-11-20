@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useAiStore } from './ai.store';
 import { aiApi } from '../api/ai-api';
 import { conversationsApi } from '@/features/chat';
-import type { Message } from '@/features/chat';
+import { usersApi } from '@/features/users';
+import type { UserSearchItem } from '@/features/users';
+import { useCallStore } from '@/features/calls';
+import type { Message, Conversation } from '@/features/chat';
 
 describe('useAiStore', () => {
   beforeEach(() => {
@@ -178,5 +181,195 @@ describe('useAiStore', () => {
     const session = useAiStore.getState().sessions.find((s) => s.id === sessionId);
     expect(session?.messages.map((m) => m.content)).toEqual(['long question']);
     expect(useAiStore.getState().isGenerating).toBe(false);
+  });
+
+  describe('Natural Language Actions & Confirmation Flow', () => {
+    it('executes GET_MY_PROFILE without calling chat endpoint and renders profile card', async () => {
+      const sessionId = useAiStore.getState().createNewSession();
+      useAiStore.getState().selectSession(sessionId);
+
+      const chatSpy = vi.spyOn(aiApi, 'chat');
+      const actionSpy = vi.spyOn(aiApi, 'executeAction').mockResolvedValueOnce({
+        action: 'GET_MY_PROFILE',
+        executed: true,
+        confirmationRequired: false,
+        message: 'Profile retrieved',
+        data: {
+          id: '11111111-1111-1111-1111-111111111111',
+          username: 'faizan',
+          displayName: 'Faizan Test',
+          email: 'faizan@example.com',
+          role: 'USER',
+          emailVerified: true,
+        },
+      });
+
+      await useAiStore.getState().sendMessage('give my details');
+
+      expect(chatSpy).not.toHaveBeenCalled();
+      expect(actionSpy).toHaveBeenCalledWith({ action: 'GET_MY_PROFILE' });
+
+      const session = useAiStore.getState().sessions.find((s) => s.id === sessionId);
+      expect(session?.messages).toHaveLength(2);
+      expect(session?.messages[1]?.actionCard?.action).toBe('GET_MY_PROFILE');
+      expect(session?.messages[1]?.actionCard?.status).toBe('executed');
+      const profile = session?.messages[1]?.actionCard?.resultData as Record<string, unknown>;
+      expect(profile?.username).toBe('faizan');
+    });
+
+    it('handles natural SEND_MESSAGE command with confirmation flow', async () => {
+      const sessionId = useAiStore.getState().createNewSession();
+      useAiStore.getState().selectSession(sessionId);
+
+      // Mock user lookup & conversation start
+      vi.spyOn(usersApi, 'searchUsers').mockResolvedValueOnce([
+        {
+          id: 'user-john-id',
+          username: 'john_doe',
+          displayName: 'John Doe',
+          email: 'john@example.com',
+          role: 'USER',
+        } as unknown as UserSearchItem,
+      ]);
+      vi.spyOn(conversationsApi, 'startDirectMessage').mockResolvedValueOnce({
+        id: 'conv-dm-john',
+        type: 'DIRECT',
+        createdAt: new Date().toISOString(),
+      } as unknown as Conversation);
+
+      // Step 1: Backend returns confirmation required
+      const actionSpy = vi.spyOn(aiApi, 'executeAction').mockResolvedValueOnce({
+        action: 'SEND_MESSAGE',
+        executed: false,
+        confirmationRequired: true,
+        message: 'Confirm sending this message',
+        data: {
+          confirmationRequired: true,
+          message: 'Confirm sending this message',
+        },
+      });
+
+      await useAiStore.getState().sendMessage('send a message to john_doe: Hello John!');
+
+      expect(actionSpy).toHaveBeenCalledWith({
+        action: 'SEND_MESSAGE',
+        conversationId: 'conv-dm-john',
+        message: 'Hello John!',
+        confirmed: false,
+      });
+
+      let session = useAiStore.getState().sessions.find((s) => s.id === sessionId);
+      const card = session?.messages[1]?.actionCard;
+      expect(card).toBeDefined();
+      expect(card?.action).toBe('SEND_MESSAGE');
+      expect(card?.status).toBe('pending_confirmation');
+      expect(card?.messageText).toBe('Hello John!');
+
+      // Step 2: User confirms by sending "yes"
+      actionSpy.mockResolvedValueOnce({
+        action: 'SEND_MESSAGE',
+        executed: true,
+        confirmationRequired: false,
+        message: 'Message sent successfully',
+        data: {
+          id: 'msg-sent-1',
+          content: 'Hello John!',
+        },
+      });
+
+      await useAiStore.getState().sendMessage('yes');
+
+      expect(actionSpy).toHaveBeenCalledWith({
+        action: 'SEND_MESSAGE',
+        conversationId: 'conv-dm-john',
+        message: 'Hello John!',
+        confirmed: true,
+      });
+
+      session = useAiStore.getState().sessions.find((s) => s.id === sessionId);
+      const updatedCard = session?.messages[1]?.actionCard;
+      expect(updatedCard?.status).toBe('executed');
+    });
+
+    it('cancels pending action when user cancels', async () => {
+      const sessionId = useAiStore.getState().createNewSession();
+      useAiStore.getState().selectSession(sessionId);
+
+      vi.spyOn(usersApi, 'searchUsers').mockResolvedValueOnce([
+        {
+          id: 'user-alice-id',
+          username: 'alice',
+          displayName: 'Alice',
+        } as unknown as UserSearchItem,
+      ]);
+      vi.spyOn(conversationsApi, 'startDirectMessage').mockResolvedValueOnce({
+        id: 'conv-alice',
+      } as unknown as Conversation);
+
+      vi.spyOn(aiApi, 'executeAction').mockResolvedValueOnce({
+        action: 'START_CALL',
+        executed: false,
+        confirmationRequired: true,
+        message: 'Confirm starting this call',
+        data: { confirmationRequired: true, message: 'Confirm starting this call' },
+      });
+
+      await useAiStore.getState().sendMessage('call alice');
+
+      let session = useAiStore.getState().sessions.find((s) => s.id === sessionId);
+      const card = session?.messages[1]?.actionCard;
+      expect(card?.status).toBe('pending_confirmation');
+
+      // User says cancel
+      await useAiStore.getState().sendMessage('cancel');
+
+      session = useAiStore.getState().sessions.find((s) => s.id === sessionId);
+      expect(session?.messages[1]?.actionCard?.status).toBe('cancelled');
+    });
+
+    it('initiates call via useCallStore when START_CALL is confirmed', async () => {
+      const sessionId = useAiStore.getState().createNewSession();
+      useAiStore.getState().selectSession(sessionId);
+
+      vi.spyOn(usersApi, 'searchUsers').mockResolvedValueOnce([
+        {
+          id: 'user-bob-id',
+          username: 'bob',
+          displayName: 'Bob',
+        } as unknown as UserSearchItem,
+      ]);
+      vi.spyOn(conversationsApi, 'startDirectMessage').mockResolvedValueOnce({
+        id: 'conv-bob',
+      } as unknown as Conversation);
+
+      vi.spyOn(aiApi, 'executeAction').mockResolvedValueOnce({
+        action: 'START_CALL',
+        executed: false,
+        confirmationRequired: true,
+        message: 'Confirm starting this call',
+        data: { confirmationRequired: true, message: 'Confirm starting this call' },
+      });
+
+      await useAiStore.getState().sendMessage('start call with bob');
+
+      const startCallSpy = vi
+        .spyOn(useCallStore.getState(), 'startCall')
+        .mockResolvedValue(undefined);
+      vi.spyOn(aiApi, 'executeAction').mockResolvedValueOnce({
+        action: 'START_CALL',
+        executed: true,
+        confirmationRequired: false,
+        message: 'Call started',
+        data: { started: true },
+      });
+
+      const session = useAiStore.getState().sessions.find((s) => s.id === sessionId);
+      const cardId = session?.messages[1]?.actionCard?.id;
+      expect(cardId).toBeDefined();
+      if (!cardId) throw new Error('Expected cardId to be defined');
+      await useAiStore.getState().confirmAction(cardId);
+
+      expect(startCallSpy).toHaveBeenCalledWith('conv-bob', 'user-bob-id', 'Bob', null, false);
+    });
   });
 });

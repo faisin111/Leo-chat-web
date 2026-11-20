@@ -14,6 +14,7 @@ import type { AiMessage } from '../types/ai.types';
 import { useAiStore } from '../store/ai.store';
 import { getModelById } from '../lib/ai-models';
 import { AiRotatingIcon } from './AiRotatingIcon';
+import { AiActionCard } from './AiActionCard';
 import { toast } from 'sonner';
 
 interface AiMessageItemProps {
@@ -139,6 +140,9 @@ export const AiMessageItem = ({ message, isLatest }: AiMessageItemProps) => {
           <div className="text-xs sm:text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">
             <FormattedMarkdown content={message.content} />
           </div>
+
+          {/* Action Execution / Interactive Confirmation Card */}
+          {message.actionCard && <AiActionCard card={message.actionCard} />}
 
           {/* Web Sources Citations */}
           {message.sources && message.sources.length > 0 && (

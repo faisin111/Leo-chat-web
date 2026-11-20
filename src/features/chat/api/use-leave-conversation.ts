@@ -12,7 +12,7 @@ export function useLeaveConversation() {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
       queryClient.removeQueries({ queryKey: ['messages', conversationId] });
-      toast.success('Conversation removed');
+      toast.success('Conversation and chat history deleted');
     },
     onError: (error) => {
       showApiError(error, 'Failed to leave conversation');

@@ -12,6 +12,7 @@ import {
   Trash2,
   AlertTriangle,
   ShieldAlert,
+  QrCode,
 } from 'lucide-react';
 import { useState, useRef, useEffect, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
@@ -187,9 +188,16 @@ export const ProfilePage = () => {
               </Button>
             </>
           ) : (
-            <Button variant="outline" onClick={() => setIsEditing(true)} className="rounded-xl">
-              <Edit2 className="w-4 h-4 mr-2" /> Edit Profile
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" asChild className="rounded-xl">
+                <Link to="/app/qr">
+                  <QrCode className="w-4 h-4 mr-2 text-primary" /> My QR Code
+                </Link>
+              </Button>
+              <Button variant="outline" onClick={() => setIsEditing(true)} className="rounded-xl">
+                <Edit2 className="w-4 h-4 mr-2" /> Edit Profile
+              </Button>
+            </div>
           )}
         </div>
       </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AnimatedOutlet } from './AnimatedOutlet';
-import { User, MonitorSmartphone, Shield, Ban, Palette } from 'lucide-react';
+import { User, MonitorSmartphone, Shield, Ban, Palette, QrCode } from 'lucide-react';
 import { useSession } from '@/features/auth';
 import { useSessions } from '@/features/users';
 
@@ -69,6 +69,12 @@ export default function SettingsLayout() {
               icon={<Palette className="w-4 h-4" />}
               label="Appearance"
               active={location.pathname.startsWith('/app/settings/appearance')}
+            />
+            <SettingsNavItem
+              to="/app/qr"
+              icon={<QrCode className="w-4 h-4" />}
+              label="Web QR Code"
+              active={location.pathname === '/app/qr'}
             />
           </nav>
         </div>

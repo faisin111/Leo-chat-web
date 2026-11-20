@@ -9,6 +9,7 @@ import {
   LogOut,
   Sun,
   Moon,
+  QrCode,
 } from 'lucide-react';
 import { AiRotatingIcon } from '@/features/ai';
 import { useSession, authSession, authApi, isAdminRole } from '@/features/auth';
@@ -87,6 +88,12 @@ export function NavigationRail() {
             location.pathname === '/app/new-group'
           }
           label="People"
+        />
+        <NavItem
+          to="/app/qr"
+          icon={<QrCode className="w-4 h-4 sm:w-5 sm:h-5" />}
+          active={location.pathname === '/app/qr'}
+          label="Web QR Code"
         />
         <NavItem
           to="/app/settings"

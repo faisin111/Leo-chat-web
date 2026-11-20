@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { AnimatedOutlet } from './AnimatedOutlet';
-import { Search, PenSquare, Hash, X, Pin, BellOff, Users } from 'lucide-react';
+import { Search, PenSquare, Hash, X, Pin, BellOff, Users, QrCode } from 'lucide-react';
 import { Input } from '@/shared/ui/input';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Avatar } from '@/shared/ui/avatar';
@@ -75,13 +75,22 @@ export default function ChatLayout() {
                 {isRealtimeConnected ? 'Connected' : 'Connecting…'}
               </p>
             </div>
-            <Link
-              to="/app/new"
-              className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 text-primary border border-primary/20 flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xs"
-              title="New direct message or group"
-            >
-              <PenSquare className="w-4 h-4" />
-            </Link>
+            <div className="flex items-center gap-1.5">
+              <Link
+                to="/app/qr"
+                className="w-9 h-9 rounded-xl bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground border border-border flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xs"
+                title="Web QR Code & Connect"
+              >
+                <QrCode className="w-4 h-4" />
+              </Link>
+              <Link
+                to="/app/new"
+                className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 text-primary border border-primary/20 flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xs"
+                title="New direct message or group"
+              >
+                <PenSquare className="w-4 h-4" />
+              </Link>
+            </div>
           </div>
 
           {/* Search Bar with Debounce & Clear */}

@@ -9,6 +9,7 @@ export { useChangeMemberRole } from './api/use-change-member-role';
 export { useMuteConversation } from './api/use-mute-conversation';
 export { usePinConversation } from './api/use-pin-conversation';
 export { useArchiveConversation } from './api/use-archive-conversation';
+export { useHideConversation } from './api/use-hide-conversation';
 export { useMessages } from './api/use-messages';
 export { useSendMessage } from './api/use-send-message';
 export { useDeleteMessage } from './api/use-delete-message';
@@ -36,4 +37,6 @@ export type {
   MessageReaction,
   MessageReactionUser,
   MessageReply,
+  HideScope,
+  HideConversationsRequest,
 } from './api/conversations-api';

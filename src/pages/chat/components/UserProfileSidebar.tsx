@@ -26,6 +26,7 @@ import {
   ShieldCheck,
   Trash2,
   Loader2,
+  EyeOff,
 } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { Skeleton } from '@/shared/ui/skeleton';
@@ -39,6 +40,7 @@ import {
   useMuteConversation,
   usePinConversation,
   useArchiveConversation,
+  useHideConversation,
   type ConversationMember,
 } from '@/features/chat';
 import { useSession } from '@/features/auth';
@@ -87,6 +89,7 @@ export const UserProfileSidebar = ({
   const { archive, unarchive, isLoading: isArchiveLoading } = useArchiveConversation();
   const removeMember = useRemoveMember();
   const leaveConversation = useLeaveConversation();
+  const { hide: hideConversation, isHiding } = useHideConversation();
 
   const targetId = user?.id || userId;
 
@@ -166,6 +169,25 @@ export const UserProfileSidebar = ({
           navigate('/app');
         },
       });
+    }
+  };
+
+  const handleHideConversation = () => {
+    if (!conversationId) return;
+    if (
+      window.confirm(
+        'Hide this conversation from your chat list? Your chat history will be hidden for you without deleting messages for others.',
+      )
+    ) {
+      hideConversation(
+        { scope: 'CONVERSATION', conversationId },
+        {
+          onSuccess: () => {
+            onClose();
+            navigate('/app');
+          },
+        },
+      );
     }
   };
 
@@ -380,8 +402,22 @@ export const UserProfileSidebar = ({
               </div>
             )}
 
-            {/* Leave Group Action */}
-            <div className="pt-4 border-t border-slate-100">
+            {/* Group Actions */}
+            <div className="pt-4 border-t border-border space-y-2">
+              <button
+                type="button"
+                onClick={handleHideConversation}
+                disabled={isHiding}
+                className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-border text-foreground hover:bg-muted text-xs font-semibold transition-colors cursor-pointer"
+              >
+                {isHiding ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <EyeOff className="w-4 h-4 text-muted-foreground" />
+                )}
+                Hide Group
+              </button>
+
               <button
                 type="button"
                 onClick={() => setIsLeaveConfirmOpen(true)}
@@ -498,10 +534,24 @@ export const UserProfileSidebar = ({
                 type="button"
                 onClick={handleToggleArchive}
                 disabled={isArchiveLoading}
-                className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold transition-colors cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-border text-foreground hover:bg-muted text-xs font-semibold transition-colors cursor-pointer"
               >
-                <Archive className="w-4 h-4 text-slate-500" />
+                <Archive className="w-4 h-4 text-muted-foreground" />
                 {isArchived ? 'Unarchive Conversation' : 'Archive Conversation'}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleHideConversation}
+                disabled={isHiding}
+                className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-border text-foreground hover:bg-muted text-xs font-semibold transition-colors cursor-pointer"
+              >
+                {isHiding ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <EyeOff className="w-4 h-4 text-muted-foreground" />
+                )}
+                Hide Conversation
               </button>
 
               <button

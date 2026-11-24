@@ -27,6 +27,15 @@ export type ConversationMember = {
   leftAt: string | null;
   pinnedAt: string | null;
   archivedAt: string | null;
+  hiddenAt?: string | null;
+};
+
+export type HideScope = 'ALL' | 'USER' | 'CONVERSATION';
+
+export type HideConversationsRequest = {
+  scope: HideScope;
+  conversationId?: string;
+  userId?: string;
 };
 
 export type ConversationsResponse = {
@@ -195,6 +204,16 @@ export const conversationsApi = {
 
   unarchiveConversation: async (id: string): Promise<void> => {
     await http.delete(`/conversations/${id}/archive`);
+  },
+
+  hideConversations: async (data: HideConversationsRequest): Promise<number> => {
+    const response = await http.put('/conversations/hide', data);
+    return response.data;
+  },
+
+  unhideConversations: async (data: HideConversationsRequest): Promise<number> => {
+    const response = await http.delete('/conversations/hide', { data });
+    return response.data;
   },
 
   getUnreadCount: async (): Promise<{ unreadCount: number }> => {

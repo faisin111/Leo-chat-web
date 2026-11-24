@@ -31,11 +31,12 @@ import {
   UploadCloud,
   Image as ImageIcon,
   Mic,
+  EyeOff,
 } from 'lucide-react';
 import { Input } from '@/shared/ui/input';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Avatar } from '@/shared/ui/avatar';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import type { KeyboardEvent, DragEvent, ChangeEvent, ClipboardEvent } from 'react';
 import {
@@ -50,6 +51,7 @@ import {
   useMuteConversation,
   usePinConversation,
   useArchiveConversation,
+  useHideConversation,
   useTypingStore,
 } from '@/features/chat';
 import type { Message, MessageType, MessageReaction, MessageReactionUser } from '@/features/chat';
@@ -292,6 +294,7 @@ export const ConversationPage = () => {
 
   const currentUser = useSession((s) => s.user);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { data: conversationsData } = useConversations();
   const { data: conversationDetail } = useConversationDetails(conversationId);
   const { data: members } = useConversationMembers(conversationId);
@@ -299,6 +302,7 @@ export const ConversationPage = () => {
   const { pin, unpin, isLoading: isPinLoading } = usePinConversation();
   const { mute, unmute, isLoading: isMuteLoading } = useMuteConversation();
   const { archive, unarchive, isLoading: isArchiveLoading } = useArchiveConversation();
+  const { hide: hideConversation, isHiding: isHideLoading } = useHideConversation();
 
   const conversation =
     conversationDetail ||
@@ -1410,6 +1414,33 @@ export const ConversationPage = () => {
                     >
                       <Archive className="w-3.5 h-3.5 text-muted-foreground" />
                       <span>{isArchived ? 'Unarchive Conversation' : 'Archive Conversation'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isHideLoading}
+                      onClick={() => {
+                        setIsHeaderMenuOpen(false);
+                        if (
+                          conversationId &&
+                          window.confirm(
+                            'Hide this conversation from your chat list? Your chat history will be hidden for you without deleting messages for others.',
+                          )
+                        ) {
+                          hideConversation(
+                            { scope: 'CONVERSATION', conversationId },
+                            {
+                              onSuccess: () => {
+                                navigate('/app');
+                              },
+                            },
+                          );
+                        }
+                      }}
+                      className="w-full text-left px-3.5 py-2 text-xs text-foreground hover:bg-muted flex items-center gap-2.5 cursor-pointer font-medium transition-colors"
+                    >
+                      <EyeOff className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span>Hide Conversation</span>
                     </button>
 
                     {isGroup && isGroupAdmin && (

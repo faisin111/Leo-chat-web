@@ -37,7 +37,123 @@ let pendingIceCandidates: Array<{
 }> = [];
 let durationInterval: ReturnType<typeof setInterval> | null = null;
 let outgoingTimeout: ReturnType<typeof setTimeout> | null = null;
+let disconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 let originalVideoTrack: MediaStreamTrack | null = null;
+let pendingOfferResolvers: Array<(sdp: string) => void> = [];
+
+const clearDisconnectTimeout = () => {
+  if (disconnectTimeout) {
+    clearTimeout(disconnectTimeout);
+    disconnectTimeout = null;
+  }
+};
+
+const flushOfferResolvers = (sdp: string) => {
+  const resolvers = pendingOfferResolvers;
+  pendingOfferResolvers = [];
+  resolvers.forEach((resolve) => resolve(sdp));
+};
+
+const waitForOfferSdp = (timeoutMs = 6000): Promise<string | null> =>
+  new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      pendingOfferResolvers = pendingOfferResolvers.filter((r) => r !== onOffer);
+      resolve(null);
+    }, timeoutMs);
+    const onOffer = (sdp: string) => {
+      clearTimeout(timer);
+      resolve(sdp);
+    };
+    pendingOfferResolvers.push(onOffer);
+  });
+
+const waitForWsConnected = async (timeoutMs = 4000): Promise<boolean> => {
+  if (wsService.isConnected) return true;
+  wsService.connect();
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    if (wsService.isConnected) return true;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  return wsService.isConnected;
+};
+
+/**
+ * Acquires local audio (and optional video) gracefully.
+ * Falls back from HD video -> basic video -> audio-only -> null (receive-only)
+ * instead of aborting/crashing the call when a camera is busy or missing.
+ */
+async function acquireMediaStream(wantVideo: boolean): Promise<{
+  stream: MediaStream | null;
+  hasVideo: boolean;
+  cameraFallbackReason?: string;
+}> {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    return { stream: null, hasVideo: false, cameraFallbackReason: 'Media devices unavailable' };
+  }
+
+  const audioConstraints = {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  };
+
+  if (wantVideo) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: audioConstraints,
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user',
+        },
+      });
+      return { stream, hasVideo: stream.getVideoTracks().length > 0 };
+    } catch {
+      // Retry with unconstrained video (fixes cameras that reject ideal 720p or facingMode)
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: true,
+        });
+        return { stream, hasVideo: stream.getVideoTracks().length > 0 };
+      } catch {
+        // Camera unavailable or locked by another tab: continue with voice only
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: audioConstraints,
+            video: false,
+          });
+          return {
+            stream,
+            hasVideo: false,
+            cameraFallbackReason: 'Camera unavailable — continuing with voice only',
+          };
+        } catch {
+          return {
+            stream: null,
+            hasVideo: false,
+            cameraFallbackReason: 'Microphone/camera unavailable — joined in listen-only mode',
+          };
+        }
+      }
+    }
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: audioConstraints,
+      video: false,
+    });
+    return { stream, hasVideo: false };
+  } catch {
+    return {
+      stream: null,
+      hasVideo: false,
+      cameraFallbackReason: 'Microphone unavailable — joined in listen-only mode',
+    };
+  }
+}
 
 interface CallState {
   status: CallStatus;
@@ -143,35 +259,48 @@ export const useCallStore = create<CallState>((set, get) => ({
     }, 45000);
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-        video: isVideo
-          ? {
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-              facingMode: 'user',
-            }
-          : false,
-      });
+      const connected = await waitForWsConnected();
+      if (!connected) {
+        toast.error('Real-time connection is not available');
+        get().cleanUp();
+        return;
+      }
 
-      // Ensure all audio tracks are active
-      stream.getAudioTracks().forEach((track) => {
-        track.enabled = true;
-      });
+      const { stream, hasVideo, cameraFallbackReason } = await acquireMediaStream(isVideo);
+      if (cameraFallbackReason) {
+        toast.info(cameraFallbackReason);
+      }
 
-      set({ localStream: stream });
+      if (get().status === 'idle' || get().callId !== callId) {
+        stream?.getTracks().forEach((t) => t.stop());
+        return;
+      }
+
+      if (stream) {
+        stream.getAudioTracks().forEach((track) => {
+          track.enabled = true;
+        });
+        set({
+          localStream: stream,
+          isCameraOff: isVideo && !hasVideo,
+        });
+      } else {
+        set({ isCameraOff: true });
+      }
 
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
       globalPeerConnection = pc;
       pendingIceCandidates = [];
 
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      if (stream) {
+        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      }
 
       pc.ontrack = (event) => {
+        if (event.track?.kind === 'video' && get().callType !== 'video') {
+          set({ callType: 'video' });
+        }
+
         if (event.streams && event.streams[0]) {
           set({ remoteStream: new MediaStream(event.streams[0].getTracks()) });
         } else {
@@ -210,6 +339,7 @@ export const useCallStore = create<CallState>((set, get) => ({
 
       pc.oniceconnectionstatechange = () => {
         if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+          clearDisconnectTimeout();
           callSound.stopRing();
           if (outgoingTimeout) {
             clearTimeout(outgoingTimeout);
@@ -221,9 +351,20 @@ export const useCallStore = create<CallState>((set, get) => ({
               set((prev) => ({ durationSeconds: prev.durationSeconds + 1 }));
             }, 1000);
           }
-        } else if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
-          // If connection dropped, gracefully notify
-          toast.error('Call connection lost');
+        } else if (pc.iceConnectionState === 'disconnected') {
+          clearDisconnectTimeout();
+          disconnectTimeout = setTimeout(() => {
+            if (
+              globalPeerConnection === pc &&
+              (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed')
+            ) {
+              toast.error('Call connection lost');
+              get().cleanUp();
+            }
+          }, 6000);
+        } else if (pc.iceConnectionState === 'failed') {
+          clearDisconnectTimeout();
+          toast.error('Call connection failed');
           get().cleanUp();
         }
       };
@@ -260,15 +401,15 @@ export const useCallStore = create<CallState>((set, get) => ({
       }
     } catch (err) {
       console.error('Call init failed:', err);
-      toast.error('Unable to access camera or microphone');
+      toast.error('Unable to start call');
       get().cleanUp();
     }
   },
 
   acceptCall: async (withVideo?: boolean) => {
     callSound.stopRing();
-    const { callId, conversationId, targetUserId, pendingOfferSdp, callType } = get();
-    if (!callId || !conversationId || !targetUserId || !pendingOfferSdp) {
+    const { callId, conversationId, targetUserId, callType } = get();
+    if (!callId || !conversationId || !targetUserId) {
       get().cleanUp();
       return;
     }
@@ -278,34 +419,46 @@ export const useCallStore = create<CallState>((set, get) => ({
     set({ status: 'connecting', callType: shouldVideo ? 'video' : 'audio' });
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-        video: shouldVideo
-          ? {
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-              facingMode: 'user',
-            }
-          : false,
-      });
+      const { stream, hasVideo, cameraFallbackReason } = await acquireMediaStream(shouldVideo);
+      if (cameraFallbackReason) {
+        toast.info(cameraFallbackReason);
+      }
 
-      // Ensure all audio tracks are active
-      stream.getAudioTracks().forEach((track) => {
-        track.enabled = true;
-      });
+      // Call may have been cancelled/ended while awaiting device permissions
+      if (get().status === 'idle' || get().callId !== callId) {
+        stream?.getTracks().forEach((t) => t.stop());
+        return;
+      }
 
-      set({ localStream: stream });
+      if (stream) {
+        stream.getAudioTracks().forEach((track) => {
+          track.enabled = true;
+        });
+        set({
+          localStream: stream,
+          isCameraOff: shouldVideo && !hasVideo,
+        });
+      } else {
+        set({ isCameraOff: true });
+      }
+
+      const offerSdp = get().pendingOfferSdp || (await waitForOfferSdp(6000));
+      if (!offerSdp || get().status === 'idle' || get().callId !== callId) {
+        if (!offerSdp) {
+          toast.error('Call offer timed out');
+        }
+        get().cleanUp();
+        return;
+      }
 
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
       globalPeerConnection = pc;
 
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-
       pc.ontrack = (event) => {
+        if (event.track?.kind === 'video' && get().callType !== 'video') {
+          set({ callType: 'video' });
+        }
+
         if (event.streams && event.streams[0]) {
           set({ remoteStream: new MediaStream(event.streams[0].getTracks()) });
         } else {
@@ -344,22 +497,37 @@ export const useCallStore = create<CallState>((set, get) => ({
 
       pc.oniceconnectionstatechange = () => {
         if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+          clearDisconnectTimeout();
           set({ status: 'connected' });
           if (!durationInterval) {
             durationInterval = setInterval(() => {
               set((prev) => ({ durationSeconds: prev.durationSeconds + 1 }));
             }, 1000);
           }
-        } else if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
-          toast.error('Call disconnected');
+        } else if (pc.iceConnectionState === 'disconnected') {
+          clearDisconnectTimeout();
+          disconnectTimeout = setTimeout(() => {
+            if (
+              globalPeerConnection === pc &&
+              (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed')
+            ) {
+              toast.error('Call disconnected');
+              get().cleanUp();
+            }
+          }, 6000);
+        } else if (pc.iceConnectionState === 'failed') {
+          clearDisconnectTimeout();
+          toast.error('Call connection failed');
           get().cleanUp();
         }
       };
 
-      // Set remote offer description
-      await pc.setRemoteDescription(
-        new RTCSessionDescription({ type: 'offer', sdp: pendingOfferSdp }),
-      );
+      // Set remote offer description BEFORE adding local tracks so Unified Plan reuses matching m-lines cleanly
+      await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: offerSdp }));
+
+      if (stream) {
+        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      }
 
       // Apply buffered candidates
       while (pendingIceCandidates.length > 0) {
@@ -369,7 +537,7 @@ export const useCallStore = create<CallState>((set, get) => ({
         }
       }
 
-      // Create and set local answer with audio reception explicitly declared
+      // Create and set local answer with audio/video reception explicitly declared
       const answer = await pc.createAnswer({
         offerToReceiveAudio: true,
         offerToReceiveVideo: shouldVideo,
@@ -386,7 +554,7 @@ export const useCallStore = create<CallState>((set, get) => ({
       });
     } catch (err) {
       console.error('Failed to accept call:', err);
-      toast.error('Could not access microphone/camera');
+      toast.error('Failed to connect call');
       get().rejectCall();
     }
   },
@@ -444,13 +612,13 @@ export const useCallStore = create<CallState>((set, get) => ({
   },
 
   toggleCamera: async () => {
-    const { localStream, isCameraOff, callType } = get();
+    const { localStream, isCameraOff } = get();
     if (!localStream) return;
 
     const videoTrack = localStream.getVideoTracks()[0];
 
-    // If call started as audio-only, enable camera now
-    if (!videoTrack && callType === 'audio') {
+    // If no video track yet (audio-only call or camera fallback), enable camera now
+    if (!videoTrack) {
       try {
         const newStream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
@@ -533,15 +701,35 @@ export const useCallStore = create<CallState>((set, get) => ({
       case 'INVITE':
       case 'OFFER': {
         if (currentStatus !== 'idle') {
-          // If OFFER follows INVITE for the same incoming call, attach its SDP instead of sending BUSY
-          if (event.callId && event.callId === get().callId && currentStatus === 'incoming') {
+          // Never send BUSY for duplicate/follow-up INVITE/OFFER belonging to the active call
+          if (event.callId && event.callId === get().callId) {
             if (event.sdp && !get().pendingOfferSdp) {
               const isVideo = event.sdp.includes('m=video');
               set({
                 pendingOfferSdp: event.sdp,
                 callType: isVideo ? 'video' : get().callType,
               });
+              flushOfferResolvers(event.sdp);
             }
+            return;
+          }
+
+          // If AI START_CALL triggered a placeholder INVITE (no SDP) from the same caller and
+          // WebRTC startCall immediately follows with an OFFER/INVITE carrying SDP, adopt it.
+          if (
+            currentStatus === 'incoming' &&
+            !get().pendingOfferSdp &&
+            event.sdp &&
+            event.fromUserId === get().targetUserId &&
+            event.conversationId === get().conversationId
+          ) {
+            const isVideo = event.sdp.includes('m=video');
+            set({
+              callId: event.callId,
+              pendingOfferSdp: event.sdp,
+              callType: isVideo ? 'video' : get().callType,
+            });
+            flushOfferResolvers(event.sdp);
             return;
           }
 
@@ -683,6 +871,8 @@ export const useCallStore = create<CallState>((set, get) => ({
 
   cleanUp: () => {
     callSound.stopRing();
+    clearDisconnectTimeout();
+    pendingOfferResolvers = [];
 
     if (outgoingTimeout) {
       clearTimeout(outgoingTimeout);

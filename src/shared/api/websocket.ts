@@ -6,7 +6,8 @@ import { useSession } from '@/features/auth';
 // Real-time payloads carry message content, SDP and user data: log them only in dev builds.
 const debugLog = (...args: unknown[]) => {
   if (import.meta.env.DEV) {
-    debugLog(...args);
+    // eslint-disable-next-line no-console
+    console.debug(...args);
   }
 };
 

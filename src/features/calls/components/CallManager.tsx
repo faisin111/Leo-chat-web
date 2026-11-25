@@ -1,8 +1,31 @@
-import { useEffect, useRef } from 'react';
+import { Component, useEffect, useRef } from 'react';
+import type { ReactNode } from 'react';
 import { wsService } from '@/shared/api/websocket';
 import { useCallStore } from '../store/call.store';
 import { IncomingCallDialog } from './IncomingCallDialog';
 import { ActiveCallModal } from './ActiveCallModal';
+
+class CallErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  override componentDidCatch(error: unknown) {
+    console.error('[CallManager] Recovered from call UI error:', error);
+    useCallStore.getState().cleanUp();
+    this.setState({ hasError: false });
+  }
+
+  override render() {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
+}
 
 export const CallManager = () => {
   const handleIncomingSignal = useCallStore((s) => s.handleIncomingSignal);
@@ -46,8 +69,10 @@ export const CallManager = () => {
       <audio ref={remoteAudioRef} autoPlay>
         <track kind="captions" />
       </audio>
-      <IncomingCallDialog />
-      <ActiveCallModal />
+      <CallErrorBoundary>
+        <IncomingCallDialog />
+        <ActiveCallModal />
+      </CallErrorBoundary>
     </>
   );
 };

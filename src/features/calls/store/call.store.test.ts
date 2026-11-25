@@ -15,6 +15,8 @@ describe('useCallStore', () => {
     vi.spyOn(callSound, 'playCallEnd').mockImplementation(() => {});
 
     // Mock WebSocket publish / sendCallSignal
+    wsService.isConnected = true;
+    vi.spyOn(wsService, 'connect').mockImplementation(() => {});
     vi.spyOn(wsService, 'sendCallSignal').mockReturnValue(true);
 
     // Mock MediaDevices
@@ -332,6 +334,73 @@ describe('useCallStore', () => {
     expect(state.callType).toBe('video');
     expect(wsService.sendCallSignal).not.toHaveBeenCalledWith(
       expect.objectContaining({ action: 'BUSY' }),
+    );
+  });
+
+  it('does not send BUSY when OFFER arrives while callee is already connecting for same callId', async () => {
+    useCallStore.setState({
+      status: 'connecting',
+      callId: 'call-connecting-1',
+      conversationId: 'conv-1',
+      targetUserId: 'caller-id',
+      pendingOfferSdp: null,
+    });
+
+    await useCallStore.getState().handleIncomingSignal({
+      conversationId: 'conv-1',
+      callId: 'call-connecting-1',
+      fromUserId: 'caller-id',
+      fromUsername: 'alice',
+      targetUserId: 'my-id',
+      action: 'OFFER',
+      sdp: 'v=0\r\nm=video 9 UDP/TLS/RTP/SAVPF',
+    });
+
+    expect(wsService.sendCallSignal).not.toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'BUSY' }),
+    );
+    expect(useCallStore.getState().pendingOfferSdp).toBe('v=0\r\nm=video 9 UDP/TLS/RTP/SAVPF');
+  });
+
+  it('accepts a video call and falls back to audio-only cleanly if camera is unavailable', async () => {
+    const audioOnlyStream = {
+      getTracks: () => [{ kind: 'audio', enabled: true, stop: vi.fn(), readyState: 'live' }],
+      getAudioTracks: () => [{ kind: 'audio', enabled: true, stop: vi.fn(), readyState: 'live' }],
+      getVideoTracks: () => [],
+    } as unknown as MediaStream;
+
+    const getUserMediaMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Camera in use'))
+      .mockRejectedValueOnce(new Error('Camera in use'))
+      .mockResolvedValueOnce(audioOnlyStream);
+
+    Object.defineProperty(global.navigator, 'mediaDevices', {
+      value: { getUserMedia: getUserMediaMock },
+      writable: true,
+      configurable: true,
+    });
+
+    useCallStore.setState({
+      status: 'incoming',
+      callId: 'call-video-accept-1',
+      conversationId: 'conv-1',
+      targetUserId: 'caller-id',
+      targetUserName: 'Alice',
+      callType: 'video',
+      pendingOfferSdp: 'mock-sdp-offer',
+    });
+
+    await useCallStore.getState().acceptCall(true);
+
+    expect(useCallStore.getState().status).toBe('connecting');
+    expect(useCallStore.getState().isCameraOff).toBe(true);
+    expect(wsService.sendCallSignal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        callId: 'call-video-accept-1',
+        action: 'ANSWER',
+        sdp: 'mock-sdp-answer',
+      }),
     );
   });
 });

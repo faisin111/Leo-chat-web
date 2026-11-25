@@ -35,6 +35,11 @@ let pendingIceCandidates: Array<{
   sdpMid?: string | null;
   sdpMLineIndex?: number | null;
 }> = [];
+let localIceCandidates: Array<{
+  candidate?: string;
+  sdpMid?: string | null;
+  sdpMLineIndex?: number | null;
+}> = [];
 let durationInterval: ReturnType<typeof setInterval> | null = null;
 let outgoingTimeout: ReturnType<typeof setTimeout> | null = null;
 let disconnectTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -47,6 +52,98 @@ const clearDisconnectTimeout = () => {
     disconnectTimeout = null;
   }
 };
+
+function attachPeerConnectionLifecycle(
+  pc: RTCPeerConnection,
+  options: {
+    conversationId: string;
+    callId: string;
+    targetUserId: string;
+    recordLocalIce?: boolean;
+    onConnected?: () => void;
+    disconnectMessage: string;
+  },
+  set: (partial: Partial<CallState> | ((state: CallState) => Partial<CallState>)) => void,
+  get: () => CallState,
+) {
+  const { conversationId, callId, targetUserId, recordLocalIce, onConnected, disconnectMessage } =
+    options;
+
+  pc.ontrack = (event) => {
+    if (event.track?.kind === 'video' && get().callType !== 'video') {
+      set({ callType: 'video' });
+    }
+
+    if (event.streams && event.streams[0]) {
+      set({ remoteStream: new MediaStream(event.streams[0].getTracks()) });
+    } else {
+      set((state) => {
+        const current = state.remoteStream || new MediaStream();
+        if (!current.getTracks().some((t) => t.id === event.track.id)) {
+          current.addTrack(event.track);
+        }
+        return { remoteStream: new MediaStream(current.getTracks()) };
+      });
+    }
+
+    if (event.track) {
+      event.track.onunmute = () => {
+        const current = get().remoteStream;
+        if (current) {
+          set({ remoteStream: new MediaStream(current.getTracks()) });
+        }
+      };
+    }
+  };
+
+  pc.onicecandidate = (event) => {
+    if (event.candidate) {
+      const candidateInit = {
+        candidate: event.candidate.candidate,
+        sdpMid: event.candidate.sdpMid,
+        sdpMLineIndex: event.candidate.sdpMLineIndex,
+      };
+      if (recordLocalIce) {
+        localIceCandidates.push(candidateInit);
+      }
+      wsService.sendCallSignal({
+        conversationId,
+        callId,
+        targetUserId,
+        action: 'ICE_CANDIDATE',
+        ...candidateInit,
+      });
+    }
+  };
+
+  pc.oniceconnectionstatechange = () => {
+    if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+      clearDisconnectTimeout();
+      onConnected?.();
+      set({ status: 'connected' });
+      if (!durationInterval) {
+        durationInterval = setInterval(() => {
+          set((prev) => ({ durationSeconds: prev.durationSeconds + 1 }));
+        }, 1000);
+      }
+    } else if (pc.iceConnectionState === 'disconnected') {
+      clearDisconnectTimeout();
+      disconnectTimeout = setTimeout(() => {
+        if (
+          globalPeerConnection === pc &&
+          (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed')
+        ) {
+          toast.error(disconnectMessage);
+          get().cleanUp();
+        }
+      }, 6000);
+    } else if (pc.iceConnectionState === 'failed') {
+      clearDisconnectTimeout();
+      toast.error('Call connection failed');
+      get().cleanUp();
+    }
+  };
+}
 
 const flushOfferResolvers = (sdp: string) => {
   const resolvers = pendingOfferResolvers;
@@ -291,83 +388,31 @@ export const useCallStore = create<CallState>((set, get) => ({
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
       globalPeerConnection = pc;
       pendingIceCandidates = [];
+      localIceCandidates = [];
 
       if (stream) {
         stream.getTracks().forEach((track) => pc.addTrack(track, stream));
       }
 
-      pc.ontrack = (event) => {
-        if (event.track?.kind === 'video' && get().callType !== 'video') {
-          set({ callType: 'video' });
-        }
-
-        if (event.streams && event.streams[0]) {
-          set({ remoteStream: new MediaStream(event.streams[0].getTracks()) });
-        } else {
-          set((state) => {
-            const current = state.remoteStream || new MediaStream();
-            if (!current.getTracks().some((t) => t.id === event.track.id)) {
-              current.addTrack(event.track);
+      attachPeerConnectionLifecycle(
+        pc,
+        {
+          conversationId,
+          callId,
+          targetUserId,
+          recordLocalIce: true,
+          disconnectMessage: 'Call connection lost',
+          onConnected: () => {
+            callSound.stopRing();
+            if (outgoingTimeout) {
+              clearTimeout(outgoingTimeout);
+              outgoingTimeout = null;
             }
-            return { remoteStream: new MediaStream(current.getTracks()) };
-          });
-        }
-
-        if (event.track) {
-          event.track.onunmute = () => {
-            const current = get().remoteStream;
-            if (current) {
-              set({ remoteStream: new MediaStream(current.getTracks()) });
-            }
-          };
-        }
-      };
-
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          wsService.sendCallSignal({
-            conversationId,
-            callId,
-            targetUserId,
-            action: 'ICE_CANDIDATE',
-            candidate: event.candidate.candidate,
-            sdpMid: event.candidate.sdpMid,
-            sdpMLineIndex: event.candidate.sdpMLineIndex,
-          });
-        }
-      };
-
-      pc.oniceconnectionstatechange = () => {
-        if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
-          clearDisconnectTimeout();
-          callSound.stopRing();
-          if (outgoingTimeout) {
-            clearTimeout(outgoingTimeout);
-            outgoingTimeout = null;
-          }
-          set({ status: 'connected' });
-          if (!durationInterval) {
-            durationInterval = setInterval(() => {
-              set((prev) => ({ durationSeconds: prev.durationSeconds + 1 }));
-            }, 1000);
-          }
-        } else if (pc.iceConnectionState === 'disconnected') {
-          clearDisconnectTimeout();
-          disconnectTimeout = setTimeout(() => {
-            if (
-              globalPeerConnection === pc &&
-              (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed')
-            ) {
-              toast.error('Call connection lost');
-              get().cleanUp();
-            }
-          }, 6000);
-        } else if (pc.iceConnectionState === 'failed') {
-          clearDisconnectTimeout();
-          toast.error('Call connection failed');
-          get().cleanUp();
-        }
-      };
+          },
+        },
+        set,
+        get,
+      );
 
       const offer = await pc.createOffer({
         offerToReceiveAudio: true,
@@ -454,73 +499,17 @@ export const useCallStore = create<CallState>((set, get) => ({
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
       globalPeerConnection = pc;
 
-      pc.ontrack = (event) => {
-        if (event.track?.kind === 'video' && get().callType !== 'video') {
-          set({ callType: 'video' });
-        }
-
-        if (event.streams && event.streams[0]) {
-          set({ remoteStream: new MediaStream(event.streams[0].getTracks()) });
-        } else {
-          set((state) => {
-            const current = state.remoteStream || new MediaStream();
-            if (!current.getTracks().some((t) => t.id === event.track.id)) {
-              current.addTrack(event.track);
-            }
-            return { remoteStream: new MediaStream(current.getTracks()) };
-          });
-        }
-
-        if (event.track) {
-          event.track.onunmute = () => {
-            const current = get().remoteStream;
-            if (current) {
-              set({ remoteStream: new MediaStream(current.getTracks()) });
-            }
-          };
-        }
-      };
-
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          wsService.sendCallSignal({
-            conversationId,
-            callId,
-            targetUserId,
-            action: 'ICE_CANDIDATE',
-            candidate: event.candidate.candidate,
-            sdpMid: event.candidate.sdpMid,
-            sdpMLineIndex: event.candidate.sdpMLineIndex,
-          });
-        }
-      };
-
-      pc.oniceconnectionstatechange = () => {
-        if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
-          clearDisconnectTimeout();
-          set({ status: 'connected' });
-          if (!durationInterval) {
-            durationInterval = setInterval(() => {
-              set((prev) => ({ durationSeconds: prev.durationSeconds + 1 }));
-            }, 1000);
-          }
-        } else if (pc.iceConnectionState === 'disconnected') {
-          clearDisconnectTimeout();
-          disconnectTimeout = setTimeout(() => {
-            if (
-              globalPeerConnection === pc &&
-              (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed')
-            ) {
-              toast.error('Call disconnected');
-              get().cleanUp();
-            }
-          }, 6000);
-        } else if (pc.iceConnectionState === 'failed') {
-          clearDisconnectTimeout();
-          toast.error('Call connection failed');
-          get().cleanUp();
-        }
-      };
+      attachPeerConnectionLifecycle(
+        pc,
+        {
+          conversationId,
+          callId,
+          targetUserId,
+          disconnectMessage: 'Call disconnected',
+        },
+        set,
+        get,
+      );
 
       // Set remote offer description BEFORE adding local tracks so Unified Plan reuses matching m-lines cleanly
       await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: offerSdp }));
@@ -701,8 +690,84 @@ export const useCallStore = create<CallState>((set, get) => ({
       case 'INVITE':
       case 'OFFER': {
         if (currentStatus !== 'idle') {
-          // Never send BUSY for duplicate/follow-up INVITE/OFFER belonging to the active call
+          // Handle matching active callId signals without emitting BUSY
           if (event.callId && event.callId === get().callId) {
+            // Mobile callee woke via FCM push, accepted, connected, and sent an OFFER as offerer
+            if (
+              event.action === 'OFFER' &&
+              event.sdp &&
+              get().isCaller &&
+              (currentStatus === 'outgoing' || currentStatus === 'connecting')
+            ) {
+              callSound.stopRing();
+              if (outgoingTimeout) {
+                clearTimeout(outgoingTimeout);
+                outgoingTimeout = null;
+              }
+              const wantsVideo = event.sdp.includes('m=video') || get().callType === 'video';
+              set({
+                status: 'connecting',
+                callType: wantsVideo ? 'video' : 'audio',
+              });
+
+              try {
+                if (globalPeerConnection) {
+                  globalPeerConnection.close();
+                  globalPeerConnection = null;
+                }
+
+                const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+                globalPeerConnection = pc;
+
+                attachPeerConnectionLifecycle(
+                  pc,
+                  {
+                    conversationId: event.conversationId,
+                    callId: event.callId,
+                    targetUserId: event.fromUserId,
+                    disconnectMessage: 'Call connection lost',
+                  },
+                  set,
+                  get,
+                );
+
+                await pc.setRemoteDescription(
+                  new RTCSessionDescription({ type: 'offer', sdp: event.sdp }),
+                );
+
+                const local = get().localStream;
+                if (local) {
+                  local.getTracks().forEach((track) => pc.addTrack(track, local));
+                }
+
+                while (pendingIceCandidates.length > 0) {
+                  const candidateInit = pendingIceCandidates.shift();
+                  if (candidateInit) {
+                    await pc.addIceCandidate(new RTCIceCandidate(candidateInit)).catch(() => {});
+                  }
+                }
+
+                const answer = await pc.createAnswer({
+                  offerToReceiveAudio: true,
+                  offerToReceiveVideo: wantsVideo,
+                });
+                await pc.setLocalDescription(answer);
+
+                wsService.sendCallSignal({
+                  conversationId: event.conversationId,
+                  callId: event.callId,
+                  targetUserId: event.fromUserId,
+                  action: 'ANSWER',
+                  sdp: answer.sdp,
+                });
+              } catch (err) {
+                console.error('Failed to negotiate incoming offer from callee:', err);
+                toast.error('Failed to connect call');
+                get().endCall();
+              }
+              return;
+            }
+
             if (event.sdp && !get().pendingOfferSdp) {
               const isVideo = event.sdp.includes('m=video');
               set({
@@ -767,6 +832,47 @@ export const useCallStore = create<CallState>((set, get) => ({
         });
 
         callSound.startIncomingRing();
+        break;
+      }
+
+      case 'ACCEPT':
+      case 'READY': {
+        if (event.callId && get().callId && event.callId !== get().callId) {
+          return;
+        }
+
+        if (currentStatus === 'outgoing' || currentStatus === 'connecting') {
+          callSound.stopRing();
+          if (outgoingTimeout) {
+            clearTimeout(outgoingTimeout);
+            outgoingTimeout = null;
+          }
+          set({ status: 'connecting' });
+
+          const { conversationId, callId, targetUserId } = get();
+          const activeTargetId = event.fromUserId || targetUserId;
+          const localOfferSdp = globalPeerConnection?.localDescription?.sdp;
+
+          // Callee woke via FCM push and joined WebSocket; re-send OFFER and buffered ICE candidates
+          if (conversationId && callId && activeTargetId && localOfferSdp) {
+            wsService.sendCallSignal({
+              conversationId,
+              callId,
+              targetUserId: activeTargetId,
+              action: 'OFFER',
+              sdp: localOfferSdp,
+            });
+            for (const cand of localIceCandidates) {
+              wsService.sendCallSignal({
+                conversationId,
+                callId,
+                targetUserId: activeTargetId,
+                action: 'ICE_CANDIDATE',
+                ...cand,
+              });
+            }
+          }
+        }
         break;
       }
 
@@ -852,8 +958,9 @@ export const useCallStore = create<CallState>((set, get) => ({
         break;
       }
 
+      case 'RINGING':
       case 'DELIVERED': {
-        // Signaling reached target user; outgoing call remains in ringing state
+        // Push notification or signaling reached target user; outgoing call remains in ringing state
         break;
       }
 
@@ -903,6 +1010,7 @@ export const useCallStore = create<CallState>((set, get) => ({
     }
 
     pendingIceCandidates = [];
+    localIceCandidates = [];
     originalVideoTrack = null;
 
     set({

@@ -403,4 +403,81 @@ describe('useCallStore', () => {
       }),
     );
   });
+
+  it('keeps outgoing call ringing when backend sends RINGING after FCM push', async () => {
+    useCallStore.setState({
+      status: 'outgoing',
+      callId: 'call-push-1',
+      conversationId: 'conv-1',
+      targetUserId: 'mobile-user',
+      targetUserName: 'Mobile User',
+      isCaller: true,
+    });
+
+    await useCallStore.getState().handleIncomingSignal({
+      conversationId: 'conv-1',
+      callId: 'call-push-1',
+      fromUserId: 'my-id',
+      fromUsername: 'Me',
+      targetUserId: 'mobile-user',
+      action: 'RINGING',
+    });
+
+    expect(useCallStore.getState().status).toBe('outgoing');
+  });
+
+  it('re-sends OFFER when mobile callee connects after push and sends ACCEPT', async () => {
+    await useCallStore.getState().startCall('conv-1', 'mobile-user', 'Mobile User', null, true);
+    const activeCallId = useCallStore.getState().callId!;
+    vi.mocked(wsService.sendCallSignal).mockClear();
+
+    await useCallStore.getState().handleIncomingSignal({
+      conversationId: 'conv-1',
+      callId: activeCallId,
+      fromUserId: 'mobile-user',
+      fromUsername: 'Mobile User',
+      targetUserId: 'my-id',
+      action: 'ACCEPT',
+    });
+
+    expect(useCallStore.getState().status).toBe('connecting');
+    expect(callSound.stopRing).toHaveBeenCalled();
+    expect(wsService.sendCallSignal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: 'conv-1',
+        callId: activeCallId,
+        targetUserId: 'mobile-user',
+        action: 'OFFER',
+        sdp: 'mock-sdp-offer',
+      }),
+    );
+  });
+
+  it('answers when mobile callee connects after push and sends OFFER for active outgoing call', async () => {
+    await useCallStore.getState().startCall('conv-1', 'mobile-user', 'Mobile User', null, false);
+    const activeCallId = useCallStore.getState().callId!;
+    vi.mocked(wsService.sendCallSignal).mockClear();
+
+    await useCallStore.getState().handleIncomingSignal({
+      conversationId: 'conv-1',
+      callId: activeCallId,
+      fromUserId: 'mobile-user',
+      fromUsername: 'Mobile User',
+      targetUserId: 'my-id',
+      action: 'OFFER',
+      sdp: 'v=0\r\nm=video 9 UDP/TLS/RTP/SAVPF',
+    });
+
+    expect(useCallStore.getState().status).toBe('connecting');
+    expect(useCallStore.getState().callType).toBe('video');
+    expect(wsService.sendCallSignal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: 'conv-1',
+        callId: activeCallId,
+        targetUserId: 'mobile-user',
+        action: 'ANSWER',
+        sdp: 'mock-sdp-answer',
+      }),
+    );
+  });
 });

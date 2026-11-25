@@ -1,11 +1,14 @@
 export type CallSignalAction =
   | 'INVITE'
   | 'OFFER'
+  | 'ACCEPT'
+  | 'READY'
   | 'ANSWER'
   | 'ICE_CANDIDATE'
   | 'REJECT'
   | 'BUSY'
   | 'END'
+  | 'RINGING'
   | 'DELIVERED'
   | 'UNAVAILABLE';
 

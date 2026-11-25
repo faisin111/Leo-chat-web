@@ -25,11 +25,14 @@ export { useUnreadCount } from './api/use-unread-count';
 export { useTypingStore } from './store/typing.store';
 export type { TypingUserInfo } from './store/typing.store';
 export { useConversationsTyping } from './hooks/use-conversations-typing';
+export { formatLastMessagePreview } from './lib/format-last-message';
+export type { LastMessagePreview } from './lib/format-last-message';
 
 export type {
   Conversation,
   ConversationMember,
   ConversationsResponse,
+  LastMessage,
   Message,
   MessageAttachment,
   MessageType,

@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { Avatar } from '@/shared/ui/avatar';
+import { formatLastMessagePreview, type LastMessage } from '@/features/chat';
+import { useSession } from '@/features/auth';
 import type { AiActionCardData } from '../types/ai.types';
 import { useAiStore } from '../store/ai.store';
 
@@ -21,6 +23,7 @@ interface AiActionCardProps {
 
 export function AiActionCard({ card }: AiActionCardProps) {
   const navigate = useNavigate();
+  const currentUserId = useSession((s) => s.user?.id);
   const confirmAction = useAiStore((s) => s.confirmAction);
   const cancelAction = useAiStore((s) => s.cancelAction);
 
@@ -361,7 +364,15 @@ export function AiActionCard({ card }: AiActionCardProps) {
                           'Chat'}
                       </p>
                       <p className="text-[10px] text-muted-foreground truncate">
-                        {conv.type === 'GROUP' ? 'Group Chat' : 'Direct Message'}
+                        {
+                          formatLastMessagePreview(
+                            {
+                              type: (conv.type as string) || 'DIRECT',
+                              lastMessage: (conv.lastMessage as LastMessage | null) ?? null,
+                            },
+                            currentUserId,
+                          ).text
+                        }
                       </p>
                     </div>
                   </div>

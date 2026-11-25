@@ -1,5 +1,16 @@
 import { http } from '@/shared/api/http-client';
 
+export type MessageType = 'TEXT' | 'IMAGE' | 'FILE' | 'VOICE' | 'CALL' | 'SYSTEM' | string;
+
+export type LastMessage = {
+  id: string;
+  senderId: string | null;
+  type: MessageType;
+  content: string | null;
+  createdAt: string;
+  deleted: boolean;
+};
+
 export type Conversation = {
   id: string;
   type: 'DIRECT' | 'GROUP' | 'AI' | string;
@@ -9,6 +20,7 @@ export type Conversation = {
   createdBy: string;
   lastSeq: number;
   lastMessageAt: string | null;
+  lastMessage?: LastMessage | null;
   createdAt: string;
   status: string;
   targetUserId?: string;
@@ -43,8 +55,6 @@ export type ConversationsResponse = {
   hasMore: boolean;
   nextCursor: string | null;
 };
-
-export type MessageType = 'TEXT' | 'IMAGE' | 'FILE' | 'VOICE' | 'SYSTEM' | string;
 
 export type MessageReactionUser = {
   id: string;

@@ -1,11 +1,20 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { AnimatedOutlet } from './AnimatedOutlet';
-import { Search, PenSquare, Hash, X, Pin, BellOff, Users } from 'lucide-react';
+import { Search, PenSquare, Hash, X, Pin, BellOff, Users, PhoneCall, Trash2 } from 'lucide-react';
 import { WebQrNavIcon } from '@/pages/qr';
 import { Input } from '@/shared/ui/input';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Avatar } from '@/shared/ui/avatar';
-import { useConversations, useConversationsTyping, useTypingStore } from '@/features/chat';
+import {
+  useConversations,
+  useConversationsTyping,
+  useTypingStore,
+  formatLastMessagePreview,
+  type LastMessagePreview,
+} from '@/features/chat';
+import { useSession } from '@/features/auth';
+import { wsService } from '@/shared/api/websocket';
 import { formatDistanceToNow } from 'date-fns';
 import { Link, useLocation } from 'react-router-dom';
 import { useRealtimeStatus } from '@/shared/api/use-realtime-status';
@@ -27,6 +36,8 @@ export default function ChatLayout() {
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useConversations(debouncedQuery);
   const location = useLocation();
+  const queryClient = useQueryClient();
+  const currentUserId = useSession((s) => s.user?.id);
   const isRealtimeConnected = useRealtimeStatus();
 
   const allConversations = useMemo(() => data?.pages.flatMap((page) => page.items) || [], [data]);
@@ -46,6 +57,30 @@ export default function ChatLayout() {
     [filteredConversations],
   );
   useConversationsTyping(conversationIds);
+
+  // Refresh sidebar lastMessage & timestamps whenever any visible conversation receives a realtime event
+  const allConversationIdsKey = useMemo(
+    () =>
+      allConversations
+        .map((c) => c.id)
+        .filter(Boolean)
+        .sort()
+        .join(','),
+    [allConversations],
+  );
+
+  useEffect(() => {
+    if (!allConversationIdsKey) return;
+    const unsubs = allConversationIdsKey.split(',').map((convId) =>
+      wsService.subscribe(`/topic/conversations.${convId}`, () => {
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
+      }),
+    );
+    return () => {
+      unsubs.forEach((unsub) => unsub());
+    };
+  }, [allConversationIdsKey, queryClient]);
 
   const isConversationDetail = location.pathname.startsWith('/app/c/');
 
@@ -163,6 +198,8 @@ export default function ChatLayout() {
               filteredConversations.map((conv) => {
                 const displayName =
                   conv.title || conv.targetDisplayName || conv.targetUsername || 'Unknown User';
+                const preview = formatLastMessagePreview(conv, currentUserId);
+                const lastTimestamp = conv.lastMessage?.createdAt || conv.lastMessageAt;
 
                 return (
                   <ChatItem
@@ -176,10 +213,10 @@ export default function ChatLayout() {
                         ? conv.avatarUrl
                         : conv.targetAvatarUrl || conv.avatarUrl
                     }
-                    message={conv.type === 'GROUP' ? 'Group conversation' : 'Direct message'}
+                    preview={preview}
                     time={
-                      conv.lastMessageAt
-                        ? formatDistanceToNow(new Date(conv.lastMessageAt), { addSuffix: true })
+                      lastTimestamp
+                        ? formatDistanceToNow(new Date(lastTimestamp), { addSuffix: true })
                         : 'New'
                     }
                     active={location.pathname === `/app/c/${conv.id}`}
@@ -239,7 +276,7 @@ interface ChatItemProps {
   type?: string;
   initials: string;
   name: string;
-  message: string;
+  preview: LastMessagePreview;
   time: string;
   badge?: string;
   active?: boolean;
@@ -254,7 +291,7 @@ function ChatItem({
   type = 'DIRECT',
   initials,
   name,
-  message,
+  preview,
   time,
   badge,
   active = false,
@@ -346,9 +383,13 @@ function ChatItem({
           </div>
         ) : (
           <p
-            className={`text-xs truncate ${active ? 'text-foreground/90 font-medium' : 'text-muted-foreground'}`}
+            className={`text-xs truncate flex items-center gap-1 ${
+              preview.isDeleted ? 'italic opacity-75' : ''
+            } ${active ? 'text-foreground/90 font-medium' : 'text-muted-foreground'}`}
           >
-            {message}
+            {preview.isDeleted && <Trash2 className="w-3 h-3 shrink-0 opacity-70" />}
+            {preview.isCall && <PhoneCall className="w-3 h-3 shrink-0 text-primary" />}
+            <span className="truncate">{preview.text}</span>
           </p>
         )}
       </div>

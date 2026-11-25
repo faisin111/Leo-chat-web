@@ -9,8 +9,9 @@ export const useDeleteMessage = (conversationId: string) => {
   return useMutation({
     mutationFn: (messageId: string) => conversationsApi.deleteMessage(messageId),
     onSuccess: () => {
-      // Invalidate messages list to reflect the deletion
+      // Invalidate messages and conversations list to reflect deletion in sidebar lastMessage
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
       toast.success('Message deleted successfully');
     },
     onError: (error) => {

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { wsService } from '@/shared/api/websocket';
+import { queryClient } from '@/app/providers/AppProviders';
 import { env } from '@/shared/config/env';
 import { toast } from 'sonner';
 import { callSound } from '../lib/sound';
@@ -233,6 +234,15 @@ export const useCallStore = create<CallState>((set, get) => ({
       });
       await pc.setLocalDescription(offer);
 
+      // Backend records one idempotent CALL history entry and updates lastMessageAt on INVITE
+      const invited = wsService.sendCallSignal({
+        conversationId,
+        callId,
+        targetUserId,
+        action: 'INVITE',
+        sdp: offer.sdp,
+      });
+
       const published = wsService.sendCallSignal({
         conversationId,
         callId,
@@ -241,7 +251,10 @@ export const useCallStore = create<CallState>((set, get) => ({
         sdp: offer.sdp,
       });
 
-      if (!published) {
+      if (invited || published) {
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      } else {
         toast.error('Real-time connection is not available');
         get().cleanUp();
       }
@@ -520,7 +533,19 @@ export const useCallStore = create<CallState>((set, get) => ({
       case 'INVITE':
       case 'OFFER': {
         if (currentStatus !== 'idle') {
-          // Send busy signal back to caller
+          // If OFFER follows INVITE for the same incoming call, attach its SDP instead of sending BUSY
+          if (event.callId && event.callId === get().callId && currentStatus === 'incoming') {
+            if (event.sdp && !get().pendingOfferSdp) {
+              const isVideo = event.sdp.includes('m=video');
+              set({
+                pendingOfferSdp: event.sdp,
+                callType: isVideo ? 'video' : get().callType,
+              });
+            }
+            return;
+          }
+
+          // Different call while busy: send busy signal back to caller
           wsService.sendCallSignal({
             conversationId: event.conversationId,
             callId: event.callId,
@@ -528,6 +553,11 @@ export const useCallStore = create<CallState>((set, get) => ({
             action: 'BUSY',
           });
           return;
+        }
+
+        if (event.action === 'INVITE') {
+          queryClient.invalidateQueries({ queryKey: ['conversations'] });
+          queryClient.invalidateQueries({ queryKey: ['messages', event.conversationId] });
         }
 
         const isVideo = !!event.sdp?.includes('m=video');

@@ -32,6 +32,8 @@ import {
   Image as ImageIcon,
   Mic,
   EyeOff,
+  PhoneIncoming,
+  PhoneOutgoing,
 } from 'lucide-react';
 import { Input } from '@/shared/ui/input';
 import { Skeleton } from '@/shared/ui/skeleton';
@@ -1585,6 +1587,17 @@ export const ConversationPage = () => {
                       : parentReplyMsg.content || ''
                     : '';
 
+                // Render SYSTEM messages as centered compact pills
+                if (msg.type === 'SYSTEM' && !isDeleted) {
+                  return (
+                    <div key={msg.id} className="flex justify-center my-2">
+                      <span className="text-[11px] font-medium text-muted-foreground bg-muted/70 px-3 py-1 rounded-full border border-border/50">
+                        {msg.content}
+                      </span>
+                    </div>
+                  );
+                }
+
                 // Determine read receipt status for own message
                 const isRead =
                   typeof msg.seq === 'number' &&
@@ -1674,8 +1687,8 @@ export const ConversationPage = () => {
                               <CornerUpLeft className="w-3.5 h-3.5" />
                             </button>
 
-                            {/* Edit button (own messages only) */}
-                            {isOwn && (
+                            {/* Edit button (own text/caption messages, not CALL entries) */}
+                            {isOwn && msg.type !== 'CALL' && (
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1766,6 +1779,49 @@ export const ConversationPage = () => {
                                   {editMessage.isPending ? 'Saving...' : 'Save'}
                                 </button>
                               </div>
+                            </div>
+                          ) : msg.type === 'CALL' ? (
+                            /* Persistent Call History Entry */
+                            <div className="flex items-center gap-3 py-0.5 min-w-[175px]">
+                              <div
+                                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                                  isOwn
+                                    ? 'bg-white/20 text-primary-foreground'
+                                    : 'bg-primary/10 text-primary'
+                                }`}
+                              >
+                                {isOwn ? (
+                                  <PhoneOutgoing className="w-4 h-4" />
+                                ) : (
+                                  <PhoneIncoming className="w-4 h-4" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-semibold leading-tight">
+                                  {isOwn ? 'Outgoing call' : 'Incoming call'}
+                                </p>
+                                <p
+                                  className={`text-[10px] mt-0.5 ${
+                                    isOwn ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                                  }`}
+                                >
+                                  {time}
+                                </p>
+                              </div>
+                              {!isGroup && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartCall(false)}
+                                  className={`p-1.5 rounded-full transition-colors cursor-pointer shrink-0 ${
+                                    isOwn
+                                      ? 'hover:bg-white/20 text-primary-foreground'
+                                      : 'hover:bg-primary/10 text-primary'
+                                  }`}
+                                  title="Call again"
+                                >
+                                  <Phone className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
                           ) : msg.type === 'IMAGE' ? (
                             /* Image Attachment Message */

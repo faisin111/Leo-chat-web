@@ -91,7 +91,7 @@ describe('useCallStore', () => {
     });
   });
 
-  it('starts an outgoing voice call and transmits OFFER via wsService', async () => {
+  it('starts an outgoing voice call and transmits INVITE and OFFER via wsService', async () => {
     const startCall = useCallStore.getState().startCall;
     await startCall('conv-1', 'user-target-1', 'Alice', null, false);
 
@@ -105,6 +105,17 @@ describe('useCallStore', () => {
     expect(wsService.sendCallSignal).toHaveBeenCalledWith(
       expect.objectContaining({
         conversationId: 'conv-1',
+        callId: state.callId,
+        targetUserId: 'user-target-1',
+        action: 'INVITE',
+        sdp: 'mock-sdp-offer',
+      }),
+    );
+
+    expect(wsService.sendCallSignal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: 'conv-1',
+        callId: state.callId,
         targetUserId: 'user-target-1',
         action: 'OFFER',
         sdp: 'mock-sdp-offer',
@@ -293,5 +304,34 @@ describe('useCallStore', () => {
     expect(state.targetUserId).toBe('user-caller');
     expect(state.targetUserName).toBe('alice');
     expect(callSound.startIncomingRing).toHaveBeenCalled();
+  });
+
+  it('attaches OFFER SDP after INVITE with same callId without sending BUSY', async () => {
+    await useCallStore.getState().handleIncomingSignal({
+      conversationId: 'conv-123',
+      callId: 'call-seq-1',
+      fromUserId: 'user-caller',
+      fromUsername: 'alice',
+      targetUserId: 'user-me',
+      action: 'INVITE',
+    });
+
+    await useCallStore.getState().handleIncomingSignal({
+      conversationId: 'conv-123',
+      callId: 'call-seq-1',
+      fromUserId: 'user-caller',
+      fromUsername: 'alice',
+      targetUserId: 'user-me',
+      action: 'OFFER',
+      sdp: 'v=0\r\nm=video 9 UDP/TLS/RTP/SAVPF',
+    });
+
+    const state = useCallStore.getState();
+    expect(state.status).toBe('incoming');
+    expect(state.pendingOfferSdp).toBe('v=0\r\nm=video 9 UDP/TLS/RTP/SAVPF');
+    expect(state.callType).toBe('video');
+    expect(wsService.sendCallSignal).not.toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'BUSY' }),
+    );
   });
 });

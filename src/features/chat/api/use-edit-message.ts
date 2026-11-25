@@ -19,6 +19,7 @@ export function useEditMessage(conversationId?: string) {
       if (activeConvId) {
         queryClient.invalidateQueries({ queryKey: ['messages', activeConvId] });
       }
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['message', updatedMsg.id] });
       toast.success('Message edited');
     },

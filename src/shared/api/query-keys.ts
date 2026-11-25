@@ -17,6 +17,11 @@ export const qk = {
   messages: {
     list: (conversationId: string) => ['messages', conversationId] as const,
   },
+  notifications: {
+    all: ['notifications'] as const,
+    list: (unreadOnly: boolean) => ['notifications', 'list', { unreadOnly }] as const,
+    unreadCount: ['notifications', 'unread-count'] as const,
+  },
   admin: {
     stats: ['admin', 'stats'] as const,
     users: (filters: object) => ['admin', 'users', filters] as const,

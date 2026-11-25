@@ -4,10 +4,12 @@ import { AnimatedOutlet } from './AnimatedOutlet';
 import { NavigationRail } from './components/NavigationRail';
 import { wsService } from '@/shared/api/websocket';
 import { CallManager } from '@/features/calls';
+import { useNotificationsRealtime } from '@/features/notifications';
 
 export default function AppShell() {
   const location = useLocation();
   const isConversationDetail = location.pathname.startsWith('/app/c/');
+  useNotificationsRealtime();
 
   useEffect(() => {
     wsService.connect();

@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   MessageSquare,
   Users,
+  Bell,
   Settings,
   Shield,
   HelpCircle,
@@ -17,12 +18,14 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 // eslint-disable-next-line no-restricted-imports
 import { useUnreadCount } from '@/features/chat/api/use-unread-count';
+import { useNotificationUnreadCount } from '@/features/notifications';
 import { useTheme } from 'next-themes';
 
 export function NavigationRail() {
   const location = useLocation();
   const user = useSession((s) => s.user);
   const { data: unreadData } = useUnreadCount();
+  const { data: notificationUnreadData } = useNotificationUnreadCount();
   const { resolvedTheme, setTheme } = useTheme();
 
   const getInitials = (name: string) => name.substring(0, 2).toUpperCase();
@@ -88,6 +91,13 @@ export function NavigationRail() {
             location.pathname === '/app/new-group'
           }
           label="People"
+        />
+        <NavItem
+          to="/app/notifications"
+          icon={<Bell className="w-4 h-4 sm:w-5 sm:h-5" />}
+          active={location.pathname.startsWith('/app/notifications')}
+          badge={notificationUnreadData?.unreadCount}
+          label="Notifications"
         />
         <NavItem
           to="/app/qr"

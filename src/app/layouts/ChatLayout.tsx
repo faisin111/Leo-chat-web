@@ -15,6 +15,7 @@ import {
 } from '@/features/chat';
 import { useSession } from '@/features/auth';
 import { wsService } from '@/shared/api/websocket';
+import { qk } from '@/shared/api/query-keys';
 import { formatDistanceToNow } from 'date-fns';
 import { Link, useLocation } from 'react-router-dom';
 import { useRealtimeStatus } from '@/shared/api/use-realtime-status';
@@ -75,6 +76,7 @@ export default function ChatLayout() {
       wsService.subscribe(`/topic/conversations.${convId}`, () => {
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
         queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
+        queryClient.invalidateQueries({ queryKey: qk.notifications.all });
       }),
     );
     return () => {

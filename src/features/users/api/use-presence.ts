@@ -15,8 +15,9 @@ export function usePresence(userIds: (string | undefined | null)[]) {
     queryKey: ['users', 'presence', cleanIds.join(',')],
     queryFn: () => usersApi.getPresence(cleanIds),
     enabled: cleanIds.length > 0,
-    refetchInterval: 15000, // Poll presence every 15s
-    staleTime: 10000,
+    refetchInterval: 10000, // Poll presence every 10s
+    refetchOnWindowFocus: true,
+    staleTime: 8000,
   });
 
   const presenceMap = useMemo(() => {
@@ -38,9 +39,11 @@ export function usePresence(userIds: (string | undefined | null)[]) {
     const p = presenceMap.get(userId);
     if (!p) return false;
     if (p.status !== 'ACTIVE') return false;
+    // Prefer real-time STOMP session presence from backend when present
+    if (typeof p.online === 'boolean') return p.online;
     if (!p.lastSeenAt) return false;
     const diffMs = Date.now() - new Date(p.lastSeenAt).getTime();
-    return diffMs >= 0 && diffMs < 5 * 60 * 1000; // active in last 5m
+    return diffMs >= 0 && diffMs < 5 * 60 * 1000;
   };
 
   const getLastSeenText = (userId?: string | null): string => {
@@ -53,7 +56,8 @@ export function usePresence(userIds: (string | undefined | null)[]) {
     const date = new Date(p.lastSeenAt);
     if (isNaN(date.getTime())) return 'Offline';
     const diffMin = Math.floor((Date.now() - date.getTime()) / 60000);
-    if (diffMin < 60) return `Active ${Math.max(1, diffMin)}m ago`;
+    if (diffMin < 1) return 'Active just now';
+    if (diffMin < 60) return `Active ${diffMin}m ago`;
     const diffHr = Math.floor(diffMin / 60);
     if (diffHr < 24) return `Active ${diffHr}h ago`;
     const diffDays = Math.floor(diffHr / 24);

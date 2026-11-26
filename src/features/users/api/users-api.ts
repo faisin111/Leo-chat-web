@@ -57,6 +57,7 @@ export type ProfileUpdateBody = {
 export type PresenceItem = {
   userId: string;
   id: string;
+  online?: boolean;
   status: string;
   lastSeenAt?: string;
 };
@@ -106,11 +107,18 @@ export const usersApi = {
     const params = new URLSearchParams();
     ids.forEach((id) => params.append('ids', id));
     const response = await http.get<
-      Array<{ userId?: string; id?: string; status: string; lastSeenAt?: string }>
+      Array<{
+        userId?: string;
+        id?: string;
+        online?: boolean;
+        status: string;
+        lastSeenAt?: string;
+      }>
     >(`/users/presence?${params.toString()}`);
     return (response.data || []).map((item) => ({
       userId: item.userId || item.id || '',
       id: item.userId || item.id || '',
+      online: typeof item.online === 'boolean' ? item.online : undefined,
       status: item.status,
       lastSeenAt: item.lastSeenAt,
     }));

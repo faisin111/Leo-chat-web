@@ -69,7 +69,7 @@ import { VoiceRecorderBar } from './components/VoiceRecorderBar';
 import { mediaApi, useMediaDownloadUrl } from '@/features/media';
 import { AiRotatingIcon, useAiChat } from '@/features/ai';
 import { showApiError } from '@/shared/api/api-error';
-import { useUserById, useSearchUsers } from '@/features/users';
+import { useUserById, useSearchUsers, usePresence } from '@/features/users';
 import { wsService } from '@/shared/api/websocket';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -578,6 +578,11 @@ export const ConversationPage = () => {
     : undefined;
 
   const { data: targetUserProfile, isLoading: isTargetUserLoading } = useUserById(otherUserId);
+  const { isOnline: isPresenceOnline, getLastSeenText } = usePresence(
+    !isGroup ? [otherUserId] : [],
+  );
+  const isOtherUserOnline = !isGroup && Boolean(otherUserId && isPresenceOnline(otherUserId));
+  const otherUserPresenceText = !isGroup && otherUserId ? getLastSeenText(otherUserId) : 'Offline';
 
   const headerName = isGroup
     ? conversation?.title || 'Group Conversation'
@@ -601,11 +606,19 @@ export const ConversationPage = () => {
     ? `${members?.length || 0} members`
     : isUserTyping
       ? 'typing...'
-      : targetUserProfile?.username
-        ? `@${targetUserProfile.username}${targetUserProfile.region ? ` · ${targetUserProfile.region}` : ''}`
-        : conversation?.targetUsername
-          ? `@${conversation.targetUsername}`
-          : 'Click to view profile';
+      : isOtherUserOnline
+        ? targetUserProfile?.username
+          ? `Active now · @${targetUserProfile.username}`
+          : 'Active now'
+        : otherUserPresenceText !== 'Offline'
+          ? targetUserProfile?.username
+            ? `${otherUserPresenceText} · @${targetUserProfile.username}`
+            : otherUserPresenceText
+          : targetUserProfile?.username
+            ? `@${targetUserProfile.username}${targetUserProfile.region ? ` · ${targetUserProfile.region}` : ''}`
+            : conversation?.targetUsername
+              ? `@${conversation.targetUsername}`
+              : 'Click to view profile';
 
   // Initiate WebRTC Call
   const handleStartCall = (isVideo: boolean) => {
@@ -1246,20 +1259,28 @@ export const ConversationPage = () => {
               className="flex items-center space-x-2.5 sm:space-x-3 text-left rounded-2xl p-1 -ml-1 transition-colors hover:bg-muted/60 cursor-pointer group/header min-w-0"
               title="View details"
             >
-              <Avatar
-                src={headerAvatar}
-                alt={headerName}
-                className="w-10 h-10 bg-muted text-foreground font-bold text-xs shrink-0 border border-border"
-                fallback={
-                  isGroup && !headerAvatar ? (
-                    <Users className="w-5 h-5 text-muted-foreground" />
-                  ) : isTargetUserLoading && !headerAvatar ? (
-                    <Skeleton className="w-full h-full rounded-full" />
-                  ) : (
-                    headerInitials
-                  )
-                }
-              />
+              <div className="relative shrink-0">
+                <Avatar
+                  src={headerAvatar}
+                  alt={headerName}
+                  className="w-10 h-10 bg-muted text-foreground font-bold text-xs shrink-0 border border-border"
+                  fallback={
+                    isGroup && !headerAvatar ? (
+                      <Users className="w-5 h-5 text-muted-foreground" />
+                    ) : isTargetUserLoading && !headerAvatar ? (
+                      <Skeleton className="w-full h-full rounded-full" />
+                    ) : (
+                      headerInitials
+                    )
+                  }
+                />
+                {isOtherUserOnline && (
+                  <span
+                    className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-card rounded-full ring-2 ring-emerald-500/20"
+                    title="Active now"
+                  />
+                )}
+              </div>
               <div className="min-w-0">
                 <div className="flex items-center space-x-1.5 min-w-0">
                   <h2 className="font-semibold text-sm text-foreground group-hover/header:text-primary transition-colors truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs md:max-w-sm flex items-center gap-1.5">
@@ -1276,7 +1297,15 @@ export const ConversationPage = () => {
                     )}
                   </h2>
                 </div>
-                <p className="text-[11px] text-muted-foreground font-medium truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs md:max-w-sm">
+                <p
+                  className={`text-[11px] font-medium truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs md:max-w-sm ${
+                    isUserTyping
+                      ? 'text-primary'
+                      : isOtherUserOnline
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-muted-foreground'
+                  }`}
+                >
                   {headerSubtitle}
                 </p>
               </div>

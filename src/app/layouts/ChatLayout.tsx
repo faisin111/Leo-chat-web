@@ -14,6 +14,7 @@ import {
   type LastMessagePreview,
 } from '@/features/chat';
 import { useSession } from '@/features/auth';
+import { usePresence } from '@/features/users';
 import { wsService } from '@/shared/api/websocket';
 import { qk } from '@/shared/api/query-keys';
 import { formatDistanceToNow } from 'date-fns';
@@ -58,6 +59,15 @@ export default function ChatLayout() {
     [filteredConversations],
   );
   useConversationsTyping(conversationIds);
+
+  const directUserIds = useMemo(
+    () =>
+      filteredConversations
+        .filter((c) => c.type === 'DIRECT' && c.targetUserId)
+        .map((c) => c.targetUserId),
+    [filteredConversations],
+  );
+  const { isOnline: isPresenceOnline } = usePresence(directUserIds);
 
   // Refresh sidebar lastMessage & timestamps whenever any visible conversation receives a realtime event
   const allConversationIdsKey = useMemo(
@@ -223,6 +233,10 @@ export default function ChatLayout() {
                     }
                     active={location.pathname === `/app/c/${conv.id}`}
                     isArchived={conv.status === 'ARCHIVED'}
+                    isOnline={
+                      conv.type === 'DIRECT' &&
+                      Boolean(conv.targetUserId && isPresenceOnline(conv.targetUserId))
+                    }
                   />
                 );
               })
@@ -286,6 +300,7 @@ interface ChatItemProps {
   isPinned?: boolean;
   isMuted?: boolean;
   isArchived?: boolean;
+  isOnline?: boolean;
 }
 
 function ChatItem({
@@ -301,6 +316,7 @@ function ChatItem({
   isPinned,
   isMuted,
   isArchived,
+  isOnline,
 }: ChatItemProps) {
   const typingUsersRecord = useTypingStore((s) => s.typingByConversation[id]);
   const typingUsers = typingUsersRecord ? Object.values(typingUsersRecord) : [];
@@ -341,12 +357,17 @@ function ChatItem({
             )
           }
         />
-        {isTyping && (
+        {isTyping ? (
           <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5" title="Typing...">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
             <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-primary border-2 border-background" />
           </span>
-        )}
+        ) : isOnline ? (
+          <span
+            className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-background rounded-full ring-2 ring-emerald-500/20"
+            title="Active now"
+          />
+        ) : null}
       </div>
 
       <div className="flex-1 min-w-0">

@@ -235,7 +235,7 @@ export const conversationsApi = {
   getMessages: async (
     conversationId: string,
     beforeSeq?: string | null,
-    limit: number = 50,
+    limit: number = 25,
     afterSeq?: string | null,
     q?: string,
   ): Promise<MessagesResponse> => {
@@ -247,6 +247,7 @@ export const conversationsApi = {
 
     const response = await http.get(
       `/conversations/${conversationId}/messages?${params.toString()}`,
+      { timeout: 35_000 },
     );
     return response.data;
   },

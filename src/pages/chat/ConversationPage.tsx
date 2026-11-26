@@ -68,7 +68,7 @@ import { VoiceMessagePlayer } from './components/VoiceMessagePlayer';
 import { VoiceRecorderBar } from './components/VoiceRecorderBar';
 import { mediaApi, useMediaDownloadUrl } from '@/features/media';
 import { AiRotatingIcon, useAiChat } from '@/features/ai';
-import { showApiError } from '@/shared/api/api-error';
+import { showApiError, formatApiError } from '@/shared/api/api-error';
 import { useUserById, useSearchUsers, usePresence } from '@/features/users';
 import { wsService } from '@/shared/api/websocket';
 import { useQueryClient } from '@tanstack/react-query';
@@ -289,10 +289,17 @@ export const ConversationPage = () => {
   const aiChat = useAiChat(conversationId || '');
   const { addReaction, removeReaction } = useMessageReactions(conversationId || '');
 
-  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useMessages(
-    conversationId || '',
-    debouncedSearchQuery,
-  );
+  const {
+    data,
+    isLoading,
+    isError: isMessagesError,
+    error: messagesError,
+    refetch: refetchMessages,
+    isRefetching: isMessagesRefetching,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useMessages(conversationId || '', debouncedSearchQuery);
 
   const currentUser = useSession((s) => s.user);
   const queryClient = useQueryClient();
@@ -561,15 +568,16 @@ export const ConversationPage = () => {
   }, [conversation?.directKey, currentUser?.id]);
 
   const targetUsername = conversation?.targetUsername;
-  const { data: searchResults } = useSearchUsers(targetUsername || '');
+  const knownOtherUserId = conversation?.targetUserId || directKeyUserId || targetMember?.userId;
+  const { data: searchResults } = useSearchUsers(targetUsername || '', {
+    enabled: Boolean(targetUsername && !knownOtherUserId),
+  });
   const usernameMatchedUser = targetUsername
     ? searchResults?.find((u) => u.username?.toLowerCase() === targetUsername.toLowerCase())
     : undefined;
 
   const otherUserId = !isGroup
-    ? conversation?.targetUserId ||
-      directKeyUserId ||
-      targetMember?.userId ||
+    ? knownOtherUserId ||
       usernameMatchedUser?.id ||
       allMessages.find((m) => m.senderId && m.senderId !== currentUser?.id)?.senderId ||
       (conversation?.createdBy && conversation.createdBy !== currentUser?.id
@@ -578,9 +586,11 @@ export const ConversationPage = () => {
     : undefined;
 
   const { data: targetUserProfile, isLoading: isTargetUserLoading } = useUserById(otherUserId);
-  const { isOnline: isPresenceOnline, getLastSeenText } = usePresence(
-    !isGroup ? [otherUserId] : [],
+  const presenceUserIds = useMemo(
+    () => (!isGroup && otherUserId ? [otherUserId] : []),
+    [isGroup, otherUserId],
   );
+  const { isOnline: isPresenceOnline, getLastSeenText } = usePresence(presenceUserIds);
   const isOtherUserOnline = !isGroup && Boolean(otherUserId && isPresenceOnline(otherUserId));
   const otherUserPresenceText = !isGroup && otherUserId ? getLastSeenText(otherUserId) : 'Offline';
 
@@ -1544,8 +1554,35 @@ export const ConversationPage = () => {
 
         {/* Messages List */}
         <div className="flex-1 overflow-y-auto p-3 sm:p-6 flex flex-col-reverse gap-4 sm:gap-6 pb-4">
-          {isLoading ? (
+          {isLoading && allMessages.length === 0 ? (
             <ChatMessagesSkeleton />
+          ) : isMessagesError && allMessages.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center py-12 px-4">
+              <div className="w-12 h-12 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mb-3 border border-destructive/20">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <p className="text-sm font-semibold text-foreground">Unable to load messages</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+                {formatApiError(messagesError, 'The server took too long to respond.')}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => refetchMessages()}
+                disabled={isMessagesRefetching}
+                className="mt-4 rounded-xl cursor-pointer"
+              >
+                {isMessagesRefetching ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                    Retrying…
+                  </>
+                ) : (
+                  'Try again'
+                )}
+              </Button>
+            </div>
           ) : allMessages.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground py-12">
               <p className="text-sm font-semibold text-foreground">

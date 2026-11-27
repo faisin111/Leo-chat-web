@@ -6,6 +6,20 @@ export type AdminStatsOverview = {
   totalReports: number;
 };
 
+export type AdminStatsPoint = {
+  date: string;
+  value: number;
+};
+
+export type AdminStatsSeriesKey = 'users' | 'conversations' | 'messages' | 'reports';
+
+export type AdminStatsSeriesResponse = {
+  from: string;
+  to: string;
+  days: number;
+  series: Record<AdminStatsSeriesKey, AdminStatsPoint[]> & Record<string, AdminStatsPoint[]>;
+};
+
 export type AdminUserStatus = 'ACTIVE' | 'DISABLED' | 'BANNED';
 
 export type AdminUserItem = {
@@ -73,6 +87,14 @@ export type AdminPageResponse<T> = {
 export const adminApi = {
   getStatsOverview: async (): Promise<AdminStatsOverview> => {
     const response = await http.get('/admin/stats/overview');
+    return response.data;
+  },
+
+  getStatsTimeseries: async (days: number = 30): Promise<AdminStatsSeriesResponse> => {
+    const safeDays = Math.min(90, Math.max(1, Math.round(days)));
+    const response = await http.get<AdminStatsSeriesResponse>('/admin/stats/timeseries', {
+      params: { days: safeDays },
+    });
     return response.data;
   },
 

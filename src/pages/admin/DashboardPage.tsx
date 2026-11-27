@@ -19,10 +19,12 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
+import { AdminActivityChart } from './components/AdminActivityChart';
 
 export const DashboardPage = () => {
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [chartDays, setChartDays] = useState(30);
   const isRealtimeConnected = useRealtimeStatus();
 
   const {
@@ -32,6 +34,16 @@ export const DashboardPage = () => {
   } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: adminApi.getStatsOverview,
+  });
+
+  const {
+    data: timeseries,
+    isLoading: timeseriesLoading,
+    isError: timeseriesError,
+    refetch: refetchTimeseries,
+  } = useQuery({
+    queryKey: ['admin-stats-timeseries', chartDays],
+    queryFn: () => adminApi.getStatsTimeseries(chartDays),
   });
 
   const { data: recentReports, isLoading: reportsLoading } = useQuery({
@@ -48,6 +60,7 @@ export const DashboardPage = () => {
     setIsRefreshing(true);
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] }),
+      queryClient.invalidateQueries({ queryKey: ['admin-stats-timeseries'] }),
       queryClient.invalidateQueries({ queryKey: ['admin-reports-preview'] }),
       queryClient.invalidateQueries({ queryKey: ['admin-logs-preview'] }),
     ]);
@@ -276,6 +289,16 @@ export const DashboardPage = () => {
           </Button>
         </div>
       </div>
+
+      {/* Platform Activity Chart */}
+      <AdminActivityChart
+        data={timeseries}
+        isLoading={timeseriesLoading}
+        isError={timeseriesError}
+        days={chartDays}
+        onDaysChange={setChartDays}
+        onRetry={() => refetchTimeseries()}
+      />
 
       {/* Live Recent Activity Feeds */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

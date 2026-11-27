@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { format, parseISO } from 'date-fns';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { BarChart3, TrendingUp, AlertTriangle, RefreshCw } from 'lucide-react';
 import type { AdminStatsSeriesKey, AdminStatsSeriesResponse } from '@/features/admin';
 import { Button } from '@/shared/ui/button';
@@ -118,6 +119,38 @@ export function AdminActivityChart({
     reports: true,
   });
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [playCycle, setPlayCycle] = useState(1);
+
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const wasInViewRef = useRef(true);
+  const prefersReducedMotion = useReducedMotion();
+
+  // Replay entrance draw/bar animation every time the chart section scrolls back into view
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            if (!wasInViewRef.current) {
+              wasInViewRef.current = true;
+              setPlayCycle((prev) => prev + 1);
+            }
+          } else {
+            wasInViewRef.current = false;
+          }
+        }
+      },
+      { threshold: 0.25 },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const toggleSeries = (key: AdminStatsSeriesKey) => {
     setVisibleSeries((prev) => {
@@ -208,8 +241,17 @@ export function AdminActivityChart({
   const safeHoveredIndex =
     hoveredIndex !== null && hoveredIndex >= 0 && hoveredIndex < dates.length ? hoveredIndex : null;
 
+  const animKey = `${chartMode}-${days}-${playCycle}`;
+  const hoverBandWidth = plotWidth / Math.max(1, dates.length);
+
   return (
-    <section className="bg-card text-card-foreground rounded-2xl p-5 sm:p-6 border border-border shadow-xs mb-8">
+    <motion.section
+      ref={sectionRef}
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      className="bg-card text-card-foreground rounded-2xl p-5 sm:p-6 border border-border shadow-xs hover:border-primary/25 hover:shadow-md transition-all duration-300 mb-8"
+    >
       {/* Header Row */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
         <div>
@@ -230,7 +272,7 @@ export function AdminActivityChart({
               type="button"
               onClick={() => setChartMode('line')}
               aria-pressed={chartMode === 'line'}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer active:scale-95 ${
                 chartMode === 'line'
                   ? 'bg-background text-foreground shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
@@ -243,7 +285,7 @@ export function AdminActivityChart({
               type="button"
               onClick={() => setChartMode('bar')}
               aria-pressed={chartMode === 'bar'}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer active:scale-95 ${
                 chartMode === 'bar'
                   ? 'bg-background text-foreground shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
@@ -262,7 +304,7 @@ export function AdminActivityChart({
                 type="button"
                 onClick={() => onDaysChange(opt.days)}
                 aria-pressed={days === opt.days}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer active:scale-95 ${
                   days === opt.days
                     ? 'bg-primary text-primary-foreground shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
@@ -280,12 +322,14 @@ export function AdminActivityChart({
         {SERIES_CONFIG.map((cfg) => {
           const isVisible = visibleSeries[cfg.key];
           return (
-            <button
+            <motion.button
               key={cfg.key}
               type="button"
+              whileHover={prefersReducedMotion ? undefined : { y: -1, scale: 1.02 }}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
               onClick={() => toggleSeries(cfg.key)}
               aria-pressed={isVisible}
-              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors cursor-pointer ${
                 isVisible
                   ? cfg.pillActiveClass
                   : 'border-border/70 bg-muted/40 text-muted-foreground opacity-60 hover:opacity-90'
@@ -296,7 +340,7 @@ export function AdminActivityChart({
               <span className="font-mono text-[11px] opacity-85">
                 {isLoading ? '…' : seriesTotals[cfg.key].toLocaleString()}
               </span>
-            </button>
+            </motion.button>
           );
         })}
       </div>
@@ -332,36 +376,43 @@ export function AdminActivityChart({
         </div>
       ) : (
         <div className="relative w-full" onMouseLeave={() => setHoveredIndex(null)}>
-          {/* Hover Tooltip */}
-          {safeHoveredIndex !== null && dates[safeHoveredIndex] && (
-            <div
-              className="pointer-events-none absolute top-2 z-20 rounded-xl border border-border bg-card/95 backdrop-blur-md shadow-lg px-3 py-2 text-xs min-w-[165px]"
-              style={{
-                left: safeHoveredIndex > dates.length / 2 ? '16px' : undefined,
-                right: safeHoveredIndex <= dates.length / 2 ? '16px' : undefined,
-              }}
-            >
-              <p className="font-semibold text-foreground mb-1.5 border-b border-border/60 pb-1">
-                {formatFullDate(dates[safeHoveredIndex]!)}
-              </p>
-              <div className="space-y-1">
-                {activeSeries.map((cfg) => {
-                  const val = data?.series[cfg.key]?.[safeHoveredIndex]?.value ?? 0;
-                  return (
-                    <div key={cfg.key} className="flex items-center justify-between gap-4">
-                      <span className="flex items-center gap-1.5 text-muted-foreground">
-                        <span className={`w-2 h-2 rounded-full ${cfg.dotClass}`} />
-                        {cfg.label}
-                      </span>
-                      <span className="font-mono font-semibold text-foreground">
-                        {val.toLocaleString()}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          {/* Animated Hover Tooltip */}
+          <AnimatePresence>
+            {safeHoveredIndex !== null && dates[safeHoveredIndex] && (
+              <motion.div
+                key={`tooltip-${safeHoveredIndex}`}
+                initial={prefersReducedMotion ? false : { opacity: 0, y: 6, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={prefersReducedMotion ? undefined : { opacity: 0, y: 4, scale: 0.96 }}
+                transition={{ duration: 0.16, ease: 'easeOut' }}
+                className="pointer-events-none absolute top-2 z-20 rounded-xl border border-border/90 bg-card/95 backdrop-blur-md shadow-xl px-3.5 py-2.5 text-xs min-w-[175px]"
+                style={{
+                  left: safeHoveredIndex > dates.length / 2 ? '16px' : undefined,
+                  right: safeHoveredIndex <= dates.length / 2 ? '16px' : undefined,
+                }}
+              >
+                <p className="font-semibold text-foreground mb-1.5 border-b border-border/60 pb-1">
+                  {formatFullDate(dates[safeHoveredIndex]!)}
+                </p>
+                <div className="space-y-1">
+                  {activeSeries.map((cfg) => {
+                    const val = data?.series[cfg.key]?.[safeHoveredIndex]?.value ?? 0;
+                    return (
+                      <div key={cfg.key} className="flex items-center justify-between gap-4">
+                        <span className="flex items-center gap-1.5 text-muted-foreground">
+                          <span className={`w-2 h-2 rounded-full ${cfg.dotClass}`} />
+                          {cfg.label}
+                        </span>
+                        <span className="font-mono font-semibold text-foreground">
+                          {val.toLocaleString()}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <svg
             viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
@@ -379,7 +430,7 @@ export function AdminActivityChart({
                   x2="0"
                   y2="1"
                 >
-                  <stop offset="0%" stopColor={cfg.stroke} stopOpacity="0.24" />
+                  <stop offset="0%" stopColor={cfg.stroke} stopOpacity="0.28" />
                   <stop offset="100%" stopColor={cfg.stroke} stopOpacity="0.01" />
                 </linearGradient>
               ))}
@@ -424,23 +475,41 @@ export function AdminActivityChart({
               </text>
             ))}
 
-            {/* Hover Guide Column */}
+            {/* Animated Hover Crosshair & Highlight Band */}
             {safeHoveredIndex !== null && (
-              <line
-                x1={xForIndex(safeHoveredIndex, dates.length)}
-                y1={PAD_TOP}
-                x2={xForIndex(safeHoveredIndex, dates.length)}
-                y2={baselineY}
-                stroke="currentColor"
-                strokeOpacity={0.22}
-                strokeDasharray="3 3"
-              />
+              <g>
+                <motion.rect
+                  initial={prefersReducedMotion ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  x={Math.max(
+                    PAD_LEFT,
+                    xForIndex(safeHoveredIndex, dates.length) - hoverBandWidth / 2,
+                  )}
+                  y={PAD_TOP}
+                  width={hoverBandWidth}
+                  height={plotHeight}
+                  rx={6}
+                  fill="currentColor"
+                  fillOpacity={0.04}
+                />
+                <motion.line
+                  initial={prefersReducedMotion ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  x1={xForIndex(safeHoveredIndex, dates.length)}
+                  y1={PAD_TOP}
+                  x2={xForIndex(safeHoveredIndex, dates.length)}
+                  y2={baselineY}
+                  stroke="currentColor"
+                  strokeOpacity={0.28}
+                  strokeDasharray="3 3"
+                />
+              </g>
             )}
 
-            {/* Data Paths or Bars */}
+            {/* Animated Data Paths or Bars */}
             {chartMode === 'line' ? (
-              <>
-                {activeSeries.map((cfg) => {
+              <g key={animKey}>
+                {activeSeries.map((cfg, sIdx) => {
                   const points = data?.series[cfg.key] ?? [];
                   const coords = points.map((pt, idx) => ({
                     x: xForIndex(idx, dates.length),
@@ -450,84 +519,135 @@ export function AdminActivityChart({
                   const areaPath = buildAreaPath(coords, baselineY);
                   return (
                     <g key={cfg.key}>
-                      <path d={areaPath} fill={`url(#admin-area-${cfg.key})`} />
-                      <path
+                      <motion.path
+                        d={areaPath}
+                        fill={`url(#admin-area-${cfg.key})`}
+                        initial={prefersReducedMotion ? false : { opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{
+                          duration: 0.55,
+                          delay: 0.2 + sIdx * 0.08,
+                          ease: 'easeOut',
+                        }}
+                      />
+                      <motion.path
                         d={linePath}
                         fill="none"
                         stroke={cfg.stroke}
-                        strokeWidth={2.25}
+                        strokeWidth={2.4}
                         strokeLinecap="round"
                         strokeLinejoin="round"
+                        initial={prefersReducedMotion ? false : { pathLength: 0, opacity: 0.35 }}
+                        animate={{ pathLength: 1, opacity: 1 }}
+                        transition={{
+                          pathLength: {
+                            duration: 0.85,
+                            delay: sIdx * 0.08,
+                            ease: [0.22, 1, 0.36, 1],
+                          },
+                          opacity: { duration: 0.25 },
+                        }}
                       />
                     </g>
                   );
                 })}
 
-                {/* Highlight Dots on Hovered Day */}
+                {/* Glowing Animated Highlight Dots on Hovered Day */}
                 {safeHoveredIndex !== null &&
                   activeSeries.map((cfg) => {
                     const pt = data?.series[cfg.key]?.[safeHoveredIndex];
                     if (!pt) return null;
+                    const cx = xForIndex(safeHoveredIndex, dates.length);
+                    const cy = yForValue(pt.value);
                     return (
-                      <circle
-                        key={`dot-${cfg.key}`}
-                        cx={xForIndex(safeHoveredIndex, dates.length)}
-                        cy={yForValue(pt.value)}
-                        r={4.5}
-                        fill={cfg.stroke}
-                        stroke="var(--background, #ffffff)"
-                        strokeWidth={2}
-                      />
+                      <g key={`dot-${cfg.key}`}>
+                        <motion.circle
+                          cx={cx}
+                          cy={cy}
+                          r={10}
+                          fill={cfg.stroke}
+                          initial={prefersReducedMotion ? false : { scale: 0.4, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 0.22 }}
+                          transition={{ duration: 0.2 }}
+                        />
+                        <motion.circle
+                          cx={cx}
+                          cy={cy}
+                          r={4.75}
+                          fill={cfg.stroke}
+                          stroke="var(--background, #ffffff)"
+                          strokeWidth={2}
+                          initial={prefersReducedMotion ? false : { scale: 0.6 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', stiffness: 420, damping: 24 }}
+                        />
+                      </g>
                     );
                   })}
-              </>
+              </g>
             ) : (
-              dates.map((dateStr, idx) => {
-                const slotWidth = plotWidth / Math.max(1, dates.length);
-                const groupWidth = Math.min(slotWidth * 0.78, 34);
-                const barWidth = Math.max(
-                  2,
-                  (groupWidth - (activeSeries.length - 1) * 1.5) / Math.max(1, activeSeries.length),
-                );
-                const centerX = xForIndex(idx, dates.length);
-                const startX = centerX - groupWidth / 2;
+              <g key={animKey}>
+                {dates.map((dateStr, idx) => {
+                  const slotWidth = plotWidth / Math.max(1, dates.length);
+                  const groupWidth = Math.min(slotWidth * 0.78, 34);
+                  const barWidth = Math.max(
+                    2,
+                    (groupWidth - (activeSeries.length - 1) * 1.5) /
+                      Math.max(1, activeSeries.length),
+                  );
+                  const centerX = xForIndex(idx, dates.length);
+                  const startX = centerX - groupWidth / 2;
+                  const isDayHovered = safeHoveredIndex === idx;
+                  const delay = Math.min(0.45, (idx / Math.max(1, dates.length)) * 0.35);
 
-                return (
-                  <g key={dateStr}>
-                    {activeSeries.map((cfg, sIdx) => {
-                      const val = data?.series[cfg.key]?.[idx]?.value ?? 0;
-                      const y = yForValue(val);
-                      const height = Math.max(val > 0 ? 2 : 0, baselineY - y);
-                      return (
-                        <rect
-                          key={`${dateStr}-${cfg.key}`}
-                          x={startX + sIdx * (barWidth + 1.5)}
-                          y={y}
-                          width={barWidth}
-                          height={height}
-                          rx={Math.min(3, barWidth / 2)}
-                          fill={cfg.stroke}
-                          fillOpacity={
-                            safeHoveredIndex === null || safeHoveredIndex === idx ? 0.9 : 0.45
-                          }
-                        />
-                      );
-                    })}
-                  </g>
-                );
-              })
+                  return (
+                    <g key={dateStr}>
+                      {activeSeries.map((cfg, sIdx) => {
+                        const val = data?.series[cfg.key]?.[idx]?.value ?? 0;
+                        const targetY = yForValue(val);
+                        const targetHeight = Math.max(val > 0 ? 2 : 0, baselineY - targetY);
+                        const barX = startX + sIdx * (barWidth + 1.5);
+                        return (
+                          <motion.rect
+                            key={`${dateStr}-${cfg.key}`}
+                            x={barX}
+                            width={barWidth}
+                            rx={Math.min(3, barWidth / 2)}
+                            fill={cfg.stroke}
+                            initial={
+                              prefersReducedMotion
+                                ? { y: targetY, height: targetHeight, opacity: 0.9 }
+                                : { y: baselineY, height: 0, opacity: 0.2 }
+                            }
+                            animate={{
+                              y: isDayHovered && val > 0 ? targetY - 2 : targetY,
+                              height: isDayHovered && val > 0 ? targetHeight + 2 : targetHeight,
+                              opacity: safeHoveredIndex === null || isDayHovered ? 0.94 : 0.4,
+                            }}
+                            transition={{
+                              y: { duration: 0.45, delay, ease: [0.22, 1, 0.36, 1] },
+                              height: { duration: 0.45, delay, ease: [0.22, 1, 0.36, 1] },
+                              opacity: { duration: 0.16 },
+                            }}
+                          />
+                        );
+                      })}
+                    </g>
+                  );
+                })}
+              </g>
             )}
 
             {/* Invisible Hover Hit Bands for Smooth Tooltip Scrubbing */}
             {dates.map((dateStr, idx) => {
-              const bandWidth = plotWidth / Math.max(1, dates.length);
-              const x = dates.length <= 1 ? PAD_LEFT : xForIndex(idx, dates.length) - bandWidth / 2;
+              const x =
+                dates.length <= 1 ? PAD_LEFT : xForIndex(idx, dates.length) - hoverBandWidth / 2;
               return (
                 <rect
                   key={`hit-${dateStr}`}
                   x={Math.max(PAD_LEFT, x)}
                   y={PAD_TOP}
-                  width={bandWidth}
+                  width={hoverBandWidth}
                   height={plotHeight}
                   fill="transparent"
                   className="cursor-crosshair"
@@ -538,6 +658,6 @@ export function AdminActivityChart({
           </svg>
         </div>
       )}
-    </section>
+    </motion.section>
   );
 }

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -91,5 +91,60 @@ describe('DashboardPage', () => {
     const barsButton = screen.getByRole('button', { name: 'Bars' });
     fireEvent.click(barsButton);
     expect(barsButton).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('shows interactive hover tooltip and replays entrance when scrolled into view', async () => {
+    const observerState: { cb?: (entries: IntersectionObserverEntry[]) => void } = {};
+    class MockIntersectionObserver {
+      constructor(cb: (entries: IntersectionObserverEntry[]) => void) {
+        observerState.cb = cb;
+      }
+      observe() {}
+      disconnect() {}
+      unobserve() {}
+    }
+    vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
+
+    vi.spyOn(adminApi, 'getStatsOverview').mockResolvedValue({
+      totalUsers: 120,
+      totalConversations: 48,
+      totalReports: 2,
+    });
+    vi.spyOn(adminApi, 'getStatsTimeseries').mockResolvedValue(buildSeries(30));
+    vi.spyOn(adminApi, 'getReports').mockResolvedValue({
+      items: [],
+      hasMore: false,
+      nextCursor: null,
+    });
+    vi.spyOn(adminApi, 'getAuditLogs').mockResolvedValue({
+      items: [],
+      hasMore: false,
+      nextCursor: null,
+    });
+
+    const { container } = renderPage();
+
+    const chart = await screen.findByRole('img', { name: 'Admin platform daily activity chart' });
+    expect(chart).toBeInTheDocument();
+
+    // Hover a day hit-band -> floating tooltip displays formatted date and metric value
+    const hitBands = container.querySelectorAll('rect.cursor-crosshair');
+    expect(hitBands.length).toBe(3);
+    fireEvent.mouseEnter(hitBands[1]!);
+
+    expect(await screen.findByText('Nov 26, 2026')).toBeInTheDocument();
+    expect(screen.getByText('45')).toBeInTheDocument();
+
+    // Simulate scrolling chart out of view then back into view
+    act(() => {
+      observerState.cb?.([{ isIntersecting: false } as IntersectionObserverEntry]);
+      observerState.cb?.([{ isIntersecting: true } as IntersectionObserverEntry]);
+    });
+
+    // Chart remains mounted and interactive after scroll re-entry
+    expect(
+      screen.getByRole('img', { name: 'Admin platform daily activity chart' }),
+    ).toBeInTheDocument();
+    vi.unstubAllGlobals();
   });
 });
